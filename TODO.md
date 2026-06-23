@@ -363,19 +363,19 @@ The existing RBAC implementation must be adapted, not duplicated.
 - [x] Angular build output is ignored
 - [x] Vue/Vite build output is ignored
 - [x] Docker data is ignored
-- [ ] Run `git check-ignore -v .env`
-- [ ] Run `git check-ignore -v backend/.env`
-- [ ] Review all files before staging
-- [ ] Confirm no secrets, keys, certificates, logs, DB data, or recordings are staged
+- [x] Run `git check-ignore -v .env`
+- [x] Run `git check-ignore -v backend/.env`
+- [x] Review all files before staging
+- [x] Confirm no secrets, keys, certificates, logs, DB data, or recordings are staged
 
 ## 6.2 Git Initialization
 
-- [ ] Run `git init`
-- [ ] Rename the default branch to `main`
-- [ ] Run `git status`
-- [ ] Stage the verified baseline
-- [ ] Review staged files
-- [ ] Create the initial baseline commit
+- [x] Run `git init`
+- [x] Rename the default branch to `main`
+- [x] Run `git status`
+- [x] Stage the verified baseline
+- [x] Review staged files
+- [x] Create the initial baseline commit
 
 Recommended commit:
 
@@ -1216,11 +1216,11 @@ Do not treat the existing billing page as a completed telephony billing implemen
 
 ## Step 1: Complete Git Baseline
 
-- [ ] Run Git ignore verification
-- [ ] Initialize Git
-- [ ] Set the default branch to `main`
-- [ ] Review staged files
-- [ ] Create the initial baseline commit
+- [x] Run Git ignore verification
+- [x] Initialize Git
+- [x] Set the default branch to `main`
+- [x] Review staged files
+- [x] Create the initial baseline commit
 
 ## Step 2: Complete Remaining Baseline Checks
 
@@ -1286,8 +1286,6 @@ Completed:
 
 Still required before closing Milestone 1:
 
-- [ ] Initialize Git
-- [ ] Create the initial baseline commit
 - [ ] Run the complete backend test suite
 - [ ] Verify browser authentication
 - [ ] Verify browser chat and realtime
