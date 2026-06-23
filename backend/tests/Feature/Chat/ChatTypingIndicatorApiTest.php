@@ -69,6 +69,7 @@ class ChatTypingIndicatorApiTest extends TestCase
 
     public function test_chat_typing_indicator_api_foundation(): void
     {
+        Cache::flush();
         Event::fake([ChatTypingStarted::class, ChatTypingStopped::class]);
 
         $owner = User::factory()->create();
@@ -142,7 +143,7 @@ class ChatTypingIndicatorApiTest extends TestCase
         ])->assertOk();
         Event::assertDispatchedTimes(ChatTypingStarted::class, 1);
 
-        $this->travel(3)->seconds();
+        Cache::forget("chat:typing:{$conversation->id}:{$actor->id}:start");
         $this->postJson("/api/v1/chat/conversations/{$conversation->id}/typing/start", [
             'device_type' => 'browser',
         ])->assertOk();

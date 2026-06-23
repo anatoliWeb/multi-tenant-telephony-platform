@@ -29,6 +29,7 @@ docker compose -f docker-compose.prod.example.yml config
 | `queue-worker` | Laravel queue worker process | Reuses PHP image and runs `backend/docker/queue/entrypoint.sh` |
 | `reverb` | Laravel Reverb websocket server | Reuses PHP image and runs `php artisan reverb:start` |
 | `horizon` | Optional Laravel Horizon process | Uses compose profile `horizon` |
+| `scheduler` | Laravel scheduler runtime | Reuses PHP image and runs `php artisan schedule:work` |
 | `frontend` | Angular Dashboard dev container | Uses `docker/frontend/Dockerfile`, serves on local port `4200` |
 | `vue-frontend` | Vue Admin Vite dev server | Uses `node:20-alpine`, serves on local port `5173` |
 

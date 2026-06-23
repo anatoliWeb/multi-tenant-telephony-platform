@@ -156,6 +156,7 @@ class ExternalChatMessageService
             payload: $payload,
             auditSource: 'incoming_webhook',
             direction: 'external_in',
+            enforceInternalPermissions: false,
         );
     }
 

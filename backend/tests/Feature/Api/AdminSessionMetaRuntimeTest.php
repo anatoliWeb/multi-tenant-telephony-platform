@@ -5,6 +5,7 @@ namespace Tests\Feature\Api;
 use App\Models\Permission;
 use App\Models\Role;
 use App\Models\User;
+use App\Services\MetaCacheService;
 use App\Services\Rbac\PermissionCacheService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -53,6 +54,7 @@ class AdminSessionMetaRuntimeTest extends TestCase
         $adminRole->permissions()->sync($permissions->pluck('id')->all());
         $user->roles()->sync([$adminRole->id]);
         app(PermissionCacheService::class)->forgetForUser($user);
+        app(MetaCacheService::class)->bumpRbacVersion();
 
         $login = $this->postJson('/api/v1/auth/session/login', [
             'email' => 'admin-runtime@example.com',

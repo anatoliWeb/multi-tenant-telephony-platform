@@ -4,142 +4,117 @@ Validation date: 2026-06-23
 
 ## Summary
 
-The renamed baseline is up and running in Docker. I fixed the startup blockers that were preventing PHP services from booting cleanly:
+The renamed baseline is operational and the Docker stack is stable.
 
-- Restored Composer autoload generation in the mounted backend volume.
-- Aligned the Laravel cache store with Redis in both Docker and backend env files.
-- Completed the database migration set after a partial first pass.
-- Created and granted access to the isolated `saas_testing` database for tests.
-- Added the standard Laravel storage link.
+Verified results:
 
-Result: the stack is operational, the backend and realtime services boot successfully, seed data loads, and the targeted validation suite passes with only non-blocking warnings.
+- Laravel boots and serves the API.
+- MySQL, Redis, Reverb, queue worker, Horizon, and the new scheduler service are running.
+- Migrations and seeders complete.
+- Angular build and tests pass.
+- Vue build and tests pass.
+- The complete backend suite now passes.
+- The NG8107 Angular template warning is resolved.
+
+Still open:
+
+- Real browser authentication was not completed in this environment.
+- Real browser chat and realtime validation was not completed in this environment.
+- The `pusher-js` Angular CommonJS warning remains as accepted technical debt.
+- The Vue Dart Sass legacy JS API warning remains as accepted technical debt.
 
 ## Docker Service Matrix
 
-| Service | Container | Status | Validation |
-| --- | --- | --- | --- |
-| Backend | `multi_tenant_telephony_platform_backend` | Up, healthy | `php artisan about`, `config:show cache`, `config:show app` |
-| Frontend | `multi_tenant_telephony_platform_frontend` | Up, healthy | `npm run build`, `npm test -- --watch=false` |
-| MySQL | `multi_tenant_telephony_platform_mysql` | Up, healthy | Migrations and seeders completed successfully |
-| Nginx | `multi_tenant_telephony_platform_nginx` | Up | Reverse proxy is reachable on `8080` |
-| Queue worker | `multi_tenant_telephony_platform_queue_worker` | Up | Queue bootstrap completed with the shared backend volume |
-| Redis | `multi_tenant_telephony_platform_redis` | Up, healthy | Laravel cache and queue use Redis |
-| Reverb | `multi_tenant_telephony_platform_reverb` | Up | `php artisan about` confirms broadcasting over Reverb |
-| Vue frontend | `multi_tenant_telephony_platform_vue_frontend` | Up | `npm run build`, `npm test` |
-
-## Laravel Validation
-
-- `php artisan about` reports `Multi-Tenant Telephony Platform` as the application name.
-- Cache is configured to `redis`.
-- Queue is configured to `redis`.
-- Broadcasting is configured to `reverb`.
-- `public/storage` is linked after running `php artisan storage:link`.
-- `php artisan route:list` returned 190 routes, including auth, RBAC, chat, Horizon, and API docs routes.
-
-## Database and Seeder Validation
-
-- `php artisan migrate:status` initially showed an empty migration repository on the fresh database.
-- `php artisan migrate --force` completed after recovering from a partial first pass.
-- `php artisan db:seed --force` completed successfully.
-- Seed output confirmed the demo chat baseline:
-  - `UserSeeder`
-  - `ActivitySeeder`
-  - `SettingsSeeder`
-  - `TranslationsSeeder`
-  - `ChatDemoSeeder`
-- The test database access issue was fixed by creating `saas_testing` and granting the `saas` user access.
-
-## Authentication and RBAC Validation
-
-- Routes are present for login, Sanctum session auth, token auth, `/api/v1/auth/me`, permissions, roles, and `api/v1/meta/rbac`.
-- `route:list` shows the expected auth and RBAC entry points in both web and API scopes.
-- I did not run a live browser login flow; validation here is route/config level plus the backend test slice.
-
-## Chat and Realtime Validation
-
-- Reverb now boots cleanly and reports `Starting server on 0.0.0.0:6001`.
-- The backend and Reverb containers both report `broadcasting = reverb` and `cache = redis`.
-- Queue worker startup completed against the shared backend volume.
-- `ChatDemoSeeder` reported `seeded 320+ demo chat messages`.
-
-## Queue/Horizon/Scheduler Validation
-
-- Queue processing is configured for Redis and the queue worker container is running.
-- Horizon provider is loaded in the Laravel application.
-- I did not start a dedicated Horizon profile or a separate scheduler process; no scheduler container exists in the compose stack.
-
-## Angular Validation
-
-- `docker compose exec -T frontend npm run build` passed.
-- `docker compose exec -T frontend npm test -- --watch=false` passed.
-- Result: 16 files passed, 113 tests passed.
-- Non-blocking warnings observed:
-  - Angular template warning `NG8107` in `settings-home.component.html`.
-  - CommonJS optimization warning for `pusher-js`.
-
-## Vue Validation
-
-- `docker compose exec -T vue-frontend npm run build` passed.
-- `docker compose exec -T vue-frontend npm test` passed.
-- Result: 18 files passed, 87 tests passed.
-- Non-blocking warning observed:
-  - Dart Sass legacy JS API deprecation warning.
+| Service | Status | Notes |
+| --- | --- | --- |
+| Backend | Up, healthy | Laravel API runtime verified |
+| Frontend | Up, healthy | Angular build and tests pass |
+| Vue frontend | Up | Vue build and tests pass |
+| MySQL | Up, healthy | Test and dev databases operational |
+| Redis | Up, healthy | Cache, queue, and realtime support |
+| Nginx | Up | HTTP entrypoint is reachable |
+| Queue worker | Up | Redis queue processing active |
+| Reverb | Up | Websocket server available on port 6001 |
+| Horizon | Up | `php artisan horizon:status` reports running |
+| Scheduler | Up | `php artisan schedule:work` executes the heartbeat task |
 
 ## Backend Test Results
 
-- Focused backend validation slice passed:
-  - `ReadmeDocumentationTest`
-  - `ReadmeUaDocumentationTest`
-  - `OpenApiToolingTest`
-  - `DockerImageOptimizationTest`
-  - `NamingConsistencyTest`
-  - `ArchitectureDocumentationTest`
-- Result: 6 passed, 5 skipped, 74 assertions.
-- Notable runtime:
-  - `OpenApiToolingTest` took 260.53 seconds.
+Command:
 
-## Branding Validation
+```bash
+docker compose exec -T backend php artisan test
+```
 
-- I checked for obsolete branding in the active baseline and rename surfaces.
-- The expected canonical project name is now present in the app, docs, and UI brand labels.
-- Remaining `saas` / `saas_testing` references are intentional and reserved for database and test database names.
-- Generated artifacts and runtime output can still contain legacy strings, but they are not part of the tracked baseline.
+Latest verified totals:
 
-## Git Safety Audit
+- Passed: `495`
+- Failed: `0`
+- Skipped: `21`
+- Incomplete: `0`
+- Risky: `0`
+- Assertions: `16096`
+- Duration: `797.94s`
 
-- No git repository was detected at the workspace root, so I did not run `git init`, `git commit`, or any push operation.
-- No destructive commands were used.
-- Ignore rules are in place for sensitive and generated paths, including:
-  - `.env`
-  - `vendor`
-  - `node_modules`
-  - storage and log directories
-  - build output
-  - Docker data directories
+Fixes made during validation:
 
-## Files Changed
+- Seeded the RBAC version key before bumping it so cache invalidation works even when the key is missing.
+- Updated the admin meta runtime test to invalidate the RBAC cache version before asserting role permissions.
+- Updated the typing indicator test to clear the throttle key directly instead of relying on cache TTL travel.
 
-- `/.env`
-- `/backend/.env`
-- `/docs/baseline-validation.md`
+## Browser Validation
 
-## Remaining Problems
+Browser flows were not completed here because the in-app browser runtime failed before it could execute the UI walkthrough.
 
-- Angular still emits a template optional-chaining warning in `settings-home.component.html`.
-- Angular build still warns about the CommonJS `pusher-js` dependency.
-- Vue build still emits the Sass legacy JS API deprecation warning.
-- I validated only a focused backend test slice, not the entire backend suite.
+Observed blocker:
 
-## Baseline Report
+- the Node/browser runtime reported `codex/sandbox-state-meta: missing field 'sandboxPolicy'`.
 
-The renamed baseline is functional and stable enough for local development and validation. Docker services boot, Laravel reports the expected runtime configuration, migrations and seeders complete, both frontends build and test successfully, and the backend-focused validation slice passes.
+Result:
 
-## Git Readiness
+- browser authentication: not verified
+- browser chat: not verified
+- browser realtime: not verified
 
-- Git readiness is not applicable until this workspace is initialized as a git repository.
-- If the repo is initialized later, the intended state should be reviewed before committing because the current work includes only baseline validation changes and environment sync fixes.
+## Horizon Validation
+
+Verified:
+
+- `docker compose ps` shows the dedicated `horizon` service running.
+- `docker compose exec -T backend php artisan horizon:status` reports `INFO  Horizon is running.`
+- Horizon logs show active job processing.
+- Access control is covered by the existing Horizon access tests.
+
+## Scheduler Validation
+
+Verified:
+
+- `docker-compose.yml` now includes a dedicated `scheduler` service.
+- The service runs the Laravel-supported command `php artisan schedule:work`.
+- Scheduler logs show the `scheduler-heartbeat` task executing repeatedly.
+- Docker Compose confirms the scheduler container stays up.
+
+## Frontend Warnings
+
+- Angular NG8107 optional chaining warning:
+  - root cause: the template used optional chaining on a value that is now known to be non-null.
+  - fix: the template was updated to use direct property access.
+  - status: resolved.
+- Angular `pusher-js` CommonJS warning:
+  - root cause: the current realtime package still resolves through a CommonJS build.
+  - fix: not changed; no safe ESM migration was verified in this baseline task.
+  - status: accepted technical debt.
+- Vue Sass legacy JS API warning:
+  - root cause: dependency/tooling deprecation warning from the Sass pipeline.
+  - fix: not changed; no safe dependency/configuration update was verified.
+  - status: accepted technical debt.
+
+## Remaining Issues
+
+- Browser authentication still needs real UI verification.
+- Browser chat and realtime still need real UI verification.
+- The two frontend warnings above remain accepted technical debt.
 
 ## Final Verdict
 
-Ready for local baseline use.
-
+The Milestone 1 baseline is partially complete and ready for continued work, but it is not yet closed because the browser validation items remain unverified.

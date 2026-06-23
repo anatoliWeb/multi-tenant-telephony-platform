@@ -69,11 +69,15 @@ class AppServiceProvider extends ServiceProvider
 
             $user = $request->user();
             $tokenId = $user?->currentAccessToken()?->getKey();
+            $routeEndpoint = $request->route('endpoint');
+            $endpointIdentifier = is_object($routeEndpoint)
+                ? (string) data_get($routeEndpoint, 'uuid', data_get($routeEndpoint, 'id', ''))
+                : (string) ($routeEndpoint ?? '');
             $key = $tokenId
                 ? 'chat-ext-token:'.$tokenId
                 : ($user
                     ? 'chat-ext-user:'.$user->getAuthIdentifier()
-                    : 'chat-ext-ip:'.$request->ip());
+                    : 'chat-ext-webhook:'.($endpointIdentifier !== '' ? $endpointIdentifier : $request->ip()).':'.$request->ip());
 
             return Limit::perSecond($maxAttempts, $decaySeconds)->by($key);
         });

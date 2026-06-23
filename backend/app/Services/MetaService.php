@@ -58,10 +58,7 @@ class MetaService
                     'id' => $user->id,
                     'name' => $user->name,
                     'email' => $user->email,
-                    'roles' => $user->roles()
-                        ->select('roles.id', 'roles.name')
-                        ->orderBy('roles.name')
-                        ->get(),
+                    'roles' => $this->getCurrentUserRoles($user),
                 ],
                 'current_user_permissions' => $this->getUserPermissionNames($user),
             ];
@@ -73,10 +70,7 @@ class MetaService
                     'id' => $user->id,
                     'name' => $user->name,
                     'email' => $user->email,
-                    'roles' => $user->roles()
-                        ->select('roles.id', 'roles.name')
-                        ->orderBy('roles.name')
-                        ->get(),
+                    'roles' => $this->getCurrentUserRoles($user),
                 ],
                 'current_user_permissions' => $this->getUserPermissionNames($user),
             ];
@@ -120,19 +114,19 @@ class MetaService
     protected function getSafeCachedModelList(string $cacheKey, callable $query, string $modelClass): Collection
     {
         if (!$this->cacheEnabled()) {
-            return $query()->values();
+            return collect($this->normalizeMetaArray($query()));
         }
 
         $cached = $this->cacheStore()->get($cacheKey);
 
-        if ($cached instanceof Collection && $this->isFlatModelCollection($cached, $modelClass)) {
-            return $cached->values();
+        if (is_array($cached) && $this->isFlatMetaArray($cached, $modelClass)) {
+            return collect($cached)->values();
         }
 
-        $fresh = $query();
+        $fresh = $this->normalizeMetaArray($query());
         $this->cacheStore()->put($cacheKey, $fresh, now()->addSeconds($this->rbacTtlSeconds()));
 
-        return $fresh->values();
+        return collect($fresh)->values();
     }
 
     /**
@@ -159,17 +153,33 @@ class MetaService
     /**
      * @param Collection<int, mixed> $items
      */
-    protected function isFlatModelCollection(Collection $items, string $modelClass): bool
+    protected function isFlatMetaArray(array $items, string $modelClass): bool
     {
-        if ($items->isEmpty()) {
+        if ($items === []) {
             return true;
         }
 
-        return $items->every(function (mixed $item) use ($modelClass): bool {
-            return $item instanceof $modelClass
-                && !empty((string) data_get($item, 'name'))
-                && data_get($item, 'id') !== null;
-        });
+        foreach ($items as $item) {
+            if ($item instanceof $modelClass) {
+                if (!empty((string) data_get($item, 'name')) && data_get($item, 'id') !== null) {
+                    continue;
+                }
+
+                return false;
+            }
+
+            if (!is_array($item)) {
+                return false;
+            }
+
+            if (!empty((string) data_get($item, 'name')) && data_get($item, 'id') !== null) {
+                continue;
+            }
+
+            return false;
+        }
+
+        return true;
     }
 
     /**
@@ -246,5 +256,67 @@ class MetaService
     protected function cacheEnabled(): bool
     {
         return (bool) config('performance.cache.enabled', true);
+    }
+
+    /**
+     * Normalize RBAC cache payload to plain arrays.
+     *
+     * @param Collection<int, Model|array<string, mixed>> $items
+     * @return array<int, array<string, mixed>>
+     */
+    protected function normalizeMetaArray(Collection $items): array
+    {
+        return $items
+            ->map(function (mixed $item): array {
+                if ($item instanceof Role) {
+                    return [
+                        'id' => (int) $item->id,
+                        'name' => (string) $item->name,
+                        'description' => $item->description !== null ? (string) $item->description : null,
+                    ];
+                }
+
+                if ($item instanceof Permission) {
+                    return [
+                        'id' => (int) $item->id,
+                        'name' => (string) $item->name,
+                        'description' => $item->description !== null ? (string) $item->description : null,
+                    ];
+                }
+
+                if (is_array($item)) {
+                    return [
+                        'id' => data_get($item, 'id'),
+                        'name' => data_get($item, 'name'),
+                        'description' => data_get($item, 'description'),
+                    ];
+                }
+
+                return [
+                    'id' => null,
+                    'name' => '',
+                    'description' => null,
+                ];
+            })
+            ->filter(fn (array $item): bool => data_get($item, 'id') !== null && is_string(data_get($item, 'name')) && data_get($item, 'name') !== '')
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @return array<int, array{id:int, name:string}>
+     */
+    protected function getCurrentUserRoles(User $user): array
+    {
+        return $user->roles()
+            ->select('roles.id', 'roles.name')
+            ->orderBy('roles.name')
+            ->get()
+            ->map(static fn (Role $role): array => [
+                'id' => (int) $role->id,
+                'name' => (string) $role->name,
+            ])
+            ->values()
+            ->all();
     }
 }

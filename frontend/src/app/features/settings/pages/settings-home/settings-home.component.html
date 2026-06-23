@@ -97,8 +97,8 @@
             <td>{{ item.group }}</td>
             <td>{{ item.type }}</td>
             <td>{{ formatEffective(item.key) }}</td>
-            <td>{{ item.scope?.type || '-' }}</td>
-            <td>{{ effective[item.key]?.source || '-' }}</td>
+            <td>{{ item.scope.type || '-' }}</td>
+            <td>{{ formatSource(item.key) }}</td>
             <td>
               <span class="status" [class.off]="!item.is_active">
                 {{ item.is_active ? ('common.status.active' | t) : ('common.status.inactive' | t) }}

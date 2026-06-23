@@ -94,6 +94,8 @@ docker compose exec backend composer test:openapi
 docker compose exec backend composer test:chat
 docker compose exec backend composer test:api
 docker compose exec backend composer test:auth
+docker compose up -d scheduler
+docker compose exec backend php artisan schedule:work
 ```
 
 Preflight/debug:

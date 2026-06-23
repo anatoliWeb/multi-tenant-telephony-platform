@@ -235,8 +235,8 @@ The existing RBAC implementation must be adapted, not duplicated.
 - [x] Vue frontend container is running
 - [x] Queue worker is running
 - [x] Reverb is running
-- [ ] Dedicated Horizon profile is running
-- [ ] Dedicated scheduler process is running
+- [x] Dedicated Horizon profile is running
+- [x] Dedicated scheduler process is running
 
 ## 5.2 Docker and Runtime Validation
 
@@ -325,9 +325,9 @@ The existing RBAC implementation must be adapted, not duplicated.
 - [x] `NamingConsistencyTest` passes
 - [x] `ArchitectureDocumentationTest` passes
 - [x] Focused result: `6` passed, `5` skipped, `74` assertions
-- [ ] Run the complete backend test suite
-- [ ] Record complete backend pass/fail/skip totals
-- [ ] Resolve any failures from the complete backend suite
+- [x] Run the complete backend test suite
+- [x] Record complete backend pass/fail/skip totals
+- [x] Resolve any failures from the complete backend suite
 
 ## 5.6 Baseline Definition of Done
 
@@ -343,7 +343,7 @@ The existing RBAC implementation must be adapted, not duplicated.
 - [x] Existing migrations complete
 - [x] Existing seeders complete
 - [x] Baseline validation is documented
-- [ ] Complete backend test suite passes or failures are fully documented
+- [x] Complete backend test suite passes or failures are fully documented
 - [ ] Browser authentication flow is verified
 - [ ] Browser chat and realtime flow are verified
 - [ ] Horizon runtime is verified
@@ -1224,14 +1224,14 @@ Do not treat the existing billing page as a completed telephony billing implemen
 
 ## Step 2: Complete Remaining Baseline Checks
 
-- [ ] Run the complete backend test suite
+- [x] Run the complete backend test suite
 - [ ] Verify live browser login
 - [ ] Verify direct chat between two users
 - [ ] Verify group chat
 - [ ] Verify realtime delivery
 - [ ] Verify permission-denied behavior
-- [ ] Verify Horizon runtime
-- [ ] Add and verify scheduler runtime
+- [x] Verify Horizon runtime
+- [x] Add and verify scheduler runtime
 - [ ] Resolve or document non-blocking frontend warnings
 
 ## Step 3: Finalize Architecture Decisions
@@ -1286,11 +1286,11 @@ Completed:
 
 Still required before closing Milestone 1:
 
-- [ ] Run the complete backend test suite
+- [x] Run the complete backend test suite
 - [ ] Verify browser authentication
 - [ ] Verify browser chat and realtime
-- [ ] Verify Horizon runtime
-- [ ] Verify scheduler runtime
+- [x] Verify Horizon runtime
+- [x] Verify scheduler runtime
 
 ---
 

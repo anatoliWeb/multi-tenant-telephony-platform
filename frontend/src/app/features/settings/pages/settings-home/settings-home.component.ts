@@ -193,6 +193,10 @@ export class SettingsHomeComponent implements OnInit {
     return String(value);
   }
 
+  formatSource(key: string): string {
+    return this.effective[key]?.source ?? '-';
+  }
+
   mapStringOptions(values: string[]): SelectFilterOption[] {
     return values.map((value) => ({ value, label: value }));
   }

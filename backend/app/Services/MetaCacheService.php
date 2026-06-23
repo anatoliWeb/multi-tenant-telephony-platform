@@ -17,6 +17,8 @@ class MetaCacheService
 
     public function bumpRbacVersion(): int
     {
+        Cache::add(self::RBAC_VERSION_KEY, 1, now()->addDays(7));
+
         return (int) Cache::increment(self::RBAC_VERSION_KEY);
     }
 
@@ -27,7 +29,10 @@ class MetaCacheService
 
     public function bumpUserBootstrapVersion(int $userId): int
     {
-        return (int) Cache::increment($this->userVersionKey($userId));
+        $key = $this->userVersionKey($userId);
+        Cache::add($key, 1, now()->addDays(7));
+
+        return (int) Cache::increment($key);
     }
 
     protected function userVersionKey(int $userId): string
@@ -35,4 +40,3 @@ class MetaCacheService
         return self::USER_BOOTSTRAP_VERSION_KEY_PREFIX . $userId;
     }
 }
-
