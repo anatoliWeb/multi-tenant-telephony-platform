@@ -291,12 +291,12 @@ The existing RBAC implementation must be adapted, not duplicated.
 - [x] Verify a real browser login flow
 - [x] Angular application opens after authentication
 - [x] Vue administration application opens after authentication
-- [ ] Verify logout through the browser
-- [ ] Verify direct chat between two browser sessions
-- [ ] Verify group chat through the browser
-- [ ] Verify realtime message delivery between two browser sessions
-- [ ] Verify typing and presence in live browser sessions
-- [ ] Verify permission-denied UI and API behavior manually
+- [x] Verify logout through the browser
+- [x] Verify direct chat between two browser sessions
+- [x] Verify group chat through the browser
+- [x] Verify realtime message delivery between two browser sessions
+- [x] Verify typing and presence in live browser sessions
+- [x] Verify permission-denied UI and API behavior manually
 
 ## 5.5 Test Validation
 
@@ -347,7 +347,7 @@ The existing RBAC implementation must be adapted, not duplicated.
 - [x] Baseline validation is documented
 - [x] Complete backend test suite passes or failures are fully documented
 - [x] Browser authentication flow is verified
-- [ ] Browser chat and realtime flow are verified
+- [x] Browser chat and realtime flow are verified
 - [ ] Horizon runtime is verified
 - [ ] Scheduler runtime is implemented and verified
 
@@ -393,31 +393,31 @@ Do not reorganize the entire Laravel application before implementing the new dom
 
 Document the existing architecture first.
 
-- [ ] Update the architecture overview
-- [ ] Document the current request flow
-- [ ] Document reusable backend services
-- [ ] Document Angular and Vue responsibilities
-- [ ] Document API boundaries
-- [ ] Document existing RBAC behavior
-- [ ] Document current realtime channels
-- [ ] Document chat architecture
-- [ ] Document queue architecture
-- [ ] Document extension rules for new modules
-- [ ] Add architecture decision records
+- [x] Update the architecture overview
+- [x] Document the current request flow
+- [x] Document reusable backend services
+- [x] Document Angular and Vue responsibilities
+- [x] Document API boundaries
+- [x] Document existing RBAC behavior
+- [x] Document current realtime channels
+- [x] Document chat architecture
+- [x] Document queue architecture
+- [x] Document extension rules for new modules
+- [x] Add architecture decision records
 
 ## 7.1 Required ADRs
 
-- [ ] Existing application is extended in place
-- [ ] Laravel remains the single backend
-- [ ] Angular is the tenant application
-- [ ] Vue is the platform administration application
-- [ ] Shared-database multi-tenancy
-- [ ] Roles are permission sets
-- [ ] Direct user permissions are excluded from the target first release
-- [ ] PBX integrations use contracts and adapters
-- [ ] FreeSWITCH provides SIP, RTP, media, and conference mixing
-- [ ] Browser calling uses a reusable call-control layer
-- [ ] Secure transport is required before future E2EE
+- [x] Existing application is extended in place
+- [x] Laravel remains the single backend
+- [x] Angular is the tenant application
+- [x] Vue is the platform administration application
+- [x] Shared-database multi-tenancy
+- [x] Roles are permission sets
+- [x] Direct user permissions are excluded from the target first release
+- [x] PBX integrations use contracts and adapters
+- [x] FreeSWITCH provides SIP, RTP, media, and conference mixing
+- [x] Browser calling uses a reusable call-control layer
+- [x] Secure transport is required before future E2EE
 
 ---
 
@@ -1238,9 +1238,9 @@ Do not treat the existing billing page as a completed telephony billing implemen
 
 ## Step 3: Finalize Architecture Decisions
 
-- [ ] Add required ADRs
-- [ ] Document module-extension rules
-- [ ] Approve the multi-tenancy implementation plan
+- [x] Add required ADRs
+- [x] Document module-extension rules
+- [x] Approve the multi-tenancy implementation plan
 
 ## Step 4: Implement Multi-Tenancy
 
@@ -1265,7 +1265,7 @@ Do not treat the existing billing page as a completed telephony billing implemen
 
 # 32. Milestone 1: Renamed and Running Baseline
 
-Milestone status: `PARTIAL`
+Milestone status: `COMPLETE`
 
 Completed:
 
@@ -1290,7 +1290,7 @@ Still required before closing Milestone 1:
 
 - [x] Run the complete backend test suite
 - [x] Verify browser authentication
-- [ ] Verify browser chat and realtime
+- [x] Verify browser chat and realtime
 - [x] Verify Horizon runtime
 - [x] Verify scheduler runtime
 

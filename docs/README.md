@@ -13,6 +13,7 @@ The project follows an API-first, modular architecture with clear separation bet
 ## Structure
 
 - [architecture.md](./architecture.md) - System design, components, and data flow
+- [architecture/README.md](./architecture/README.md) - Architecture hub for the approved target model and implementation planning
 - [commands.md](./commands.md) - Development and operational commands
 - [coding-standards.md](./coding-standards.md) - Code style and best practices
 - [api.md](./api.md) - API endpoints and examples
@@ -23,6 +24,7 @@ The project follows an API-first, modular architecture with clear separation bet
 ## Quick Navigation
 
 - Architecture -> [./architecture.md](./architecture.md)
+- Architecture Pack -> [./architecture/README.md](./architecture/README.md)
 - API -> [./api.md](./api.md)
 - Commands -> [./commands.md](./commands.md)
 - Coding Standards -> [./coding-standards.md](./coding-standards.md)

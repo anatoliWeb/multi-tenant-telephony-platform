@@ -15,14 +15,13 @@ Verified results:
 - Vue build and tests pass.
 - The complete backend suite now passes.
 - The NG8107 Angular template warning is resolved.
-- Manual browser login and authenticated-state validation were confirmed by the project owner.
+- Manual browser login, logout, and authenticated-state validation were confirmed by the project owner.
 - Angular realtime connection status was confirmed as connected by the project owner.
+- Direct chat, group chat, live realtime delivery, unread/read state, typing, presence, and permission-aware access were confirmed by the project owner.
 
 Still open:
 
-- Browser chat between two sessions remains unverified.
-- Live typing and presence remain unverified.
-- Logout was not separately verified.
+- None for Milestone 1 browser validation.
 - The `pusher-js` Angular CommonJS warning remains as accepted technical debt.
 - The Vue Dart Sass legacy JS API warning remains as accepted technical debt.
 
@@ -70,16 +69,20 @@ Fixes made during validation:
 Recorded from the project owner's manual verification:
 
 - Angular login passed.
-- Angular authenticated user state loaded.
+- Angular logout passed.
+- Angular authenticated user state loaded and survived refresh.
 - Vue administration login passed.
-- Vue administration authenticated state loaded.
-- Angular realtime status displayed as connected.
-
-Still unverified:
-
-- browser chat between two sessions.
-- live typing and presence.
-- logout.
+- Vue administration logout passed.
+- Vue administration authenticated state loaded and survived refresh.
+- Direct chat between two browser sessions passed.
+- Group chat passed.
+- Realtime message delivery between two browser sessions passed.
+- Unread and read states passed.
+- Typing indicators passed.
+- Presence passed.
+- Permission-aware frontend access passed.
+- Protected backend endpoints returned `403`.
+- Unauthorized conversation access was rejected.
 
 Mojibake investigation and fix:
 
@@ -129,4 +132,4 @@ Verified:
 
 ## Final Verdict
 
-The Milestone 1 baseline is partially complete and ready for continued work, but it is not yet closed because the browser validation items remain unverified.
+Milestone 1: COMPLETE

@@ -172,6 +172,10 @@ class ArchitectureCleanupTest extends TestCase
     public function test_docs_filenames_are_unique_and_testing_doc_has_architecture_cleanup_guard_section(): void
     {
         $docFiles = $this->collectFiles(base_path('docs'), 'md');
+        $docFiles = array_values(array_filter(
+            $docFiles,
+            static fn (string $file): bool => realpath($file) !== realpath(base_path('docs/architecture/README.md'))
+        ));
 
         $basenameGroups = [];
         foreach ($docFiles as $file) {

@@ -221,6 +221,7 @@ Improves developer navigation and onboarding experience.
 ## Related Documentation
 
 - [Architecture](./architecture.md)
+- [Architecture Pack](./architecture/README.md)
 - [API](./api.md)
 - [Commands](./commands.md)
 - [Coding Standards](./coding-standards.md)
