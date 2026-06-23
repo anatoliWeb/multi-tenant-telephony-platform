@@ -1,0 +1,7 @@
+<app-input
+  class="search-input"
+  [label]="labelKey | t"
+  [placeholder]="placeholderKey | t"
+  [value]="value"
+  (valueChange)="valueChange.emit($event)"
+/>

@@ -1,0 +1,15 @@
+<header class="dashboard-shell__topbar">
+  <div class="topbar-title">
+    <strong>{{ 'layout.topbar.title' | t }}</strong>
+    <small>{{ 'layout.topbar.subtitle' | t }}</small>
+  </div>
+
+  <div class="topbar-actions">
+    <select [value]="currentLocale" (change)="onLocaleChange($event)">
+      <option *ngFor="let locale of locales" [value]="locale">{{ locale | uppercase }}</option>
+    </select>
+
+    <small class="user-name">{{ userName || ('common.status.guest' | t) }}</small>
+    <button type="button" class="logout-btn" (click)="logout.emit()">{{ 'common.actions.logout' | t }}</button>
+  </div>
+</header>

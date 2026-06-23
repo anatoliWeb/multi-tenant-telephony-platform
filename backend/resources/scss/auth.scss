@@ -1,0 +1,56 @@
+//@use 'variables' as *;
+// Auth pages styling
+
+.auth-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    background: #0f172a;
+}
+
+.auth-card {
+    width: 100%;
+    max-width: 400px;
+    background: #1e293b;
+    padding: 30px;
+    border-radius: 12px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+}
+
+.auth-title {
+    font-size: 24px;
+    font-weight: 600;
+    margin-bottom: 20px;
+    color: #fff;
+}
+
+.auth-input {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 15px;
+    border-radius: 6px;
+    border: 1px solid #334155;
+    background: #0f172a;
+    color: #fff;
+}
+
+.auth-button {
+    width: 100%;
+    padding: 10px;
+    background: #3b82f6;
+    border: none;
+    border-radius: 6px;
+    color: white;
+    cursor: pointer;
+
+    &:hover {
+        background: #2563eb;
+    }
+}
+
+.auth-error {
+    color: #f87171;
+    margin-bottom: 10px;
+    font-size: 14px;
+}

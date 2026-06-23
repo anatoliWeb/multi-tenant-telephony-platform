@@ -1,0 +1,57 @@
+<app-modal-shell [open]="open" (close)="close.emit()">
+  <header class="panel__header">
+    <h3>{{ modeTitleKey | t }}</h3>
+    <button type="button" (click)="close.emit()">&times;</button>
+  </header>
+
+  <div class="panel__body" *ngIf="draft">
+    <div class="grid">
+      <label><span>{{ 'settings.fields.label' | t }}</span><input [disabled]="readonly" [(ngModel)]="draft.label" /></label>
+      <label><span>{{ 'settings.fields.key' | t }}</span><input [disabled]="readonly || mode==='edit'" [(ngModel)]="draft.key" /></label>
+      <label><span>{{ 'common.labels.group' | t }}</span><input [disabled]="readonly" [(ngModel)]="draft.group" /></label>
+      <label>
+        <span>{{ 'common.labels.type' | t }}</span>
+        <select [disabled]="readonly" [(ngModel)]="draft.type">
+          <option *ngFor="let type of types" [value]="type">{{ type }}</option>
+        </select>
+      </label>
+    </div>
+
+    <label class="field">
+      <span>{{ 'settings.fields.description' | t }}</span>
+      <textarea [disabled]="readonly" rows="2" [(ngModel)]="draft.description"></textarea>
+    </label>
+
+    <label class="field">
+      <span>{{ 'settings.fields.value' | t }}</span>
+      <textarea [disabled]="readonly" rows="2" [(ngModel)]="draft.valueText"></textarea>
+    </label>
+
+    <label class="field">
+      <span>{{ 'settings.fields.defaultValue' | t }}</span>
+      <textarea [disabled]="readonly" rows="2" [(ngModel)]="draft.defaultValueText"></textarea>
+    </label>
+
+    <div class="toggles">
+      <label><input type="checkbox" [disabled]="readonly" [(ngModel)]="draft.is_active" /> {{ 'settings.fields.active' | t }}</label>
+      <label><input type="checkbox" [disabled]="readonly" [(ngModel)]="draft.is_frontend" /> {{ 'settings.fields.frontend' | t }}</label>
+      <label><input type="checkbox" [disabled]="readonly" [(ngModel)]="draft.is_backend" /> {{ 'settings.fields.backend' | t }}</label>
+      <label><input type="checkbox" [disabled]="readonly" [(ngModel)]="draft.is_public" /> {{ 'settings.fields.public' | t }}</label>
+      <label><input type="checkbox" [disabled]="readonly" [(ngModel)]="draft.is_encrypted" /> {{ 'settings.fields.encrypted' | t }}</label>
+    </div>
+
+    <div class="translations">
+      <h4>{{ 'settings.fields.translations' | t }}</h4>
+      <div class="locale-grid" *ngFor="let locale of locales">
+        <strong>{{ locale.toUpperCase() }}</strong>
+        <input [disabled]="readonly" [placeholder]="('settings.fields.label' | t) + ' (' + locale + ')'" [(ngModel)]="draft.translations[locale].label" />
+        <input [disabled]="readonly" [placeholder]="('settings.fields.description' | t) + ' (' + locale + ')'" [(ngModel)]="draft.translations[locale].description" />
+      </div>
+    </div>
+  </div>
+
+  <footer class="panel__footer">
+    <app-button (click)="close.emit()">{{ 'common.actions.close' | t }}</app-button>
+    <app-button *ngIf="!readonly" [disabled]="saving" (click)="emitSave()">{{ saving ? ('common.states.saving' | t) : ('common.actions.save' | t) }}</app-button>
+  </footer>
+</app-modal-shell>

@@ -1,0 +1,7 @@
+<label class="select-filter">
+  <span>{{ labelKey | t }}</span>
+  <select [value]="value" (change)="onChange($event)">
+    <option value="">{{ allLabelKey | t }}</option>
+    <option *ngFor="let option of options" [value]="option.value">{{ option.labelKey ? (option.labelKey | t) : option.label }}</option>
+  </select>
+</label>

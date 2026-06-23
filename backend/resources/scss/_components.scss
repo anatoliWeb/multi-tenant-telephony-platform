@@ -1,0 +1,265 @@
+@use 'variables' as *;
+@use 'mixins' as *;
+
+.c-card {
+  @include panel;
+  background: rgba(255,255,255,0.02);
+  border-radius: 12px;
+  padding: 16px;
+  margin-top: 12px;
+}
+
+.c-card--stat {
+  min-height: 120px;
+}
+
+.c-card__label {
+  display: block;
+  color: $color-text-secondary;
+  font-size: $font-size-sm;
+  margin-bottom: $space-1;
+}
+
+.c-card__value {
+  font-size: 30px;
+  font-weight: 700;
+}
+
+.c-badge {
+  display: inline-flex;
+  align-items: center;
+  margin-right: 6px;
+  margin-bottom: 6px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: rgba(59, 130, 246, 0.2);
+  color: #bfdbfe;
+  border: 1px solid rgba(59, 130, 246, 0.4);
+  font-size: $font-size-sm;
+}
+
+.c-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: 1px solid transparent;
+  border-radius: $radius-sm;
+  padding: 8px 14px;
+  font-size: $font-size-md;
+  color: $color-text-primary;
+  background: $color-surface-soft;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background-color $transition-fast, border-color $transition-fast;
+
+  &:hover {
+    background: #334155;
+  }
+}
+
+.c-btn--primary {
+  background: $color-primary;
+  padding: 10px 16px;
+  border-radius: 8px;
+
+  &:hover {
+    background: $color-primary-hover;
+  }
+}
+
+.c-btn--danger {
+  background: #ef4444;
+
+  &:hover {
+    background: $color-danger-hover;
+  }
+}
+
+.c-btn--ghost {
+  border-color: $color-border;
+  background: transparent;
+
+  &:hover {
+    background: rgba(148, 163, 184, 0.08);
+  }
+}
+
+.c-alert {
+  border: 1px solid transparent;
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+}
+
+.c-alert--success {
+  background: rgba(34,197,94,0.1);
+  color: #22c55e;
+  border-color: rgba(34, 197, 94, 0.3);
+}
+
+.c-alert--error {
+  background: rgba(239,68,68,0.1);
+  color: #ef4444;
+  border-color: rgba(239, 68, 68, 0.35);
+}
+
+.c-alert--warning {
+  background: rgba(245, 158, 11, 0.12);
+  color: #fbbf24;
+  border-color: rgba(245, 158, 11, 0.35);
+}
+
+.c-table-wrap {
+  @include panel;
+  overflow: hidden;
+}
+
+.c-table {
+  width: 100%;
+  border-collapse: collapse;
+
+  th,
+  td {
+    padding: 12px 16px;
+    text-align: left;
+    font-size: $font-size-md;
+  }
+
+  th {
+    color: $color-text-secondary;
+    font-weight: 600;
+    border-bottom: 1px solid $color-border;
+    background: rgba(148, 163, 184, 0.04);
+  }
+
+  tbody tr {
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+  }
+
+  tbody tr:nth-child(even) {
+    background: rgba(15, 23, 42, 0.35);
+  }
+
+  tbody tr:hover {
+    background: rgba(255,255,255,0.03);
+  }
+}
+
+.c-table__muted {
+  color: $color-text-secondary;
+}
+
+.c-table__actions {
+  // WHY:
+  // Improve visual hierarchy and spacing to make admin UI easier to scan and use.
+  text-align: right;
+}
+
+.c-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.c-page-header {
+  // WHY:
+  // Improve visual hierarchy and spacing to make admin UI easier to scan and use.
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.c-page-subtitle {
+  margin-top: 6px;
+  opacity: 0.7;
+}
+
+.c-empty {
+  // WHY:
+  // Unified UI improves usability and reduces cognitive load across admin panel.
+  padding: 16px;
+  text-align: center;
+  color: $color-text-secondary;
+}
+
+.c-token-box {
+  margin-top: $space-1;
+  padding: $space-1;
+  border-radius: $radius-sm;
+  border: 1px solid $color-border;
+  background: rgba(15, 23, 42, 0.7);
+  display: flex;
+  gap: $space-1;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.c-token-box__value {
+  overflow-wrap: anywhere;
+  color: #bfdbfe;
+  font-size: $font-size-sm;
+}
+
+.u-mt-3 {
+  margin-top: $space-3;
+}
+
+.c-breadcrumbs {
+  margin-bottom: $space-2;
+}
+
+.c-breadcrumbs__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.c-breadcrumbs__item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: $color-text-secondary;
+  font-size: $font-size-sm;
+}
+
+.c-breadcrumbs__link {
+  color: $color-text-secondary;
+  text-decoration: none;
+  transition: color $transition-fast, opacity $transition-fast;
+
+  &:hover {
+    color: $color-text-primary;
+  }
+}
+
+.c-breadcrumbs__current {
+  color: $color-text-primary;
+}
+
+.c-breadcrumbs__separator {
+  display: inline-flex;
+  align-items: center;
+  opacity: 0.7;
+  transition: opacity $transition-fast;
+
+  svg {
+    width: 12px;
+    height: 12px;
+    stroke: currentColor;
+    stroke-width: 2;
+    fill: none;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+}
+
+.c-breadcrumbs__item.is-active .c-breadcrumbs__separator {
+  opacity: 1;
+}

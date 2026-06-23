@@ -1,0 +1,69 @@
+//@use 'variables' as *;
+
+.landing {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    background: #0f172a;
+    color: white;
+    padding: 40px;
+    text-align: center;
+}
+
+.landing-title {
+    font-size: 42px;
+    margin-bottom: 20px;
+}
+
+.landing-subtitle {
+    font-size: 18px;
+    color: #94a3b8;
+    margin-bottom: 30px;
+}
+
+.landing-actions {
+    margin-bottom: 50px;
+}
+
+.btn-primary,
+.btn-secondary,
+.btn-link {
+    display: inline-block;
+    margin: 5px;
+    padding: 10px 20px;
+    border-radius: 6px;
+    text-decoration: none;
+    font-size: 14px;
+}
+
+.btn-primary {
+    background: #3b82f6;
+    color: white;
+}
+
+.btn-primary:hover {
+    background: #2563eb;
+}
+
+.btn-secondary {
+    background: #1e293b;
+    color: white;
+}
+
+.btn-secondary:hover {
+    background: #334155;
+}
+
+.btn-link {
+    color: #60a5fa;
+}
+
+.landing-docs {
+    max-width: 600px;
+    text-align: left;
+    background: #1e293b;
+    padding: 20px;
+    border-radius: 10px;
+}

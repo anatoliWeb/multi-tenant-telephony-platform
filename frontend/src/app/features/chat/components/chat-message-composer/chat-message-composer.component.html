@@ -1,0 +1,52 @@
+<div class="composer">
+  <p class="composer__notice" *ngIf="isReadOnly">Read-only conversation</p>
+  <p class="composer__notice composer__notice--blocked" *ngIf="isBlocked">You cannot send messages</p>
+  <p class="composer__notice composer__notice--blocked" *ngIf="isConversationClosedLike">Conversation is closed for new messages</p>
+
+  <label class="composer__label" for="chat-message-body">Message</label>
+  <textarea
+    id="chat-message-body"
+    class="composer__textarea"
+    [disabled]="sending || !conversation || isReadOnly || isBlocked || isConversationClosedLike"
+    [(ngModel)]="draft"
+    (ngModelChange)="onDraftInput()"
+    (keydown)="onKeydown($event)"
+    (blur)="onBlur()"
+    placeholder="Type a message..."
+    rows="3"
+    data-testid="composer-textarea"
+  ></textarea>
+
+  <div class="composer__attachment">
+    <label class="composer__label" for="chat-attachment-file">Attachment</label>
+    <input
+      #fileInput
+      id="chat-attachment-file"
+      type="file"
+      [disabled]="!canAttach || sending"
+      (change)="onFileSelected($event)"
+      data-testid="composer-file-input"
+    />
+    <div class="composer__file" *ngIf="selectedFile as file">
+      <span class="composer__file-name">{{ file.name }}</span>
+      <button type="button" class="composer__file-remove" (click)="clearSelectedFile(fileInput)" data-testid="composer-file-remove">
+        Remove
+      </button>
+    </div>
+  </div>
+
+  <div class="composer__actions">
+    <small class="composer__hint">Enter to send, Shift+Enter for new line</small>
+    <button
+      type="button"
+      class="composer__send"
+      [disabled]="!canSend"
+      (click)="submit()"
+      data-testid="composer-send"
+    >
+      {{ sending ? 'Sending...' : 'Send' }}
+    </button>
+  </div>
+
+  <small class="composer__error" *ngIf="error">{{ error }}</small>
+</div>

@@ -1,0 +1,138 @@
+<section class="settings-page">
+  <ui-card>
+    <div class="page-head">
+      <div>
+        <h2>{{ 'settings.title' | t }}</h2>
+        <p>{{ 'settings.subtitle' | t }}</p>
+      </div>
+      <div class="head-actions">
+        <small class="pill" [class.online]="realtimeConnected">
+          {{ realtimeConnected ? ('common.status.connected' | t) : ('common.status.disconnected' | t) }}
+        </small>
+        <app-button *ngIf="canCreate" (click)="openCreate()">{{ 'settings.actions.create' | t }}</app-button>
+      </div>
+    </div>
+  </ui-card>
+
+  <ui-card>
+    <app-filters-bar>
+      <app-search-input
+        [value]="filters.search"
+        [labelKey]="'common.labels.search'"
+        [placeholderKey]="'settings.filters.searchPlaceholder'"
+        (valueChange)="onFiltersChange({ search: $event })"
+      />
+
+      <app-select-filter
+        [labelKey]="'common.labels.group'"
+        [value]="filters.group"
+        [options]="mapStringOptions(groups)"
+        (valueChange)="onFiltersChange({ group: $event })"
+      />
+
+      <app-select-filter
+        [labelKey]="'common.labels.type'"
+        [value]="filters.type"
+        [options]="mapStringOptions(types)"
+        (valueChange)="onFiltersChange({ type: $event })"
+      />
+
+      <app-select-filter
+        [labelKey]="'settings.table.active'"
+        [value]="filters.is_active"
+        [options]="activeOptions"
+        (valueChange)="onBooleanFilterChange('is_active', $event)"
+      />
+
+      <app-select-filter
+        [labelKey]="'common.labels.channel'"
+        [value]="filters.channel"
+        [options]="channelOptions"
+        (valueChange)="onChannelChange($event)"
+      />
+
+      <app-select-filter
+        [labelKey]="'settings.filters.visibility'"
+        [value]="filters.is_public"
+        [options]="visibilityOptions"
+        (valueChange)="onBooleanFilterChange('is_public', $event)"
+      />
+
+      <app-select-filter
+        [labelKey]="'settings.filters.encryption'"
+        [value]="filters.is_encrypted"
+        [options]="encryptionOptions"
+        (valueChange)="onBooleanFilterChange('is_encrypted', $event)"
+      />
+    </app-filters-bar>
+  </ui-card>
+
+  <ui-card>
+    <app-loading-state [visible]="loading" />
+    <app-skeleton-table *ngIf="loading" [rows]="6" />
+    <app-empty-state *ngIf="!loading && items.length === 0" [messageKey]="'settings.empty'" />
+
+    <app-data-table *ngIf="!loading && items.length > 0" class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>{{ 'settings.table.label' | t }}</th>
+            <th>{{ 'settings.table.key' | t }}</th>
+            <th>{{ 'settings.table.group' | t }}</th>
+            <th>{{ 'settings.table.type' | t }}</th>
+            <th>{{ 'settings.table.effectiveValue' | t }}</th>
+            <th>{{ 'settings.table.scope' | t }}</th>
+            <th>{{ 'settings.table.source' | t }}</th>
+            <th>{{ 'settings.table.active' | t }}</th>
+            <th>{{ 'settings.table.actions' | t }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let item of items; trackBy: trackById">
+            <td>
+              <strong>{{ item.label }}</strong>
+              <small>{{ item.description || '-' }}</small>
+            </td>
+            <td><code>{{ item.key }}</code></td>
+            <td>{{ item.group }}</td>
+            <td>{{ item.type }}</td>
+            <td>{{ formatEffective(item.key) }}</td>
+            <td>{{ item.scope?.type || '-' }}</td>
+            <td>{{ effective[item.key]?.source || '-' }}</td>
+            <td>
+              <span class="status" [class.off]="!item.is_active">
+                {{ item.is_active ? ('common.status.active' | t) : ('common.status.inactive' | t) }}
+              </span>
+            </td>
+            <td>
+              <div class="row-actions">
+                <button type="button" (click)="openView(item)">{{ 'common.actions.view' | t }}</button>
+                <button type="button" *ngIf="canEdit" (click)="openEdit(item)">{{ 'common.actions.edit' | t }}</button>
+                <button type="button" *ngIf="canDelete" (click)="remove(item)">{{ 'common.actions.delete' | t }}</button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </app-data-table>
+
+    <app-pagination
+      [currentPage]="meta.current_page"
+      [lastPage]="meta.last_page"
+      [perPage]="meta.per_page"
+      [total]="meta.total"
+      (pageChange)="goToPage($event)"
+    />
+  </ui-card>
+
+  <app-settings-upsert-modal
+    [open]="modalOpen"
+    [mode]="modalMode"
+    [setting]="selected"
+    [types]="types"
+    [locales]="locales"
+    [saving]="saving"
+    (close)="closeModal()"
+    (save)="persist($event)"
+  />
+</section>

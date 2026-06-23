@@ -1,0 +1,5 @@
+<div class="overlay" *ngIf="open" (click)="close.emit()">
+  <section class="panel" (click)="$event.stopPropagation()">
+    <ng-content></ng-content>
+  </section>
+</div>

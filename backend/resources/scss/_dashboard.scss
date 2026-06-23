@@ -1,0 +1,120 @@
+@use 'variables' as *;
+@use 'mixins' as *;
+
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: $space-2;
+}
+
+.dashboard-rail {
+  margin-top: $space-3;
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: $space-2;
+}
+
+.dashboard-placeholder {
+  @include panel;
+  min-height: 220px;
+  padding: $space-2;
+}
+
+.dashboard-placeholder__title {
+  margin: 0 0 $space-1;
+  font-size: $font-size-lg;
+}
+
+.dashboard-placeholder__text {
+  margin: 0;
+  color: $color-text-secondary;
+}
+
+@media (max-width: 900px) {
+  .dashboard-rail {
+    grid-template-columns: 1fr;
+  }
+}
+
+.dashboard-charts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px;
+  margin-top: 32px;
+}
+
+.dashboard-chart-card {
+  background: $color-surface;
+  border: 1px solid $color-border;
+  border-radius: $radius-lg;
+  padding: 24px;
+}
+
+.dashboard-chart-card h2 {
+  margin-bottom: 20px;
+  color: $color-text-primary;
+}
+
+@media (max-width: 900px) {
+  .dashboard-charts {
+    grid-template-columns: 1fr;
+  }
+}
+
+.dashboard-activity {
+    margin-top: 32px;
+}
+
+.activity-list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.activity-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px;
+    border-radius: $radius-md;
+    background: rgba(255, 255, 255, 0.02);
+    transition: 0.2s;
+}
+
+.activity-item:hover {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.activity-icon {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    margin-top: 6px;
+}
+
+.activity-icon.success {
+    background: #22c55e;
+}
+
+.activity-icon.info {
+    background: #3b82f6;
+}
+
+.activity-icon.danger {
+    background: #ef4444;
+}
+
+.activity-content {
+    display: flex;
+    flex-direction: column;
+}
+
+.activity-title {
+    color: $color-text-primary;
+    font-size: 14px;
+}
+
+.activity-time {
+    color: $color-text-secondary;
+    font-size: 12px;
+}

@@ -1,0 +1,10 @@
+<label class="app-input">
+  <span *ngIf="label" class="app-input__label">{{ label }}</span>
+  <input
+    [type]="type"
+    [value]="value"
+    [placeholder]="placeholder"
+    [disabled]="disabled"
+    (input)="emitValue($event)"
+  />
+</label>

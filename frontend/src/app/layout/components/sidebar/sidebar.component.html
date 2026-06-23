@@ -1,0 +1,12 @@
+<aside class="dashboard-shell__sidebar">
+  <h1>{{ 'layout.brand' | t }}</h1>
+  <nav>
+    <a
+      *ngFor="let item of visibleNavItems"
+      [routerLink]="item.route"
+      routerLinkActive="is-active"
+    >
+      {{ item.labelKey | t }}
+    </a>
+  </nav>
+</aside>

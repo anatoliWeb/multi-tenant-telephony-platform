@@ -1,0 +1,33 @@
+.git
+.gitignore
+.idea
+.vscode
+.DS_Store
+
+# Local environment and secrets
+.env
+.env.*
+!.env.example
+
+# Build/runtime artifacts
+**/node_modules
+**/vendor
+**/storage/logs
+**/bootstrap/cache/*.php
+**/coverage
+**/.phpunit.result.cache
+**/dist
+**/build
+**/.cache
+**/tmp
+**/temp
+**/logs
+**/*.log
+
+# Docker local data volumes
+docker/data/mysql
+docker/data/redis
+
+# Frontend build output
+frontend/dist
+backend/public/build

@@ -1,0 +1,6 @@
+<div class="loading-overlay" *ngIf="visible" aria-live="polite" aria-busy="true">
+  <div class="loading-overlay__card">
+    <app-loading-spinner size="lg" />
+    <p>{{ messageKey | t }}</p>
+  </div>
+</div>

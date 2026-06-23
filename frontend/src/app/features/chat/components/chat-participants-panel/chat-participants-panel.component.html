@@ -1,0 +1,34 @@
+<h3 class="participants__title">Participants</h3>
+
+<section class="participants__online">
+  <h4>Online now</h4>
+  <div class="state" *ngIf="onlineUsers.length === 0">Nobody online</div>
+  <ul class="participants__online-list" *ngIf="onlineUsers.length > 0">
+    <li *ngFor="let online of onlineUsers" data-testid="online-user-item">
+      <span class="online-dot"></span>
+      <span>{{ online.name || ('User #' + online.id) }}</span>
+      <small>{{ onlineRole(online) }} - {{ onlineDevice(online) }}</small>
+    </li>
+  </ul>
+</section>
+
+<div class="state" *ngIf="loading">Loading participants...</div>
+<div class="state state--error" *ngIf="!loading && error">{{ error }}</div>
+<div class="state" *ngIf="!loading && !error && participants.length === 0">No participants yet.</div>
+
+<ul class="participants__list" *ngIf="!loading && !error && participants.length > 0">
+  <li *ngFor="let participant of participants" class="participants__item" data-testid="participant-item">
+    <div class="participants__name-row">
+      <strong>{{ displayName(participant) }}</strong>
+      <span class="participants__presence" [class.is-online]="isOnline(participant)">
+        {{ isOnline(participant) ? 'online' : 'offline' }}
+      </span>
+    </div>
+    <div class="participants__badges">
+      <span class="badge badge--role">{{ roleLabel(participant.role) }}</span>
+      <span class="badge badge--status">{{ statusLabel(participant.status) }}</span>
+      <span class="badge badge--access">{{ accessLabel(participant.access_state) }}</span>
+    </div>
+    <small class="participants__caps">{{ capabilitySummary(participant) }}</small>
+  </li>
+</ul>

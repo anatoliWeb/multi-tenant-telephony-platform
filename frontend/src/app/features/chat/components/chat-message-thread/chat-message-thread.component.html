@@ -1,0 +1,56 @@
+<header class="thread-head">
+  <h2>{{ conversation?.title || 'Select a conversation' }}</h2>
+  <small *ngIf="conversation as activeConversation">#{{ activeConversation.id }} - {{ activeConversation.type || 'chat' }}</small>
+</header>
+
+<div class="state" *ngIf="loading">Loading messages...</div>
+<div class="state state--error" *ngIf="!loading && error">{{ error }}</div>
+<div class="state state--typing" *ngIf="!loading && !error && typingLabel" data-testid="typing-indicator">{{ typingLabel }}</div>
+<div class="state" *ngIf="!loading && !error && !conversation">Choose a conversation to view messages.</div>
+<div class="state" *ngIf="!loading && !error && conversation && !canViewMessages">This conversation is not available.</div>
+<div class="state" *ngIf="!loading && !error && conversation && canViewMessages && messages.length === 0">No messages yet.</div>
+
+<ul class="thread-list" *ngIf="!loading && !error && conversation && canViewMessages && messages.length > 0">
+  <li *ngFor="let message of messages" class="thread-item" data-testid="message-item">
+    <div class="thread-item__meta">
+      <strong>{{ message.sender_id ? ('User #' + message.sender_id) : 'System' }}</strong>
+      <small>{{ message.sent_at || message.created_at || '-' }}</small>
+    </div>
+
+    <p class="thread-item__body" *ngIf="message.status !== 'deleted'; else deletedPlaceholder">
+      {{ message.body || '' }}
+    </p>
+    <ng-template #deletedPlaceholder>
+      <p class="thread-item__deleted">Message deleted</p>
+    </ng-template>
+
+    <ul class="thread-item__attachments" *ngIf="message.attachments?.length">
+      <li class="thread-item__attachment" *ngFor="let attachment of message.attachments">
+        <div class="thread-item__attachment-main">
+          <strong>{{ attachment.original_name || ('Attachment #' + attachment.id) }}</strong>
+          <span class="thread-item__attachment-meta">
+            {{ attachmentMimeLabel(attachment.mime_type) }} - {{ attachmentSize(attachment.size) }}
+          </span>
+          <small class="thread-item__attachment-preview" *ngIf="isImageAttachment(attachment)">Image preview unavailable in this phase</small>
+        </div>
+        <a
+          class="thread-item__attachment-download"
+          [href]="attachmentDownloadUrl(attachment)"
+          target="_blank"
+          rel="noopener"
+          data-testid="attachment-download-link"
+        >
+          Download
+        </a>
+      </li>
+    </ul>
+
+    <small class="thread-item__status" *ngIf="isOwnMessage(message)">
+      {{ messageStatusLabel(message) }}
+      <span *ngIf="readCountLabel(message) as readLabel"> - {{ readLabel }}</span>
+    </small>
+    <small class="thread-item__status" *ngIf="!isOwnMessage(message)">
+      {{ messageStatusLabel(message) }}
+    </small>
+  </li>
+</ul>

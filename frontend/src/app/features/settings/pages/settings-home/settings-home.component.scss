@@ -1,0 +1,109 @@
+.settings-page {
+  display: grid;
+  gap: 12px;
+}
+
+.page-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.head-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+h2 {
+  margin: 0 0 6px;
+  color: #f8fafc;
+}
+
+p {
+  margin: 0;
+  color: #94a3b8;
+}
+
+.pill {
+  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(71, 85, 105, 0.5);
+  color: #cbd5e1;
+}
+
+.pill.online {
+  border-color: #14532d;
+  color: #86efac;
+}
+
+.table-wrap {
+  overflow: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 1100px;
+}
+
+th,
+td {
+  padding: 10px;
+  border-bottom: 1px solid rgba(51, 65, 85, 0.55);
+  vertical-align: top;
+  color: #cbd5e1;
+  text-align: left;
+  font-size: 13px;
+}
+
+td strong {
+  display: block;
+  color: #f8fafc;
+}
+
+td small {
+  display: block;
+  color: #64748b;
+  margin-top: 4px;
+}
+
+code {
+  font-size: 12px;
+  color: #93c5fd;
+}
+
+.status {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid #14532d;
+  color: #86efac;
+}
+
+.status.off {
+  border-color: #7f1d1d;
+  color: #fecaca;
+}
+
+.row-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.row-actions button {
+  height: 28px;
+  border: 1px solid rgba(71, 85, 105, 0.55);
+  background: rgba(15, 23, 42, 0.7);
+  color: #e2e8f0;
+  border-radius: 8px;
+  padding: 0 8px;
+  cursor: pointer;
+}
+
+.empty {
+  padding: 14px;
+  color: #94a3b8;
+}

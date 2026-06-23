@@ -1,0 +1,117 @@
+.thread-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.thread-head h2 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.thread-head small {
+  color: #6b7280;
+}
+
+.notice {
+  margin: 0 0 0.75rem;
+  font-size: 0.85rem;
+  color: #92400e;
+}
+
+.notice--blocked {
+  color: #b91c1c;
+}
+
+.state {
+  color: #6b7280;
+  padding: 0.5rem 0;
+}
+
+.state--error {
+  color: #b91c1c;
+}
+
+.state--typing {
+  color: #2563eb;
+  font-style: italic;
+}
+
+.thread-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.thread-item {
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  padding: 0.65rem 0.75rem;
+  background: #fff;
+}
+
+.thread-item__meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.thread-item__meta small {
+  color: #6b7280;
+}
+
+.thread-item__body {
+  margin: 0.4rem 0;
+}
+
+.thread-item__deleted {
+  margin: 0.4rem 0;
+  color: #6b7280;
+  font-style: italic;
+}
+
+.thread-item__status {
+  color: #6b7280;
+}
+
+.thread-item__attachments {
+  list-style: none;
+  margin: 0.35rem 0;
+  padding: 0;
+  display: grid;
+  gap: 0.4rem;
+}
+
+.thread-item__attachment {
+  border: 1px solid #e5e7eb;
+  border-radius: 0.45rem;
+  padding: 0.45rem 0.55rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+}
+
+.thread-item__attachment-meta {
+  color: #6b7280;
+  font-size: 0.8rem;
+}
+
+.thread-item__attachment-preview {
+  color: #6b7280;
+  display: block;
+}
+
+.thread-item__attachment-main {
+  min-width: 0;
+}
+
+.thread-item__attachment-download {
+  color: #1d4ed8;
+  text-decoration: none;
+  font-size: 0.85rem;
+}

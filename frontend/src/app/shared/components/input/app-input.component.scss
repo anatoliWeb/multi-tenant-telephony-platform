@@ -1,0 +1,18 @@
+.app-input {
+  display: grid;
+  gap: 6px;
+}
+
+.app-input__label {
+  font-size: 12px;
+  color: #cbd5e1;
+}
+
+.app-input input {
+  height: 38px;
+  border: 1px solid rgba(71, 85, 105, 0.55);
+  background: rgba(15, 23, 42, 0.75);
+  color: #e2e8f0;
+  border-radius: 10px;
+  padding: 0 10px;
+}

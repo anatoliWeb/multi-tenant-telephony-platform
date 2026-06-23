@@ -1,0 +1,64 @@
+<section class="feature-page">
+  <ui-card>
+    <h2>{{ 'dashboard.title' | t }}</h2>
+    <p>{{ 'dashboard.subtitle' | t }}</p>
+  </ui-card>
+
+  <div class="widgets-grid">
+    <app-dashboard-widget-card>
+      <app-widget-header [title]="'dashboard.systemStatus.title' | t" [subtitle]="'dashboard.systemStatus.subtitle' | t" />
+      <div class="kv"><span>{{ 'dashboard.fields.api' | t }}</span><strong>{{ 'common.status.online' | t }}</strong></div>
+      <div class="kv"><span>{{ 'dashboard.fields.realtime' | t }}</span><strong>{{ (realtimeStatus$ | async)?.connected ? ('common.status.connected' | t) : ('common.status.disconnected' | t) }}</strong></div>
+      <div class="kv"><span>{{ 'dashboard.fields.users' | t }}</span><strong>{{ statsUsers }}</strong></div>
+      <div class="kv"><span>{{ 'dashboard.fields.tokens' | t }}</span><strong>{{ statsTokens }}</strong></div>
+      <div class="kv"><span>{{ 'dashboard.fields.recentActivity' | t }}</span><strong>{{ statsRecentActivity }}</strong></div>
+      <small class="stats-refresh-meta" *ngIf="lastStatsRefreshAt">
+        {{ isStatsRefreshing ? ('dashboard.realtime.sending' | t) : ('dashboard.fields.refreshed' | t) }}: {{ lastStatsRefreshAt }}
+      </small>
+    </app-dashboard-widget-card>
+
+    <app-dashboard-widget-card>
+      <app-widget-header [title]="'dashboard.userSummary.title' | t" [subtitle]="'dashboard.userSummary.subtitle' | t" />
+      <div class="kv"><span>{{ 'dashboard.fields.name' | t }}</span><strong>{{ (user$ | async)?.name || ('common.status.guest' | t) }}</strong></div>
+      <div class="kv"><span>{{ 'dashboard.fields.email' | t }}</span><strong>{{ (user$ | async)?.email || '-' }}</strong></div>
+    </app-dashboard-widget-card>
+
+    <app-dashboard-widget-card>
+      <app-widget-header [title]="'dashboard.permissionsSummary.title' | t" [subtitle]="'dashboard.permissionsSummary.subtitle' | t" />
+      <div class="kv"><span>{{ 'dashboard.fields.roles' | t }}</span><strong>{{ ((roles$ | async) || []).length }}</strong></div>
+      <div class="kv"><span>{{ 'dashboard.fields.permissions' | t }}</span><strong>{{ ((permissions$ | async) || []).length }}</strong></div>
+      <div class="kv"><span>{{ 'dashboard.fields.adminRole' | t }}</span><strong>{{ isAdmin ? ('dashboard.fields.yes' | t) : ('dashboard.fields.no' | t) }}</strong></div>
+    </app-dashboard-widget-card>
+
+    <app-dashboard-widget-card>
+      <app-widget-header [title]="'dashboard.realtime.title' | t" [subtitle]="'dashboard.realtime.subtitle' | t" />
+      <div class="realtime-header">
+        <button type="button" class="realtime-btn" [disabled]="isDispatching" (click)="dispatchTestNotification()">
+          {{ isDispatching ? ('dashboard.realtime.sending' | t) : ('dashboard.realtime.sendTest' | t) }}
+        </button>
+        <span class="pill" [class.pill--online]="(realtimeStatus$ | async)?.connected">
+          {{ (realtimeStatus$ | async)?.connected ? ('common.status.connected' | t) : ('common.status.disconnected' | t) }}
+        </span>
+      </div>
+      <ul class="realtime-feed">
+        <li *ngFor="let event of realtimeEvents$ | async">
+          <strong>{{ event.title }}</strong>
+          <p>{{ event.message }}</p>
+          <small>{{ event.created_at }}</small>
+        </li>
+      </ul>
+      <div class="kv">
+        <span>{{ 'dashboard.realtime.activityEvents' | t }}</span>
+        <strong>{{ realtimeActivityCount$ | async }}</strong>
+      </div>
+      <div class="kv">
+        <span>{{ 'dashboard.realtime.onlineUsers' | t }}</span>
+        <strong>{{ onlineUsersCount$ | async }}</strong>
+      </div>
+      <div class="kv">
+        <span>{{ 'dashboard.realtime.dashboardPresence' | t }}</span>
+        <strong>{{ dashboardPresenceCount$ | async }}</strong>
+      </div>
+    </app-dashboard-widget-card>
+  </div>
+</section>

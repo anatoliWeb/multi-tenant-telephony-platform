@@ -1,0 +1,91 @@
+<section class="page">
+  <ui-card>
+    <div class="head">
+      <div>
+        <h2>Preferences</h2>
+        <p>Manage your per-user notification delivery preferences.</p>
+      </div>
+      <div class="head-actions" *ngIf="preferences$ | async as preferences">
+        <app-button [disabled]="isPreferencesSaving || !hasPreferenceChanges(preferences)" (click)="savePreferences()">
+          Save preferences
+        </app-button>
+      </div>
+    </div>
+    <div class="preferences-grid">
+      <label class="pref-item">
+        <input
+          type="checkbox"
+          [checked]="draftPreferences['system.enabled']"
+          [disabled]="isPreferencesSaving"
+          (change)="setPreference('system.enabled', $any($event.target).checked)"
+        />
+        <span>System notifications</span>
+      </label>
+      <label class="pref-item">
+        <input
+          type="checkbox"
+          [checked]="draftPreferences['realtime.enabled']"
+          [disabled]="isPreferencesSaving"
+          (change)="setPreference('realtime.enabled', $any($event.target).checked)"
+        />
+        <span>Realtime notifications</span>
+      </label>
+      <label class="pref-item">
+        <input
+          type="checkbox"
+          [checked]="draftPreferences['email.enabled']"
+          [disabled]="isPreferencesSaving"
+          (change)="setPreference('email.enabled', $any($event.target).checked)"
+        />
+        <span>Email notifications</span>
+      </label>
+      <label class="pref-item">
+        <input
+          type="checkbox"
+          [checked]="draftPreferences['activity.enabled']"
+          [disabled]="isPreferencesSaving"
+          (change)="setPreference('activity.enabled', $any($event.target).checked)"
+        />
+        <span>Activity notifications</span>
+      </label>
+    </div>
+    <small class="state" *ngIf="preferencesMessage">{{ preferencesMessage }}</small>
+  </ui-card>
+
+  <ui-card>
+    <div class="head">
+      <div>
+        <h2>{{ 'notifications.title' | t }}</h2>
+        <p>{{ 'notifications.subtitle' | t }}</p>
+      </div>
+      <div class="head-actions">
+        <small class="badge">{{ unreadCount$ | async }} {{ 'notifications.unread' | t }}</small>
+        <app-button [disabled]="isMutating || (unreadCount$ | async) === 0" (click)="markAllAsRead()">{{ 'common.actions.markAllAsRead' | t }}</app-button>
+        <app-button [disabled]="isMutating || ((loading$ | async) ?? false)" (click)="refresh()">Refresh</app-button>
+      </div>
+    </div>
+  </ui-card>
+
+  <ui-card>
+    <div *ngIf="loading$ | async" class="state">{{ 'notifications.loading' | t }}</div>
+    <div *ngIf="!(loading$ | async) && (error$ | async) as error" class="state">{{ error }}</div>
+    <div *ngIf="!(loading$ | async) && !(error$ | async) && (items$ | async)?.length === 0" class="state">{{ 'notifications.empty' | t }}</div>
+
+    <ul class="list" *ngIf="!(loading$ | async) && !(error$ | async) && (items$ | async)?.length">
+      <li *ngFor="let item of (items$ | async)">
+        <div class="row">
+          <strong>{{ item.title || 'System notification' }}</strong>
+          <span class="type" [class.unread]="!item.read">{{ item.read ? ('notifications.read' | t) : ('notifications.unreadState' | t) }}</span>
+        </div>
+        <p>{{ item.message || 'No message provided.' }}</p>
+        <footer>
+          <small>{{ item.createdAt }}</small>
+          <div class="actions">
+            <button type="button" *ngIf="!item.read" [disabled]="isMutating" (click)="markAsRead(item.id)">{{ 'notifications.markRead' | t }}</button>
+            <button type="button" *ngIf="canDelete" [disabled]="isMutating" (click)="delete(item.id)">Delete</button>
+          </div>
+        </footer>
+      </li>
+    </ul>
+  </ui-card>
+</section>

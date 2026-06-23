@@ -1,0 +1,12 @@
+.filters-bar {
+  display: grid;
+  grid-template-columns: 2fr repeat(5, minmax(120px, 1fr));
+  gap: 10px;
+  align-items: end;
+}
+
+@media (max-width: 1200px) {
+  .filters-bar {
+    grid-template-columns: 1fr 1fr;
+  }
+}

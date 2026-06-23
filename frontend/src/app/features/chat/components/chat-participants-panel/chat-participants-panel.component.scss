@@ -1,0 +1,117 @@
+.participants__title {
+  margin: 0 0 0.75rem;
+  font-size: 0.95rem;
+}
+
+.participants__online {
+  margin-bottom: 0.8rem;
+}
+
+.participants__online h4 {
+  margin: 0 0 0.4rem;
+  font-size: 0.82rem;
+  color: #4b5563;
+  text-transform: uppercase;
+}
+
+.participants__online-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.3rem;
+}
+
+.participants__online-list li {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.85rem;
+}
+
+.participants__online-list small {
+  color: #6b7280;
+}
+
+.online-dot {
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 999px;
+  background: #16a34a;
+}
+
+.participants__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.participants__item {
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  padding: 0.55rem 0.6rem;
+  background: #fff;
+}
+
+.participants__name-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.participants__presence {
+  font-size: 0.72rem;
+  color: #6b7280;
+  text-transform: uppercase;
+}
+
+.participants__presence.is-online {
+  color: #15803d;
+}
+
+.participants__badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  margin-top: 0.25rem;
+}
+
+.badge {
+  border-radius: 999px;
+  font-size: 0.68rem;
+  line-height: 1;
+  padding: 0.17rem 0.42rem;
+  text-transform: uppercase;
+}
+
+.badge--role {
+  background: #e0e7ff;
+  color: #3730a3;
+}
+
+.badge--status {
+  background: #ecfeff;
+  color: #155e75;
+}
+
+.badge--access {
+  background: #f3e8ff;
+  color: #6b21a8;
+}
+
+.participants__caps {
+  color: #6b7280;
+  display: block;
+  margin-top: 0.25rem;
+}
+
+.state {
+  color: #6b7280;
+}
+
+.state--error {
+  color: #b91c1c;
+}

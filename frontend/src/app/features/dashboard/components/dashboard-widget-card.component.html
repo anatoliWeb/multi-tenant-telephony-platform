@@ -1,0 +1,7 @@
+<ui-card>
+  <ng-content select="app-widget-header"></ng-content>
+  <app-widget-loading-state *ngIf="loading"></app-widget-loading-state>
+  <div *ngIf="!loading" class="widget-body">
+    <ng-content></ng-content>
+  </div>
+</ui-card>

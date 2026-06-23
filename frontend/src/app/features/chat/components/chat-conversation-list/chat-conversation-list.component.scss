@@ -1,0 +1,128 @@
+.state {
+  color: var(--text-secondary, #6b7280);
+  padding: 0.5rem 0;
+}
+
+.conversation-filters {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.4rem;
+  margin-bottom: 0.7rem;
+}
+
+.conversation-filters input[type='text'],
+.conversation-filters select {
+  width: 100%;
+  border: 1px solid #d1d5db;
+  border-radius: 0.45rem;
+  padding: 0.4rem 0.55rem;
+  font: inherit;
+}
+
+.conversation-filters label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.85rem;
+  color: #374151;
+}
+
+.conversation-filters button {
+  width: fit-content;
+  border: 1px solid #d1d5db;
+  background: #fff;
+  border-radius: 0.45rem;
+  padding: 0.3rem 0.65rem;
+  cursor: pointer;
+}
+.conversation-create{display:flex;gap:.4rem;flex-wrap:wrap}
+.conversation-create-form{display:grid;gap:.35rem;padding:.45rem;border:1px solid #e5e7eb;border-radius:.45rem;background:#f9fafb}
+.conversation-create-form label{display:grid;gap:.2rem;font-size:.83rem;color:#374151}
+.conversation-create-form__actions{display:flex;gap:.4rem}
+
+.state--error {
+  color: #b91c1c;
+}
+
+.conversation-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.conversation-item {
+  width: 100%;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  background: #fff;
+  text-align: left;
+  padding: 0.65rem 0.75rem;
+  cursor: pointer;
+}
+
+.conversation-item:hover {
+  border-color: #d1d5db;
+}
+
+.conversation-item.is-active {
+  border-color: #2563eb;
+  background: #eff6ff;
+}
+
+.conversation-item__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.conversation-item__badges {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.conversation-item__meta {
+  color: #6b7280;
+  display: block;
+  margin-top: 0.25rem;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.25rem;
+  height: 1.25rem;
+  border-radius: 999px;
+  background: #2563eb;
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0 0.375rem;
+}
+
+.type-badge,
+.visibility-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  line-height: 1;
+  padding: 0.16rem 0.4rem;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.type-badge {
+  background: #e0e7ff;
+  color: #3730a3;
+}
+
+.visibility-badge {
+  background: #ecfeff;
+  color: #155e75;
+}

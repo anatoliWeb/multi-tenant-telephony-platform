@@ -1,0 +1,61 @@
+<section class="chat-shell">
+  <ui-card class="chat-shell__list-card">
+    <h2 class="chat-shell__title">Chat Conversations</h2>
+    <app-chat-conversation-list
+      [conversations]="(filteredConversations$ | async) ?? []"
+      [totalConversationsCount]="((conversations$ | async) ?? []).length"
+      [loading]="(loading$ | async) ?? false"
+      [error]="error$ | async"
+      [search]="(conversationSearch$ | async) ?? ''"
+      [typeFilter]="(conversationTypeFilter$ | async) ?? 'all'"
+      [visibilityFilter]="(conversationVisibilityFilter$ | async) ?? 'all'"
+      [unreadOnly]="(unreadOnly$ | async) ?? false"
+      [selectedConversationId]="selectedConversationId"
+      (conversationSelected)="selectConversation($any($event))"
+      (searchChange)="onConversationSearchChange($event)"
+      (typeFilterChange)="onConversationTypeFilterChange($event)"
+      (visibilityFilterChange)="onConversationVisibilityFilterChange($event)"
+      (unreadOnlyChange)="onConversationUnreadOnlyChange($event)"
+      (resetFilters)="resetConversationFilters()"
+      (createDirect)="createDirectChat($event)"
+      (createGroup)="createGroupChat($event)"
+    />
+  </ui-card>
+
+  <ui-card class="chat-shell__thread-card">
+    <ng-container *ngIf="activeConversation$ | async as activeConversation">
+      <app-chat-access-notice [conversation]="activeConversation" />
+
+      <app-chat-message-thread
+        *ngIf="canViewThread(activeConversation)"
+        [conversation]="activeConversation"
+        [messages]="(messages$ | async) ?? []"
+        [typingUsers]="(typingUsers$ | async) ?? []"
+        [currentUserId]="currentUserId"
+        [loading]="(loading$ | async) ?? false"
+        [error]="error$ | async"
+      />
+
+      <app-chat-message-composer
+        *ngIf="canUseComposer(activeConversation)"
+        [conversation]="activeConversation"
+        [sending]="(sending$ | async) ?? false"
+        [error]="error$ | async"
+        (messageSubmit)="sendMessage($event)"
+        (typingStarted)="handleTypingStarted()"
+        (typingStopped)="handleTypingStopped()"
+      />
+    </ng-container>
+
+    <div class="state" *ngIf="!(activeConversation$ | async)">Choose a conversation to view messages.</div>
+  </ui-card>
+
+  <ui-card class="chat-shell__participants-card">
+    <app-chat-participants-panel
+      [participants]="(participants$ | async) ?? []"
+      [onlineUsers]="(presenceUsers$ | async) ?? []"
+      [loading]="(participantsLoading$ | async) ?? false"
+      [error]="participantsError$ | async"
+    />
+  </ui-card>
+</section>

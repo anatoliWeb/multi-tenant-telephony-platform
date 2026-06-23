@@ -1,0 +1,8 @@
+<footer class="pagination" *ngIf="total > 0">
+  <small>{{ startRow }}-{{ endRow }} {{ 'settings.pagination.of' | t }} {{ total }}</small>
+  <div class="pagination__controls">
+    <button type="button" [disabled]="currentPage <= 1" (click)="go(currentPage - 1)">{{ 'common.pagination.prev' | t }}</button>
+    <span>{{ currentPage }} / {{ lastPage }}</span>
+    <button type="button" [disabled]="currentPage >= lastPage" (click)="go(currentPage + 1)">{{ 'common.pagination.next' | t }}</button>
+  </div>
+</footer>

@@ -1,0 +1,39 @@
+.login-page {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: #020617;
+}
+
+ui-card {
+  width: min(420px, 100%);
+}
+
+h2 {
+  margin: 0 0 4px;
+  color: #f8fafc;
+}
+
+p {
+  margin: 0 0 12px;
+  color: #94a3b8;
+}
+
+.login-form {
+  display: grid;
+  gap: 10px;
+}
+
+.remember {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: #cbd5e1;
+}
+
+.error {
+  color: #fca5a5;
+}
+

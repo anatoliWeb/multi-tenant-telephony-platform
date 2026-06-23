@@ -1,0 +1,33 @@
+.loading-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 110;
+  background: rgba(2, 6, 23, 0.55);
+  backdrop-filter: blur(4px);
+  display: grid;
+  place-items: center;
+  animation: fadeIn 0.18s ease;
+}
+
+.loading-overlay__card {
+  min-width: 260px;
+  border: 1px solid rgba(71, 85, 105, 0.55);
+  background: rgba(15, 23, 42, 0.95);
+  border-radius: 14px;
+  padding: 16px;
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  color: #e2e8f0;
+}
+
+.loading-overlay__card p {
+  margin: 0;
+  color: #cbd5e1;
+  font-size: 13px;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}

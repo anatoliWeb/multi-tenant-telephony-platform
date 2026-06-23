@@ -1,0 +1,14 @@
+<section class="profile-page">
+  <ui-card>
+    <h2>{{ 'profile.title' | t }}</h2>
+    <p>{{ 'profile.subtitle' | t }}</p>
+  </ui-card>
+
+  <ui-card>
+    <h3>{{ 'profile.accountSummary' | t }}</h3>
+    <p><strong>{{ 'dashboard.fields.name' | t }}:</strong> {{ (authState.user$ | async)?.name || '-' }}</p>
+    <p><strong>{{ 'dashboard.fields.email' | t }}:</strong> {{ (authState.user$ | async)?.email || '-' }}</p>
+    <p><strong>{{ 'dashboard.fields.roles' | t }}:</strong> {{ ((authState.roles$ | async) || []).join(', ') || '-' }}</p>
+    <p><strong>{{ 'dashboard.fields.permissions' | t }}:</strong> {{ ((authState.permissions$ | async) || []).length }}</p>
+  </ui-card>
+</section>

@@ -1,0 +1,98 @@
+<div class="conversation-filters">
+  <div class="conversation-create">
+    <button type="button" data-testid="create-chat-button" (click)="openCreate('direct')">New direct chat</button>
+    <button type="button" data-testid="create-group-button" (click)="openCreate('group')">New group chat</button>
+  </div>
+
+  <div class="conversation-create-form" *ngIf="createMode === 'direct'" data-testid="create-direct-form">
+    <label>
+      User ID
+      <input type="number" [(ngModel)]="directUserId" placeholder="e.g. 42" />
+    </label>
+    <div class="conversation-create-form__actions">
+      <button type="button" (click)="submitCreateDirect()">Create</button>
+      <button type="button" (click)="closeCreate()">Cancel</button>
+    </div>
+  </div>
+
+  <div class="conversation-create-form" *ngIf="createMode === 'group'" data-testid="create-group-form">
+    <label>
+      Title
+      <input type="text" [(ngModel)]="groupTitle" placeholder="Optional title" />
+    </label>
+    <label>
+      Participant IDs (comma separated)
+      <input type="text" [(ngModel)]="groupParticipantIds" placeholder="e.g. 12, 34" />
+    </label>
+    <label>
+      Visibility
+      <select [(ngModel)]="groupVisibility">
+        <option value="private">private</option>
+        <option value="public">public</option>
+      </select>
+    </label>
+    <div class="conversation-create-form__actions">
+      <button type="button" (click)="submitCreateGroup()">Create</button>
+      <button type="button" (click)="closeCreate()">Cancel</button>
+    </div>
+  </div>
+
+  <div class="state state--error" *ngIf="createError">{{ createError }}</div>
+
+  <input
+    type="text"
+    [ngModel]="search"
+    (ngModelChange)="onSearchInput($event)"
+    placeholder="Search conversations"
+    data-testid="conversation-search"
+  />
+
+  <select [ngModel]="typeFilter" (ngModelChange)="onTypeFilterChange($event)" data-testid="conversation-type-filter">
+    <option value="all">all</option>
+    <option value="direct">direct</option>
+    <option value="group">group</option>
+    <option value="support">support</option>
+    <option value="external">external</option>
+    <option value="system">system</option>
+  </select>
+
+  <select [ngModel]="visibilityFilter" (ngModelChange)="onVisibilityFilterChange($event)" data-testid="conversation-visibility-filter">
+    <option value="all">all</option>
+    <option value="public">public</option>
+    <option value="private">private</option>
+  </select>
+
+  <label>
+    <input type="checkbox" [ngModel]="unreadOnly" (ngModelChange)="onUnreadOnlyChange($event)" data-testid="conversation-unread-filter" />
+    unread only
+  </label>
+
+  <button type="button" (click)="onResetFilters()" data-testid="conversation-reset-filters">Reset</button>
+</div>
+
+<div class="state" *ngIf="loading">Loading conversations...</div>
+<div class="state state--error" *ngIf="!loading && error">{{ error }}</div>
+<div class="state" *ngIf="!loading && !error && conversations.length === 0">No conversations yet.</div>
+<div class="state" *ngIf="!loading && !error && totalConversationsCount > 0 && conversations.length === 0">No conversations match your filters.</div>
+
+<ul class="conversation-list" *ngIf="!loading && !error && conversations.length > 0">
+  <li *ngFor="let conversation of conversations">
+    <button
+      class="conversation-item"
+      [class.is-active]="conversation.id === selectedConversationId"
+      type="button"
+      data-testid="conversation-item"
+      (click)="selectConversation(conversation)"
+    >
+      <div class="conversation-item__row">
+        <strong>{{ conversation.title || ('Conversation #' + conversation.id) }}</strong>
+        <span class="conversation-item__badges">
+          <span class="type-badge">{{ typeBadgeLabel(conversation.type) }}</span>
+          <span class="visibility-badge">{{ visibilityBadgeLabel(conversation.visibility) }}</span>
+          <span *ngIf="(conversation.unread_count ?? 0) > 0" class="badge">{{ conversation.unread_count }}</span>
+        </span>
+      </div>
+      <small class="conversation-item__meta">{{ conversation.last_message_at || 'No activity yet' }}</small>
+    </button>
+  </li>
+</ul>

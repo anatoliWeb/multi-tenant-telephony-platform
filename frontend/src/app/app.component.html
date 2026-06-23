@@ -1,0 +1,6 @@
+<app-loading-overlay
+  [visible]="(appLoading.state$ | async)?.active ?? false"
+  [messageKey]="((appLoading.state$ | async)?.messageKey ?? 'common.states.loading')"
+/>
+<app-loading-state [visible]="(authState.hydrating$ | async) ?? false" [message]="'common.auth.restoring' | t" />
+<router-outlet></router-outlet>

@@ -1,0 +1,24 @@
+@use 'variables' as *;
+
+@mixin panel {
+  background: $color-surface;
+  border: 1px solid $color-border;
+  border-radius: $radius-md;
+  box-shadow: $shadow-card;
+}
+
+@mixin focus-ring {
+  outline: none;
+  border-color: $color-primary;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
+}
+
+@mixin icon-box {
+  width: 18px;
+  height: 18px;
+  stroke: currentColor;
+  stroke-width: 1.75;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}

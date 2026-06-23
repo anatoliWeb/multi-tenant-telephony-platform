@@ -1,0 +1,311 @@
+@use 'variables' as *;
+@use 'mixins' as *;
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+}
+
+body {
+  font-family: $font-family-base;
+  background: radial-gradient(circle at top right, #172554 0%, $color-bg 55%);
+  color: $color-text-primary;
+}
+
+a {
+  color: inherit;
+}
+
+.admin-layout {
+  --sidebar-width: 240px;
+  --sidebar-width-collapsed: 70px;
+  min-height: 100vh;
+}
+
+.admin-layout.is-sidebar-collapsed {
+  --sidebar-width: var(--sidebar-width-collapsed);
+}
+
+.admin-sidebar {
+  position: fixed;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: var(--sidebar-width);
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid $color-border;
+  background: rgba(15, 23, 42, 0.95);
+  backdrop-filter: blur(10px);
+  transition: width $transition-fast;
+  overflow: hidden;
+}
+
+.admin-sidebar__header,
+.admin-sidebar__footer {
+  padding: $space-2;
+  border-bottom: 1px solid rgba(51, 65, 85, 0.55);
+}
+
+.admin-sidebar__footer {
+  border-top: 1px solid rgba(51, 65, 85, 0.55);
+  border-bottom: 0;
+  margin-top: auto;
+  display: grid;
+  gap: $space-1;
+}
+
+.admin-sidebar__nav {
+  overflow-y: auto;
+  padding: $space-2;
+}
+
+.admin-sidebar__section {
+  display: grid;
+  gap: 6px;
+}
+
+.admin-sidebar__section + .admin-sidebar__section {
+  margin-top: $space-2;
+  padding-top: $space-2;
+  border-top: 1px solid rgba(51, 65, 85, 0.5);
+}
+
+.admin-sidebar__heading {
+  margin: 0 0 4px;
+  font-size: 11px;
+  color: $color-text-secondary;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.admin-brand {
+  display: flex;
+  gap: $space-1;
+  align-items: center;
+  text-decoration: none;
+}
+
+.admin-brand__dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: linear-gradient(120deg, $color-primary, $color-accent);
+  flex: 0 0 auto;
+}
+
+.admin-brand__name {
+  font-size: $font-size-md;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+}
+
+.admin-sidebar__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: $space-1;
+}
+
+.admin-sidebar__toggle {
+  width: 34px;
+  height: 34px;
+  border-radius: $radius-sm;
+  border: 1px solid $color-border;
+  color: $color-text-secondary;
+  background: transparent;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color $transition-fast, color $transition-fast;
+
+  &:hover {
+    background: rgba(148, 163, 184, 0.08);
+    color: $color-text-primary;
+  }
+
+  svg {
+    @include icon-box;
+  }
+}
+
+.admin-sidebar__link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid transparent;
+  border-radius: $radius-sm;
+  padding: 9px 10px;
+  color: $color-text-secondary;
+  text-decoration: none;
+  transition: background-color $transition-fast, color $transition-fast, border-color $transition-fast;
+
+  &:hover {
+    background: rgba(148, 163, 184, 0.09);
+    color: $color-text-primary;
+    border-color: rgba(148, 163, 184, 0.25);
+  }
+
+  &.is-active {
+    color: $color-text-primary;
+    border-color: rgba(59, 130, 246, 0.45);
+    background: rgba(59, 130, 246, 0.18);
+  }
+
+  svg {
+    @include icon-box;
+    flex: 0 0 auto;
+  }
+}
+
+.admin-sidebar__label {
+  white-space: nowrap;
+}
+
+.admin-main {
+  margin-left: var(--sidebar-width);
+  min-height: 100vh;
+  transition: margin-left $transition-fast;
+}
+
+.admin-content {
+  max-width: none;
+  padding: $space-3;
+}
+
+.admin-userbar__name {
+  color: $color-text-secondary;
+  font-size: $font-size-md;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.admin-sidebar__logout {
+  width: 100%;
+}
+
+.admin-layout.is-sidebar-collapsed {
+  .admin-brand__name,
+  .admin-sidebar__heading,
+  .admin-sidebar__label,
+  .admin-userbar__name,
+  .admin-sidebar__logout {
+    display: none;
+  }
+
+  .admin-sidebar__header,
+  .admin-sidebar__footer {
+    justify-content: center;
+  }
+
+  .admin-brand {
+    justify-content: center;
+  }
+
+  .admin-sidebar__link {
+    justify-content: center;
+    padding: 9px 8px;
+  }
+}
+
+.page-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+
+    min-height: 28px; // 🔥 ключ — щоб не стрибало
+}
+
+.page-title {
+  margin: 0;
+  font-size: $font-size-xl;
+  font-weight: 700;
+}
+
+.page-subtitle {
+  margin: 4px 0 0;
+  color: $color-text-secondary;
+  font-size: $font-size-md;
+}
+
+@media (max-width: 900px) {
+  .admin-layout {
+    --sidebar-width: 70px;
+  }
+
+  .admin-layout:not(.is-sidebar-collapsed) {
+    --sidebar-width: 240px;
+  }
+
+  .admin-content {
+    padding: $space-2;
+  }
+}
+
+
+/* Центруємо всю сторінку */
+.guest-layout {
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;  /* по горизонталі */
+    align-items: center;      /* по вертикалі */
+    background: #0f172a;      /* темний фон (як у тебе) */
+}
+
+/* Контейнер */
+.guest-container {
+    width: 100%;
+    max-width: 400px;
+    padding: 20px;
+}
+
+.auth-card {
+    background: #1e293b;
+    padding: 24px;
+    border-radius: 12px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+}
+
+.auth-title {
+    font-size: 20px;
+    margin-bottom: 16px;
+    color: #fff;
+}
+
+/* інпути */
+.auth-card input {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 10px;
+    border-radius: 8px;
+    border: 1px solid rgba(255,255,255,0.1);
+    background: #0f172a;
+    color: #fff;
+}
+
+/* кнопка */
+.auth-button {
+    width: 100%;
+    padding: 10px;
+    border-radius: 8px;
+    background: #ef4444;
+    color: white;
+    border: none;
+    cursor: pointer;
+}
+
+.auth-button:hover {
+    background: #dc2626;
+}
+
+@media (max-width: 768px) {
+    .guest-layout {
+        align-items: flex-start;
+        padding-top: 40px;
+    }
+}
