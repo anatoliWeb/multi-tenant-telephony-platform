@@ -15,11 +15,14 @@ Verified results:
 - Vue build and tests pass.
 - The complete backend suite now passes.
 - The NG8107 Angular template warning is resolved.
+- Manual browser login and authenticated-state validation were confirmed by the project owner.
+- Angular realtime connection status was confirmed as connected by the project owner.
 
 Still open:
 
-- Real browser authentication was not completed in this environment.
-- Real browser chat and realtime validation was not completed in this environment.
+- Browser chat between two sessions remains unverified.
+- Live typing and presence remain unverified.
+- Logout was not separately verified.
 - The `pusher-js` Angular CommonJS warning remains as accepted technical debt.
 - The Vue Dart Sass legacy JS API warning remains as accepted technical debt.
 
@@ -62,19 +65,28 @@ Fixes made during validation:
 - Updated the admin meta runtime test to invalidate the RBAC cache version before asserting role permissions.
 - Updated the typing indicator test to clear the throttle key directly instead of relying on cache TTL travel.
 
-## Browser Validation
+## Manual Browser Validation
 
-Browser flows were not completed here because the in-app browser runtime failed before it could execute the UI walkthrough.
+Recorded from the project owner's manual verification:
 
-Observed blocker:
+- Angular login passed.
+- Angular authenticated user state loaded.
+- Vue administration login passed.
+- Vue administration authenticated state loaded.
+- Angular realtime status displayed as connected.
 
-- the Node/browser runtime reported `codex/sandbox-state-meta: missing field 'sandboxPolicy'`.
+Still unverified:
 
-Result:
+- browser chat between two sessions.
+- live typing and presence.
+- logout.
 
-- browser authentication: not verified
-- browser chat: not verified
-- browser realtime: not verified
+Mojibake investigation and fix:
+
+- Root cause: the Angular locale source files contained garbled translation literals for some Ukrainian and German labels, which caused a subset of visible UI strings to render incorrectly.
+- Affected files: [frontend/src/app/i18n/translations/uk.ts](E:/_programming_/_portfolio_git_hub_/multi-tenant-telephony-platform/frontend/src/app/i18n/translations/uk.ts) and [frontend/src/app/i18n/translations/de.ts](E:/_programming_/_portfolio_git_hub_/multi-tenant-telephony-platform/frontend/src/app/i18n/translations/de.ts).
+- Fix: rewrote the locale files in canonical UTF-8 so the translations render correctly in Angular.
+- Affected UI areas: sidebar, dashboard cards, realtime panel, footer, and other translation-driven labels.
 
 ## Horizon Validation
 

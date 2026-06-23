@@ -288,7 +288,9 @@ The existing RBAC implementation must be adapted, not duplicated.
 - [x] Chat demo data contains more than 320 messages
 - [x] Angular chat code builds successfully
 - [x] Vue chat monitoring code builds successfully
-- [ ] Verify a real browser login flow
+- [x] Verify a real browser login flow
+- [x] Angular application opens after authentication
+- [x] Vue administration application opens after authentication
 - [ ] Verify logout through the browser
 - [ ] Verify direct chat between two browser sessions
 - [ ] Verify group chat through the browser
@@ -344,7 +346,7 @@ The existing RBAC implementation must be adapted, not duplicated.
 - [x] Existing seeders complete
 - [x] Baseline validation is documented
 - [x] Complete backend test suite passes or failures are fully documented
-- [ ] Browser authentication flow is verified
+- [x] Browser authentication flow is verified
 - [ ] Browser chat and realtime flow are verified
 - [ ] Horizon runtime is verified
 - [ ] Scheduler runtime is implemented and verified
@@ -1225,7 +1227,7 @@ Do not treat the existing billing page as a completed telephony billing implemen
 ## Step 2: Complete Remaining Baseline Checks
 
 - [x] Run the complete backend test suite
-- [ ] Verify live browser login
+- [x] Verify live browser login
 - [ ] Verify direct chat between two users
 - [ ] Verify group chat
 - [ ] Verify realtime delivery
@@ -1287,7 +1289,7 @@ Completed:
 Still required before closing Milestone 1:
 
 - [x] Run the complete backend test suite
-- [ ] Verify browser authentication
+- [x] Verify browser authentication
 - [ ] Verify browser chat and realtime
 - [x] Verify Horizon runtime
 - [x] Verify scheduler runtime
