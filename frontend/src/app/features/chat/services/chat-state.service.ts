@@ -387,6 +387,21 @@ export class ChatStateService {
     await this.safeLeavePresence(activeId);
   }
 
+  resetForTenantChange(): void {
+    this.chatPresenceClient.leaveConversationPresence();
+    this.chatTypingClient.unsubscribeFromTyping();
+    this.chatRealtimeClient.unsubscribeFromConversation();
+    this.conversationsSubject.next([]);
+    this.activeConversationSubject.next(null);
+    this.messagesSubject.next([]);
+    this.clearParticipants();
+    this.clearPresenceUsers();
+    this.clearTypingUsers();
+    this.loadingSubject.next(false);
+    this.sendingSubject.next(false);
+    this.errorSubject.next(null);
+  }
+
   setConversationSearch(value: string): void {
     this.conversationSearchSubject.next(value);
   }

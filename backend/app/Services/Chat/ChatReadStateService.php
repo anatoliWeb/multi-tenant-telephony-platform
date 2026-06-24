@@ -11,6 +11,8 @@ use App\Models\Message;
 use App\Models\MessageDeviceRead;
 use App\Models\MessageRead;
 use App\Models\User;
+use App\Services\Tenancy\TenantBootstrapService;
+use App\Services\Tenancy\TenantContext;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -30,10 +32,12 @@ class ChatReadStateService
         /** @var ChatUserDevice $device */
         $device = ChatUserDevice::query()->updateOrCreate(
             [
+                'tenant_id' => $this->resolveTenantId(),
                 'user_id' => $user->id,
                 'device_key' => $payload['device_key'],
             ],
             [
+                'tenant_id' => $this->resolveTenantId(),
                 'uuid' => (string) Str::uuid(),
                 'device_name' => $payload['device_name'] ?? null,
                 'device_type' => $payload['device_type'] ?? 'browser',
@@ -58,6 +62,7 @@ class ChatReadStateService
     public function resolveOwnedDevice(User $user, string $deviceKey): ?ChatUserDevice
     {
         return ChatUserDevice::query()
+            ->forCurrentTenant()
             ->where('user_id', $user->id)
             ->where('device_key', $deviceKey)
             ->first();
@@ -101,11 +106,13 @@ class ChatReadStateService
         DB::transaction(function () use ($user, $message, $conversation, $device, $now): void {
             MessageDeviceRead::query()->updateOrCreate(
                 [
+                    'tenant_id' => $conversation->tenant_id,
                     'message_id' => $message->id,
                     'user_id' => $user->id,
                     'chat_user_device_id' => $device->id,
                 ],
                 [
+                    'tenant_id' => $conversation->tenant_id,
                     'conversation_id' => $conversation->id,
                     'device_key' => $device->device_key,
                     'device_type' => $device->device_type,
@@ -118,10 +125,12 @@ class ChatReadStateService
 
             MessageRead::query()->updateOrCreate(
                 [
+                    'tenant_id' => $conversation->tenant_id,
                     'message_id' => $message->id,
                     'user_id' => $user->id,
                 ],
                 [
+                    'tenant_id' => $conversation->tenant_id,
                     'conversation_id' => $conversation->id,
                     'read_at' => $now,
                     'read_source' => 'device',
@@ -185,12 +194,14 @@ class ChatReadStateService
             foreach ($messages as $message) {
                 MessageDeviceRead::query()->updateOrCreate(
                     [
+                        'tenant_id' => $conversation->tenant_id,
                         'message_id' => $message->id,
                         'user_id' => $user->id,
                         'chat_user_device_id' => $device->id,
                     ],
-                    [
-                        'conversation_id' => $conversation->id,
+                [
+                    'tenant_id' => $conversation->tenant_id,
+                    'conversation_id' => $conversation->id,
                         'device_key' => $device->device_key,
                         'device_type' => $device->device_type,
                         'platform' => $device->platform,
@@ -202,11 +213,13 @@ class ChatReadStateService
 
                 MessageRead::query()->updateOrCreate(
                     [
+                        'tenant_id' => $conversation->tenant_id,
                         'message_id' => $message->id,
                         'user_id' => $user->id,
                     ],
-                    [
-                        'conversation_id' => $conversation->id,
+                [
+                    'tenant_id' => $conversation->tenant_id,
+                    'conversation_id' => $conversation->id,
                         'read_at' => $now,
                         'read_source' => 'device',
                     ]
@@ -230,7 +243,9 @@ class ChatReadStateService
             conversationId: $conversation->id,
             payload: $this->buildReadRealtimePayload($user->id, $lastMessageId, $conversation->id, $now)
         ));
-        $lastMessage = Message::query()->find($lastMessageId);
+        $lastMessage = Message::query()
+            ->forCurrentTenant()
+            ->find($lastMessageId);
         if ($lastMessage) {
             $this->webhookDeliveryService->queueEvent(
                 'message.read',
@@ -253,6 +268,7 @@ class ChatReadStateService
     public function syncAggregatedReadState(User $user, Conversation $conversation): void
     {
         $latestRead = MessageRead::query()
+            ->forCurrentTenant()
             ->where('conversation_id', $conversation->id)
             ->where('user_id', $user->id)
             ->orderByDesc('message_id')
@@ -262,10 +278,10 @@ class ChatReadStateService
             return;
         }
 
-        $this->syncParticipantLastReadFromMessage(
+            $this->syncParticipantLastReadFromMessage(
             $user,
             $conversation,
-            Message::query()->findOrFail($latestRead->message_id),
+            Message::query()->forCurrentTenant()->findOrFail($latestRead->message_id),
             $latestRead->read_at
         );
     }
@@ -292,6 +308,20 @@ class ChatReadStateService
         }
 
         $participant->save();
+    }
+
+    private function resolveTenantId(): string
+    {
+        $tenantId = app(TenantContext::class)->tenantId();
+        if (is_string($tenantId) && $tenantId !== '') {
+            return $tenantId;
+        }
+
+        if (app()->runningUnitTests() || app()->runningInConsole()) {
+            return TenantBootstrapService::DEFAULT_TENANT_UUID;
+        }
+
+        throw new \RuntimeException('Tenant context is required for chat read-state operations.');
     }
 
     /**

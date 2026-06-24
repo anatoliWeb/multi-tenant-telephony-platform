@@ -10,6 +10,8 @@ use App\Models\ChatWebhookEndpoint;
 use App\Models\User;
 use App\Services\Chat\ChatWebhookSecretRotationService;
 use App\Services\Chat\ExternalChatTokenService;
+use App\Services\Tenancy\TenantBootstrapService;
+use App\Services\Tenancy\TenantContext;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Str;
 
@@ -24,6 +26,7 @@ class ChatWebhookEndpointController extends BaseController
     public function index(): JsonResponse
     {
         $items = ChatWebhookEndpoint::query()
+            ->forCurrentTenant()
             ->latest('id')
             ->get()
             ->map(fn (ChatWebhookEndpoint $endpoint) => (new ChatWebhookEndpointResource($endpoint))->resolve())
@@ -50,6 +53,7 @@ class ChatWebhookEndpointController extends BaseController
 
         $endpoint = ChatWebhookEndpoint::query()->create([
             'uuid' => (string) Str::uuid(),
+            'tenant_id' => $this->currentTenantId(),
             'name' => $validated['name'],
             'url' => $validated['url'],
             'secret' => $secret,
@@ -71,6 +75,10 @@ class ChatWebhookEndpointController extends BaseController
 
     public function update(UpdateChatWebhookEndpointRequest $request, ChatWebhookEndpoint $endpoint): JsonResponse
     {
+        if (! $endpoint->isInCurrentTenant()) {
+            abort(404, 'Webhook endpoint not found.');
+        }
+
         $validated = $request->validated();
         $scopes = null;
         if (array_key_exists('scopes', $validated)) {
@@ -95,6 +103,10 @@ class ChatWebhookEndpointController extends BaseController
 
     public function destroy(ChatWebhookEndpoint $endpoint): JsonResponse
     {
+        if (! $endpoint->isInCurrentTenant()) {
+            abort(404, 'Webhook endpoint not found.');
+        }
+
         $endpoint->delete();
 
         return $this->successResponse([
@@ -105,6 +117,10 @@ class ChatWebhookEndpointController extends BaseController
 
     public function rotateSecret(ChatWebhookEndpoint $endpoint): JsonResponse
     {
+        if (! $endpoint->isInCurrentTenant()) {
+            abort(404, 'Webhook endpoint not found.');
+        }
+
         /** @var User $user */
         $user = request()->user();
 
@@ -116,5 +132,19 @@ class ChatWebhookEndpointController extends BaseController
             'previous_secret_expires_at' => $result['previous_secret_expires_at'],
             'plain_secret' => $result['plain_secret'],
         ], 'Webhook secret rotated');
+    }
+
+    private function currentTenantId(): string
+    {
+        $tenantId = app(TenantContext::class)->tenantId();
+        if (is_string($tenantId) && $tenantId !== '') {
+            return $tenantId;
+        }
+
+        if (app()->runningUnitTests() || app()->runningInConsole()) {
+            return TenantBootstrapService::DEFAULT_TENANT_UUID;
+        }
+
+        abort(403, 'Tenant context is required.');
     }
 }

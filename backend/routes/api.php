@@ -511,6 +511,7 @@ Route::prefix('v1')
                  */
                 Route::prefix('chat')
                     ->as('chat.')
+                    ->middleware('resolve.tenant')
                     ->group(function (): void {
                     Route::get('/conversations', [ChatConversationController::class, 'index'])
                         ->name('conversations.index')

@@ -9,6 +9,7 @@ use App\Models\ChatWebhookEndpoint;
 use App\Services\Chat\ChatWebhookReplayProtectionService;
 use App\Services\Chat\ChatWebhookSecretRotationService;
 use App\Services\Chat\ExternalChatMessageService;
+use App\Services\Tenancy\TenantContext;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Validation\ValidationException;
 
@@ -18,6 +19,7 @@ class ChatIncomingWebhookController extends BaseController
         protected ChatWebhookSecretRotationService $secretRotationService,
         protected ChatWebhookReplayProtectionService $replayProtectionService,
         protected ExternalChatMessageService $externalChatMessageService,
+        protected TenantContext $tenantContext,
     ) {
     }
 
@@ -51,6 +53,8 @@ class ChatIncomingWebhookController extends BaseController
                 'event' => ['Webhook endpoint is not subscribed to this event.'],
             ]);
         }
+
+        $this->tenantContext->setTenant($endpoint->tenant);
 
         $result = $this->externalChatMessageService->sendExternalWebhookMessage($endpoint, $validated);
         $message = $result['message'];

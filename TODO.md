@@ -472,16 +472,16 @@ No telephony-domain implementation may begin before tenant isolation is operatio
 
 Adapt existing models instead of creating duplicate replacements.
 
-- [ ] Add tenant ownership to chat conversations
-- [ ] Add tenant ownership to messages where necessary
+- [x] Add tenant ownership to chat conversations
+- [x] Add tenant ownership to messages where necessary
 - [ ] Add tenant ownership to notifications
 - [ ] Add tenant ownership to activity logs
 - [ ] Add tenant ownership to tenant roles
 - [ ] Add tenant ownership to relevant settings
-- [ ] Add tenant-aware route model binding
-- [ ] Add tenant-aware cache keys
-- [ ] Add tenant-aware storage paths
-- [ ] Add tenant-aware broadcasting channels
+- [x] Add tenant-aware route model binding
+- [x] Add tenant-aware cache keys
+- [x] Add tenant-aware storage paths
+- [x] Add tenant-aware broadcasting channels
 
 ## 8.5 Tenant Isolation Tests
 
@@ -490,8 +490,8 @@ Adapt existing models instead of creating duplicate replacements.
 - [ ] Cross-tenant deletes are blocked
 - [ ] Cross-tenant exports are blocked
 - [ ] Cross-tenant file access is blocked
-- [ ] Cross-tenant chat access is blocked
-- [ ] Cross-tenant realtime access is blocked
+- [x] Cross-tenant chat access is blocked
+- [x] Cross-tenant realtime access is blocked
 - [ ] Queue jobs cannot leak tenant context
 - [ ] Platform access requires platform permissions
 
@@ -551,7 +551,7 @@ Do not discard the existing seeders.
 - [x] Existing user and RBAC seeding is present
 - [x] Existing chat demo seeder is present
 - [x] Adapt existing user and RBAC seeding to tenants
-- [ ] Adapt the existing chat demo seeder to tenants
+- [x] Adapt the existing chat demo seeder to tenants
 - [x] Create `CoreSeeder`
 - [x] Create `DemoSeeder`
 - [x] Create `TestSeeder`
@@ -581,7 +581,7 @@ Do not discard the existing seeders.
 - [ ] Analysts
 - [ ] Agents
 - [ ] Read-only users
-- [ ] Existing chat demo data adapted to tenants
+- [x] Existing chat demo data adapted to tenants
 - [ ] Activity logs
 - [ ] Notifications
 - [ ] Dashboard demo data
@@ -603,17 +603,17 @@ Do not discard the existing seeders.
 
 ## 11.1 Backend Adaptations
 
-- [ ] Add tenant ownership to conversations
-- [ ] Add tenant-aware participant validation
-- [ ] Add tenant-aware message queries
-- [ ] Add tenant-aware attachment storage
-- [ ] Add tenant-aware realtime channels
-- [ ] Add tenant-aware presence
-- [ ] Add tenant-aware typing events
-- [ ] Add tenant-aware moderation
-- [ ] Adapt existing policies
-- [ ] Adapt existing tests
-- [ ] Add cross-tenant chat tests
+- [x] Add tenant ownership to conversations
+- [x] Add tenant-aware participant validation
+- [x] Add tenant-aware message queries
+- [x] Add tenant-aware attachment storage
+- [x] Add tenant-aware realtime channels
+- [x] Add tenant-aware presence
+- [x] Add tenant-aware typing events
+- [x] Add tenant-aware moderation
+- [x] Adapt existing policies
+- [x] Adapt existing tests
+- [x] Add cross-tenant chat tests
 
 ## 11.2 Angular Adaptations
 
@@ -622,7 +622,7 @@ Do not discard the existing seeders.
 - [x] Existing realtime foundation is preserved
 - [x] Existing unread indicator foundation is preserved
 - [ ] Fix only verified existing UI issues
-- [ ] Add tenant context
+- [x] Add tenant context
 - [ ] Add permission-aware actions
 - [ ] Add reusable chat-header action slots
 - [ ] Prepare a call-button integration point
@@ -1306,8 +1306,8 @@ Milestone status: `PARTIAL`
 - [x] TenantContext works
 - [ ] Platform and tenant roles are separated
 - [ ] Custom tenant roles work
-- [ ] Existing chat is tenant-isolated
-- [ ] Existing realtime channels are tenant-isolated
+- [x] Existing chat is tenant-isolated
+- [x] Existing realtime channels are tenant-isolated
 - [ ] Existing notifications are tenant-aware
 - [ ] Existing activity logs are tenant-aware
 - [x] CoreSeeder works

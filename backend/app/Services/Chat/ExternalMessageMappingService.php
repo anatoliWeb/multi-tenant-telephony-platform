@@ -23,10 +23,12 @@ class ExternalMessageMappingService
 
         return ExternalMessageMapping::query()->updateOrCreate(
             [
+                'tenant_id' => $conversation->tenant_id,
                 'provider' => $provider,
                 'external_id' => $externalMessageId,
             ],
             [
+                'tenant_id' => $conversation->tenant_id,
                 'conversation_id' => $conversation->id,
                 'message_id' => $message->id,
                 'external_conversation_id' => data_get($payload, 'external_conversation_id'),
@@ -41,9 +43,9 @@ class ExternalMessageMappingService
     public function findByExternalId(string $provider, string $externalMessageId): ?ExternalMessageMapping
     {
         return ExternalMessageMapping::query()
+            ->forCurrentTenant()
             ->where('provider', $provider)
             ->where('external_id', $externalMessageId)
             ->first();
     }
 }
-

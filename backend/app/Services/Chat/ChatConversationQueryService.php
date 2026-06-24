@@ -13,7 +13,7 @@ use Illuminate\Support\Facades\DB;
 class ChatConversationQueryService
 {
     public function __construct(
-        protected ChatAccessService $access
+        protected ChatAccessService $access,
     ) {
     }
 
@@ -28,6 +28,7 @@ class ChatConversationQueryService
     public function visibleConversationsFor(User $user, array $filters = []): Builder
     {
         $query = Conversation::query()
+            ->forCurrentTenant()
             ->where('status', '!=', 'deleted');
 
         if ($this->canAdminBrowseConversations($user)) {
@@ -70,6 +71,7 @@ class ChatConversationQueryService
         }
 
         $query = Message::query()
+            ->forCurrentTenant()
             ->where('conversation_id', $conversation->id);
 
         if (! $this->canAdminBrowseConversations($user)) {
@@ -200,6 +202,7 @@ class ChatConversationQueryService
         }
 
         $counts = Message::query()
+            ->forCurrentTenant()
             // WHY:
             // Compute unread counters for all visible conversations in one grouped query
             // to avoid per-conversation count queries (N+1) in chat list responses.
@@ -270,6 +273,7 @@ class ChatConversationQueryService
         }
 
         $query = Conversation::query()
+            ->forCurrentTenant()
             ->where('status', '!=', 'deleted');
 
         return $this->applyConversationFilters($query, $filters);

@@ -2,6 +2,7 @@
 
 namespace Tests;
 
+use App\Services\Tenancy\TenantContext;
 use App\Support\TestingDatabaseGuard;
 use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
@@ -42,6 +43,8 @@ abstract class TestCase extends BaseTestCase
     protected function setUp(): void
     {
         parent::setUp();
+
+        app(TenantContext::class)->clear();
 
         // Keep docs tooling tests backward-compatible in testing by default.
         // Strict docs access suites explicitly override this to false.

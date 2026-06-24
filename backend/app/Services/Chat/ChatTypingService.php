@@ -55,6 +55,10 @@ class ChatTypingService
 
     public function canSendTyping(User $user, Conversation $conversation): bool
     {
+        if (! $conversation->isInCurrentTenant()) {
+            return false;
+        }
+
         if ($conversation->trashed()) {
             return false;
         }
@@ -102,7 +106,8 @@ class ChatTypingService
 
     private function typingThrottleKey(int $conversationId, int $userId, string $state): string
     {
-        return "chat:typing:{$conversationId}:{$userId}:{$state}";
+        $tenantId = app(\App\Services\Tenancy\TenantContext::class)->tenantId() ?? 'default';
+
+        return "chat:typing:{$tenantId}:{$conversationId}:{$userId}:{$state}";
     }
 }
-

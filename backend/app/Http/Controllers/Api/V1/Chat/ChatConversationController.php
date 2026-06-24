@@ -274,6 +274,7 @@ class ChatConversationController extends BaseController
         $perPage = max(1, min((int) $request->query('per_page', 25), 100));
 
         $paginator = ChatWebhookDelivery::query()
+            ->forCurrentTenant()
             ->where('conversation_id', $conversation->id)
             ->with(['endpoint:id,name,url'])
             ->orderByDesc('id')

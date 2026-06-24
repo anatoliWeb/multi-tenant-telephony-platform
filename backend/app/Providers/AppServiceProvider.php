@@ -487,7 +487,7 @@ class AppServiceProvider extends ServiceProvider
         }
 
         Broadcast::routes([
-            'middleware' => ['auth:sanctum'],
+            'middleware' => ['auth:sanctum', 'resolve.tenant'],
         ]);
         require base_path('routes/channels.php');
 

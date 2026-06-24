@@ -26,6 +26,7 @@ class ChatWebhookDeliveryService
     public function createDelivery(ChatWebhookEndpoint $endpoint, string $eventType, array $payload): ChatWebhookDelivery
     {
         $delivery = ChatWebhookDelivery::query()->create([
+            'tenant_id' => $endpoint->tenant_id,
             'webhook_endpoint_id' => $endpoint->id,
             'conversation_id' => data_get($payload, 'conversation_id'),
             'message_id' => data_get($payload, 'message_id'),
@@ -186,6 +187,7 @@ class ChatWebhookDeliveryService
     public function queueEvent(string $eventType, array $payload): int
     {
         $endpoints = ChatWebhookEndpoint::query()
+            ->forCurrentTenant()
             ->where('is_active', true)
             ->where('status', 'active')
             ->whereJsonContains('events', $eventType)

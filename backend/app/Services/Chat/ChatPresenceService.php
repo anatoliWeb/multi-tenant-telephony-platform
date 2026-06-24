@@ -18,6 +18,10 @@ class ChatPresenceService
 
     public function canJoinPresence(User $user, Conversation $conversation): bool
     {
+        if (! $conversation->isInCurrentTenant()) {
+            return false;
+        }
+
         if ($conversation->trashed()) {
             return false;
         }
@@ -65,6 +69,7 @@ class ChatPresenceService
         }
 
         $device = ChatUserDevice::query()
+            ->forCurrentTenant()
             ->where('user_id', $user->id)
             ->where('device_key', $deviceKey)
             ->first();
@@ -106,6 +111,7 @@ class ChatPresenceService
         $cutoff = Carbon::now()->subSeconds($thresholdSeconds);
 
         return ChatUserDevice::query()
+            ->forCurrentTenant()
             ->where('is_active', true)
             ->whereNotNull('last_seen_at')
             ->where('last_seen_at', '<', $cutoff)

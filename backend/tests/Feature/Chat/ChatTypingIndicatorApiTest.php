@@ -8,6 +8,7 @@ use App\Models\Conversation;
 use App\Models\ConversationParticipant;
 use App\Models\Permission;
 use App\Models\User;
+use App\Services\Tenancy\TenantContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Event;
@@ -71,6 +72,7 @@ class ChatTypingIndicatorApiTest extends TestCase
     {
         Cache::flush();
         Event::fake([ChatTypingStarted::class, ChatTypingStopped::class]);
+        $tenantId = app(TenantContext::class)->tenantId() ?? 'default';
 
         $owner = User::factory()->create();
         $active = User::factory()->create();
@@ -143,7 +145,7 @@ class ChatTypingIndicatorApiTest extends TestCase
         ])->assertOk();
         Event::assertDispatchedTimes(ChatTypingStarted::class, 1);
 
-        Cache::forget("chat:typing:{$conversation->id}:{$actor->id}:start");
+        Cache::forget("chat:typing:{$tenantId}:{$conversation->id}:{$actor->id}:start");
         $this->postJson("/api/v1/chat/conversations/{$conversation->id}/typing/start", [
             'device_type' => 'browser',
         ])->assertOk();

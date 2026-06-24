@@ -6,6 +6,8 @@ use App\Events\Chat\ChatUserLeftConversation;
 use App\Models\Conversation;
 use App\Models\ConversationParticipant;
 use App\Models\User;
+use App\Services\Tenancy\TenantBootstrapService;
+use App\Services\Tenancy\TenantContext;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
@@ -66,6 +68,7 @@ class ChatConversationService
         }
 
         $activeSourceParticipantIds = ConversationParticipant::query()
+            ->forCurrentTenant()
             ->where('conversation_id', $directConversation->id)
             ->where('status', 'active')
             ->pluck('user_id')
@@ -85,10 +88,14 @@ class ChatConversationService
             ]);
         }
 
-        $users = User::query()->whereIn('id', $candidateParticipantIds)->get()->keyBy('id');
+        $users = User::query()
+            ->whereIn('id', $candidateParticipantIds)
+            ->get()
+            ->filter(fn (User $user): bool => $this->canUseUserInCurrentTenant($user))
+            ->keyBy('id');
         if ($users->count() !== count($candidateParticipantIds)) {
             throw ValidationException::withMessages([
-                'participant_ids' => ['One or more participants do not exist.'],
+                'participant_ids' => ['One or more participants do not exist or are not active in the current tenant.'],
             ]);
         }
 
@@ -170,9 +177,9 @@ class ChatConversationService
         }
 
         $targetUser = User::query()->find($targetUserId);
-        if (! $targetUser) {
+        if (! $targetUser || ! $this->canUseUserInCurrentTenant($targetUser)) {
             throw ValidationException::withMessages([
-                'user_id' => ['Target user not found.'],
+                'user_id' => ['Target user not found in the current tenant.'],
             ]);
         }
 
@@ -184,6 +191,7 @@ class ChatConversationService
         return DB::transaction(function () use ($creator, $targetUser): Conversation {
             $conversation = Conversation::query()->create([
                 'uuid' => (string) Str::uuid(),
+                'tenant_id' => $this->currentTenantId(),
                 'type' => 'direct',
                 'visibility' => 'private',
                 'title' => null,
@@ -265,16 +273,21 @@ class ChatConversationService
             ]);
         }
 
-        $users = User::query()->whereIn('id', $participantUserIds)->get()->keyBy('id');
+        $users = User::query()
+            ->whereIn('id', $participantUserIds)
+            ->get()
+            ->filter(fn (User $user): bool => $this->canUseUserInCurrentTenant($user))
+            ->keyBy('id');
         if ($users->count() !== count($participantUserIds)) {
             throw ValidationException::withMessages([
-                'participant_ids' => ['One or more participants do not exist.'],
+                'participant_ids' => ['One or more participants do not exist or are not active in the current tenant.'],
             ]);
         }
 
         return DB::transaction(function () use ($creator, $users, $payload, $visibility, $joinPolicy): Conversation {
             $conversation = Conversation::query()->create([
                 'uuid' => (string) Str::uuid(),
+                'tenant_id' => $this->currentTenantId(),
                 'type' => 'group',
                 'visibility' => $visibility,
                 'title' => $payload['title'] ?? null,
@@ -360,9 +373,9 @@ class ChatConversationService
         }
 
         $user = User::query()->find($userId);
-        if (! $user) {
+        if (! $user || ! $this->canUseUserInCurrentTenant($user)) {
             throw ValidationException::withMessages([
-                'user_id' => ['User not found.'],
+                'user_id' => ['User not found in the current tenant.'],
             ]);
         }
 
@@ -381,6 +394,7 @@ class ChatConversationService
 
         return DB::transaction(function () use ($conversation, $user, $options, $role, $actor): ConversationParticipant {
             $existing = ConversationParticipant::query()
+                ->forCurrentTenant()
                 ->where('conversation_id', $conversation->id)
                 ->where('user_id', $user->id)
                 ->first();
@@ -421,7 +435,7 @@ class ChatConversationService
                 return $updated;
             }
 
-            $created = ConversationParticipant::query()->create(array_merge($attributes, [
+            $created = ConversationParticipant::query()->forCurrentTenant()->create(array_merge($attributes, [
                 'conversation_id' => $conversation->id,
                 'user_id' => $user->id,
             ]));
@@ -443,6 +457,7 @@ class ChatConversationService
         }
 
         $participant = ConversationParticipant::query()
+            ->forCurrentTenant()
             ->where('conversation_id', $conversation->id)
             ->where('user_id', $userId)
             ->whereIn('status', ['active', 'invited', 'blocked'])
@@ -456,6 +471,7 @@ class ChatConversationService
 
         if ($participant->role === 'owner') {
             $activeOwners = ConversationParticipant::query()
+                ->forCurrentTenant()
                 ->where('conversation_id', $conversation->id)
                 ->where('role', 'owner')
                 ->where('status', 'active')
@@ -489,6 +505,7 @@ class ChatConversationService
         }
 
         return ConversationParticipant::query()
+            ->forCurrentTenant()
             ->where('conversation_id', $conversation->id)
             ->whereIn('status', ['active', 'invited', 'blocked'])
             ->orderByRaw("FIELD(role, 'owner', 'admin', 'support', 'member', 'viewer')")
@@ -499,6 +516,7 @@ class ChatConversationService
     public function leaveConversation(User $actor, Conversation $conversation): ConversationParticipant
     {
         $participant = ConversationParticipant::query()
+            ->forCurrentTenant()
             ->where('conversation_id', $conversation->id)
             ->where('user_id', $actor->id)
             ->first();
@@ -515,6 +533,7 @@ class ChatConversationService
 
         if ($participant->role === 'owner') {
             $activeOwners = ConversationParticipant::query()
+                ->forCurrentTenant()
                 ->where('conversation_id', $conversation->id)
                 ->where('role', 'owner')
                 ->where('status', 'active')
@@ -586,6 +605,7 @@ class ChatConversationService
     private function findExistingDirectConversation(int $userA, int $userB): ?Conversation
     {
         return Conversation::query()
+            ->forCurrentTenant()
             ->where('type', 'direct')
             ->where('visibility', 'private')
             ->where('status', 'active')
@@ -641,10 +661,14 @@ class ChatConversationService
             ]);
         }
 
-        $users = User::query()->whereIn('id', $participantUserIds)->get()->keyBy('id');
+        $users = User::query()
+            ->whereIn('id', $participantUserIds)
+            ->get()
+            ->filter(fn (User $user): bool => $this->canUseUserInCurrentTenant($user))
+            ->keyBy('id');
         if ($users->count() !== count($participantUserIds)) {
             throw ValidationException::withMessages([
-                'participant_ids' => ['One or more participants do not exist.'],
+                'participant_ids' => ['One or more participants do not exist or are not active in the current tenant.'],
             ]);
         }
 
@@ -664,6 +688,7 @@ class ChatConversationService
         ): Conversation {
             $conversation = Conversation::query()->create([
                 'uuid' => (string) Str::uuid(),
+                'tenant_id' => $this->currentTenantId(),
                 'type' => $type,
                 'visibility' => $visibility,
                 'title' => $payload['title'] ?? null,
@@ -740,7 +765,7 @@ class ChatConversationService
 
     private function upsertParticipant(Conversation $conversation, User $user, array $attributes): ConversationParticipant
     {
-        $participant = ConversationParticipant::query()->firstOrNew([
+        $participant = ConversationParticipant::query()->forCurrentTenant()->firstOrNew([
             'conversation_id' => $conversation->id,
             'user_id' => $user->id,
         ]);
@@ -851,5 +876,39 @@ class ChatConversationService
             'access_state' => $participant->access_state,
             'changed_at' => $participant->updated_at?->toISOString() ?? now()->toISOString(),
         ];
+    }
+
+    private function currentTenantId(): string
+    {
+        $tenantId = app(TenantContext::class)->tenantId();
+        if (is_string($tenantId) && $tenantId !== '') {
+            return $tenantId;
+        }
+
+        if (app()->runningUnitTests() || app()->runningInConsole()) {
+            return TenantBootstrapService::DEFAULT_TENANT_UUID;
+        }
+
+        throw new AuthorizationException('Tenant context is required for chat conversation operations.');
+    }
+
+    private function canUseUserInCurrentTenant(User $user): bool
+    {
+        $tenantId = $this->currentTenantId();
+
+        if ($user->tenantMemberships()
+            ->where('tenant_id', $tenantId)
+            ->where('status', 'active')
+            ->exists()) {
+            return true;
+        }
+
+        if ((app()->runningUnitTests() || app()->runningInConsole())
+            && $tenantId === TenantBootstrapService::DEFAULT_TENANT_UUID
+            && ! $user->tenantMemberships()->exists()) {
+            return true;
+        }
+
+        return false;
     }
 }

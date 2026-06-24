@@ -50,6 +50,8 @@ Seeds a deterministic demo baseline for local development:
 - suspended membership and suspended tenant examples;
 - custom tenant role coverage.
 
+Chat demo data is tenant-specific, deterministic, and idempotent. Demo conversations, participants, messages, webhook endpoints, and webhook deliveries are created under the target tenant so the same demo users can have separate chat histories in different tenants.
+
 ### TestSeeder
 
 Seeds the test-only baseline used by feature tests:
@@ -73,6 +75,7 @@ Seeds high-volume data in batches:
 
 - Rerunning `CoreSeeder` should not change the catalog shape.
 - Rerunning `DemoSeeder` should not duplicate demo tenants or users.
+- Rerunning `DemoSeeder` should not duplicate chat conversations or messages.
 - Rerunning `TestSeeder` should not leak fixtures into production.
 - Rerunning `PerformanceSeeder` should reuse the same tenant and user identity keys.
 

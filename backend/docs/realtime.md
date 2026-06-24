@@ -74,6 +74,8 @@ Notes:
 
 Chat broadcast events are sent to `private-chat.conversation.{id}` and use the `realtime` queue.
 
+Chat channels are tenant-bound through the active request context and conversation ownership checks. The channel names remain backward-compatible for the existing frontend, but authorization always resolves the conversation inside the current tenant before the payload is broadcast.
+
 Current event names include:
 
 - `chat.message.created`
@@ -89,6 +91,8 @@ Current event names include:
 - `chat.typing.stopped`
 - `chat.user.joined`
 - `chat.user.left`
+
+Typing and presence events use the same tenant-owned conversation root so a subscription from another tenant cannot authorize even if the UUID is known.
 
 Payloads are intentionally shaped by services/events and must stay safe for the subscribed audience.
 

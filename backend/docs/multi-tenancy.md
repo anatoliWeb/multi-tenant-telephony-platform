@@ -92,6 +92,20 @@ Tenant-aware fixtures are now split by intent:
 
 The demo and test seeders intentionally use stable identity keys so repeated runs stay predictable and do not rewrite existing passwords.
 
+## Chat Ownership
+
+Chat conversations are tenant-owned and act as the root boundary for related messages, participants, attachments, read state, typing, presence, and external chat deliveries.
+
+Key rules:
+
+- conversation creation resolves the active tenant from `TenantContext`;
+- message rows inherit the conversation tenant;
+- attachment storage paths include the tenant UUID;
+- chat route binding fails closed outside the active tenant;
+- cross-tenant chat access returns a safe not-found or forbidden response instead of leaking metadata.
+
+See `backend/docs/chat.md` for the chat-specific runtime summary.
+
 ## Next Step
 
 The next slice should start applying `tenant_id` to tenant-owned data and propagate tenant context through the rest of the runtime.

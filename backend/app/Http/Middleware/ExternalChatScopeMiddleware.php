@@ -5,6 +5,8 @@ namespace App\Http\Middleware;
 use App\Models\ChatWebhookEndpoint;
 use App\Models\User;
 use App\Services\Chat\ExternalChatTokenService;
+use App\Services\Tenancy\TenantBootstrapService;
+use App\Services\Tenancy\TenantContext;
 use Closure;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\Request;
@@ -13,7 +15,9 @@ use Symfony\Component\HttpFoundation\Response;
 class ExternalChatScopeMiddleware
 {
     public function __construct(
-        protected ExternalChatTokenService $tokenService
+        protected ExternalChatTokenService $tokenService,
+        protected TenantContext $tenantContext,
+        protected TenantBootstrapService $tenantBootstrapService
     ) {
     }
 
@@ -25,12 +29,16 @@ class ExternalChatScopeMiddleware
      */
     public function handle(Request $request, Closure $next, string $requiredScope): Response
     {
+        $this->tenantContext->clear();
+
         /** @var User|null $sanctumUser */
         $sanctumUser = auth('sanctum')->user();
         if ($sanctumUser instanceof User) {
             if (! $sanctumUser->hasAnyPermission(['chat.external_api.send', 'chat.external_api.manage', 'chat.admin.moderate'])) {
                 throw new AuthorizationException('You are not allowed to send external chat messages.');
             }
+
+            $this->resolveTenantContextFromRequest($request, $sanctumUser);
 
             return $next($request);
         }
@@ -63,10 +71,15 @@ class ExternalChatScopeMiddleware
             abort(401, 'Unauthenticated');
         }
 
+        if ($this->tenantContext->hasTenant() && $endpoint->tenant_id !== $this->tenantContext->tenantId()) {
+            abort(403, 'Forbidden');
+        }
+
         $request->setUserResolver(static fn (): User => $creator);
         $request->attributes->set('external_auth_mode', 'token');
         $request->attributes->set('external_token_endpoint_id', $endpoint->id);
         $request->attributes->set('external_token_scopes', data_get($metadata, 'token_scopes', []));
+        $this->tenantContext->setTenant($endpoint->tenant);
 
         $metadata['token_last_used_at'] = now()->toISOString();
         $endpoint->metadata = $metadata;
@@ -74,5 +87,43 @@ class ExternalChatScopeMiddleware
         $endpoint->save();
 
         return $next($request);
+    }
+
+    private function resolveTenantContextFromRequest(Request $request, User $user): void
+    {
+        $identifier = trim((string) $request->header('X-Tenant-ID', ''));
+
+        if ($identifier !== '') {
+            $tenant = $this->tenantBootstrapService->resolveTenantByIdentifier($identifier);
+            if ($tenant === null || ! $this->tenantBootstrapService->userHasActiveMembership($user, $tenant)) {
+                throw new AuthorizationException('Tenant access denied.');
+            }
+
+            $this->tenantContext->setTenant($tenant);
+
+            return;
+        }
+
+        $membership = $user->activeTenantMemberships()
+            ->with('tenant')
+            ->orderBy('tenant_id')
+            ->first();
+
+        if ($membership?->tenant) {
+            $this->tenantContext->setTenant($membership->tenant);
+
+            return;
+        }
+
+        if (app()->runningUnitTests() || app()->runningInConsole()) {
+            $defaultTenant = $this->tenantBootstrapService->resolveTenantByIdentifier(TenantBootstrapService::DEFAULT_TENANT_UUID);
+            if ($defaultTenant !== null) {
+                $this->tenantContext->setTenant($defaultTenant);
+            }
+
+            return;
+        }
+
+        throw new AuthorizationException('Tenant access denied.');
     }
 }

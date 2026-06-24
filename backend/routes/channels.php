@@ -54,7 +54,7 @@ Broadcast::channel('notifications.user.{userId}', static function (User $user, i
 });
 
 Broadcast::channel('chat.conversation.{conversationId}', static function (User $user, int $conversationId): bool {
-    $conversation = Conversation::query()->find($conversationId);
+    $conversation = Conversation::query()->forCurrentTenant()->find($conversationId);
     if (! $conversation) {
         app(RealtimeLogService::class)->logChannelDenied([
             'channel_name' => 'chat.conversation.{conversationId}',
@@ -132,7 +132,7 @@ Broadcast::channel('presence-typing.{context}', static function (User $user, str
 });
 
 Broadcast::channel('presence-chat.{conversationId}', static function (User $user, int $conversationId): array|bool {
-    $conversation = Conversation::query()->find($conversationId);
+    $conversation = Conversation::query()->forCurrentTenant()->find($conversationId);
     if (! $conversation) {
         app(RealtimeLogService::class)->logChannelDenied([
             'channel_name' => 'presence-chat.{conversationId}',
@@ -175,7 +175,7 @@ Broadcast::channel('presence-chat.{conversationId}', static function (User $user
 
 // Backward compatibility alias for older frontend builds that still subscribe to chat.{conversationId}
 Broadcast::channel('chat.{conversationId}', static function (User $user, int $conversationId): array|bool {
-    $conversation = Conversation::query()->find($conversationId);
+    $conversation = Conversation::query()->forCurrentTenant()->find($conversationId);
     if (! $conversation) {
         app(RealtimeLogService::class)->logChannelDenied([
             'channel_name' => 'chat.{conversationId}',

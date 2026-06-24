@@ -68,6 +68,7 @@ class ChatMessageService
         $result = DB::transaction(function () use ($sender, $conversation, $body, $type, $senderType): array {
             $message = Message::query()->create([
                 'uuid' => (string) Str::uuid(),
+                'tenant_id' => $conversation->tenant_id,
                 'conversation_id' => $conversation->id,
                 'sender_id' => $sender->id,
                 'sender_type' => $senderType,
@@ -263,6 +264,7 @@ class ChatMessageService
 
             if ((int) $conversation->last_message_id === (int) $message->id) {
                 $previousVisible = Message::query()
+                    ->forCurrentTenant()
                     ->where('conversation_id', $conversation->id)
                     ->where('id', '!=', $message->id)
                     ->whereNull('deleted_at')
@@ -307,6 +309,7 @@ class ChatMessageService
     private function createDeliveriesForActiveParticipants(Conversation $conversation, Message $message, User $sender): array
     {
         $participantIds = ConversationParticipant::query()
+            ->forCurrentTenant()
             ->where('conversation_id', $conversation->id)
             ->where('status', 'active')
             ->pluck('user_id')
@@ -318,10 +321,12 @@ class ChatMessageService
         foreach ($participantIds as $recipientId) {
             $delivery = MessageDelivery::query()->updateOrCreate(
                 [
+                    'tenant_id' => $conversation->tenant_id,
                     'message_id' => $message->id,
                     'user_id' => $recipientId,
                 ],
                 [
+                    'tenant_id' => $conversation->tenant_id,
                     'conversation_id' => $conversation->id,
                     'external_recipient_id' => null,
                     'recipient_type' => 'user',

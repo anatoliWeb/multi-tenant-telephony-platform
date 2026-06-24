@@ -53,13 +53,20 @@ class ChatAttachmentService
         $extension = $file->getClientOriginalExtension();
         $safeExtension = $extension !== '' ? '.'.$extension : '';
         $storedFileName = (string) Str::uuid().$safeExtension;
-        $path = sprintf('chat/attachments/%d/%d/%s', $conversation->id, $message->id, $storedFileName);
+        $path = sprintf(
+            'chat/tenants/%s/attachments/%d/%d/%s',
+            $conversation->tenant_id ?? 'unknown',
+            $conversation->id,
+            $message->id,
+            $storedFileName
+        );
         $storage->put($path, file_get_contents($file->getRealPath()));
 
         $scanEnabled = (bool) config('chat.attachments.virus_scan_enabled', false);
         $scanStatus = $scanEnabled ? 'pending' : 'skipped';
 
         $attachment = MessageAttachment::query()->create([
+            'tenant_id' => $conversation->tenant_id,
             'message_id' => $message->id,
             'conversation_id' => $conversation->id,
             'uploaded_by' => $actor->id,
@@ -139,6 +146,7 @@ class ChatAttachmentService
     public function markAttachmentsDeletedForMessage(Message $message, ?User $actor = null): void
     {
         MessageAttachment::query()
+            ->forCurrentTenant()
             ->where('message_id', $message->id)
             ->where('status', '!=', 'deleted')
             ->get()
@@ -191,6 +199,10 @@ class ChatAttachmentService
     public function validateAttachmentAccess(User $actor, MessageAttachment $attachment, bool $forDelete = false): bool
     {
         if (! in_array($attachment->status, ['active'], true)) {
+            return false;
+        }
+
+        if (! $attachment->isInCurrentTenant()) {
             return false;
         }
 

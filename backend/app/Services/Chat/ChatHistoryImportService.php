@@ -52,6 +52,7 @@ class ChatHistoryImportService
         }
 
         $sourceQuery = Message::query()
+            ->forCurrentTenant()
             ->where('conversation_id', $sourceConversation->id)
             ->whereNull('deleted_at')
             ->where('status', '!=', 'deleted')
@@ -75,6 +76,7 @@ class ChatHistoryImportService
             }
 
             $sourceMessage = Message::query()
+                ->forCurrentTenant()
                 ->where('id', $fromMessageId)
                 ->where('conversation_id', $sourceConversation->id)
                 ->first();
@@ -114,6 +116,7 @@ class ChatHistoryImportService
             foreach ($sourceMessages as $sourceMessage) {
                 $importedMessage = Message::query()->create([
                     'uuid' => (string) Str::uuid(),
+                    'tenant_id' => $targetConversation->tenant_id,
                     'conversation_id' => $targetConversation->id,
                     'sender_id' => $sourceMessage->sender_id,
                     'sender_type' => $sourceMessage->sender_type,
@@ -164,6 +167,7 @@ class ChatHistoryImportService
     private function copyAttachments(Message $sourceMessage, Message $targetMessage, int $targetConversationId): int
     {
         $sourceAttachments = MessageAttachment::query()
+            ->forCurrentTenant()
             ->where('message_id', $sourceMessage->id)
             ->whereNull('deleted_at')
             ->where('status', '!=', 'deleted')
@@ -173,6 +177,7 @@ class ChatHistoryImportService
         /** @var MessageAttachment $attachment */
         foreach ($sourceAttachments as $attachment) {
             MessageAttachment::query()->create([
+                'tenant_id' => $targetMessage->tenant_id ?? $targetConversation->tenant_id,
                 'message_id' => $targetMessage->id,
                 'conversation_id' => $targetConversationId,
                 'uploaded_by' => $attachment->uploaded_by,
