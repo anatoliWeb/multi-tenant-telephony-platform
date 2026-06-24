@@ -6,6 +6,7 @@ use App\Models\Conversation;
 use App\Models\ActivityLog;
 use App\Models\User;
 use App\Models\SystemTranslation;
+use App\Services\Rbac\PermissionCacheService;
 use App\Services\Tenancy\TenantContext;
 use App\Observers\PersonalAccessTokenObserver;
 use App\Observers\SystemTranslationObserver;
@@ -264,6 +265,11 @@ class AppServiceProvider extends ServiceProvider
                 $roleSchema = (new ObjectType)
                     ->addProperty('id', new IntegerType)
                     ->addProperty('name', new StringType)
+                    ->addProperty('scope', new StringType)
+                    ->addProperty('scope_reference', new StringType)
+                    ->addProperty('tenant_id', new StringType)
+                    ->addProperty('is_system', new BooleanType)
+                    ->addProperty('is_protected', new BooleanType)
                     ->addProperty('label', new StringType)
                     ->addProperty('description', new StringType)
                     ->setRequired(['id', 'name']);
@@ -271,6 +277,8 @@ class AppServiceProvider extends ServiceProvider
                 $permissionSchema = (new ObjectType)
                     ->addProperty('id', new IntegerType)
                     ->addProperty('name', new StringType)
+                    ->addProperty('scope', new StringType)
+                    ->addProperty('scope_reference', new StringType)
                     ->addProperty('label', new StringType)
                     ->addProperty('description', new StringType)
                     ->setRequired(['id', 'name']);
@@ -383,7 +391,9 @@ class AppServiceProvider extends ServiceProvider
                 $metaBootstrapResponse = (new ObjectType)
                     ->addProperty('current_user', $userSchema)
                     ->addProperty('current_user_permissions', (new ArrayType)->setItems(new StringType))
-                    ->setRequired(['current_user', 'current_user_permissions']);
+                    ->addProperty('platform_permissions', (new ArrayType)->setItems(new StringType))
+                    ->addProperty('tenant_permissions', (new ArrayType)->setItems(new StringType))
+                    ->setRequired(['current_user', 'current_user_permissions', 'platform_permissions', 'tenant_permissions']);
 
                 $metaRbacResponse = (new ObjectType)
                     ->addProperty('roles', (new ArrayType)->setItems($roleSchema))
@@ -569,15 +579,20 @@ class AppServiceProvider extends ServiceProvider
         }
 
         Gate::before(function (User $user, string $ability) {
-            return $user->hasPermission($ability) ? true : null;
+            $platformPermissions = app(PermissionCacheService::class)->getPlatformPermissionsForUser($user);
+
+            return in_array($ability, $platformPermissions, true) ? true : null;
         });
 
         Gate::define('viewApiDocs', function (User $user): bool {
-            return $user->hasPermission('api.docs.view');
+            return in_array('api.docs.view', app(PermissionCacheService::class)->getPlatformPermissionsForUser($user), true);
         });
 
         Gate::define('viewFullApiDocs', function (User $user): bool {
-            return $user->hasPermission('api.docs.view.full') || $user->hasRole('admin');
+            $permissions = app(PermissionCacheService::class)->getPlatformPermissionsForUser($user);
+
+            return in_array('api.docs.view.full', $permissions, true)
+                || $user->roles()->where('name', 'admin')->where('scope', 'platform')->exists();
         });
 
         Gate::policy(Conversation::class, ConversationPolicy::class);

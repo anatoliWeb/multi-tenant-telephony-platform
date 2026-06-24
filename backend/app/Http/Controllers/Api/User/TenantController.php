@@ -7,6 +7,7 @@ use App\Http\Requests\Api\SwitchTenantRequest;
 use App\Http\Resources\TenantContextResource;
 use App\Http\Resources\TenantMembershipResource;
 use App\Models\User;
+use App\Services\Rbac\PermissionCacheService;
 use App\Services\Tenancy\TenantBootstrapService;
 use App\Services\Tenancy\TenantContext;
 use Illuminate\Http\Request;
@@ -15,7 +16,8 @@ class TenantController extends BaseController
 {
     public function __construct(
         private readonly TenantBootstrapService $tenantBootstrapService,
-        private readonly TenantContext $tenantContext
+        private readonly TenantContext $tenantContext,
+        private readonly PermissionCacheService $permissionCacheService,
     ) {
     }
 
@@ -31,6 +33,10 @@ class TenantController extends BaseController
         return $this->successResponse([
             'tenants' => TenantMembershipResource::collection($memberships)->resolve(),
             'current_tenant_id' => $this->tenantContext->tenantId(),
+            'platform_permissions' => $user instanceof User ? $this->permissionCacheService->getPlatformPermissionsForUser($user) : [],
+            'tenant_permissions' => $user instanceof User && $this->tenantContext->hasTenant()
+                ? $this->permissionCacheService->getTenantPermissionsForUser($user, $this->tenantContext->requireTenant())
+                : [],
         ], dt('notifications.success'));
     }
 
@@ -48,6 +54,9 @@ class TenantController extends BaseController
                 'tenant' => $tenant,
                 'membership' => $membership,
                 'current_tenant_id' => $tenant->getKey(),
+                'platform_permissions' => $user instanceof User ? $this->permissionCacheService->getPlatformPermissionsForUser($user) : [],
+                'tenant_permissions' => $user instanceof User ? $this->permissionCacheService->getTenantPermissionsForUser($user, $tenant) : [],
+                'permissions' => $user instanceof User ? $this->permissionCacheService->getTenantPermissionsForUser($user, $tenant) : [],
             ])->resolve(),
             dt('notifications.success')
         );
@@ -78,6 +87,9 @@ class TenantController extends BaseController
                 'tenant' => $tenant,
                 'membership' => $membership,
                 'current_tenant_id' => $tenant->getKey(),
+                'platform_permissions' => $user instanceof User ? $this->permissionCacheService->getPlatformPermissionsForUser($user) : [],
+                'tenant_permissions' => $user instanceof User ? $this->permissionCacheService->getTenantPermissionsForUser($user, $tenant) : [],
+                'permissions' => $user instanceof User ? $this->permissionCacheService->getTenantPermissionsForUser($user, $tenant) : [],
             ])->resolve(),
             dt('notifications.success')
         );

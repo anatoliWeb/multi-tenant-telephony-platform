@@ -41,7 +41,7 @@ class RbacContractTest extends TestCase
         $this->seed(UserSeeder::class);
 
         $adminRole = Role::query()->where('name', 'admin')->firstOrFail();
-        $totalPermissions = Permission::query()->count();
+        $totalPermissions = Permission::query()->where('scope', 'platform')->count();
         $adminPermissions = $adminRole->permissions()->count();
 
         $this->assertSame($totalPermissions, $adminPermissions);
@@ -233,4 +233,3 @@ class RbacContractTest extends TestCase
         }
     }
 }
-

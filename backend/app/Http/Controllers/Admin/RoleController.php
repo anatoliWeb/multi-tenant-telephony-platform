@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Role;
 use App\Models\Permission;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 /**
  * Manage roles and their permissions.
@@ -17,7 +18,10 @@ class RoleController extends Controller
      */
     public function index()
     {
-        $roles = Role::withCount('permissions')->get();
+        $roles = Role::query()
+            ->where('scope', 'platform')
+            ->withCount('permissions')
+            ->get();
 
         return view('admin.roles.index', compact('roles'));
     }
@@ -27,7 +31,7 @@ class RoleController extends Controller
      */
     public function create()
     {
-        $permissions = Permission::all();
+        $permissions = Permission::query()->where('scope', 'platform')->get();
 
         return view('admin.roles.create', compact('permissions'));
     }
@@ -38,13 +42,23 @@ class RoleController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255', 'unique:roles,name'],
+            'name' => [
+                'required',
+                'string',
+                'max:255',
+                Rule::unique('roles', 'name')
+                    ->where(fn ($query) => $query
+                        ->where('scope', 'platform')
+                        ->where('scope_reference', 'platform')),
+            ],
             'permissions' => ['array'],
             'permissions.*' => ['exists:permissions,id'],
         ]);
 
         $role = Role::create([
             'name' => $validated['name'],
+            'scope' => 'platform',
+            'scope_reference' => 'platform',
             'description' => $validated['description'] ?? null,
         ]);
 
@@ -60,8 +74,8 @@ class RoleController extends Controller
      */
     public function edit($id)
     {
-        $role = Role::findOrFail($id);
-        $permissions = Permission::all();
+        $role = Role::query()->where('scope', 'platform')->findOrFail($id);
+        $permissions = Permission::query()->where('scope', 'platform')->get();
 
         return view('admin.roles.edit', compact('role', 'permissions'));
     }
@@ -71,7 +85,7 @@ class RoleController extends Controller
      */
     public function update(Request $request, $id)
     {
-        $role = Role::findOrFail($id);
+        $role = Role::query()->where('scope', 'platform')->findOrFail($id);
 
         $role->permissions()->sync($request->input('permissions', []));
 
@@ -85,11 +99,12 @@ class RoleController extends Controller
      */
     public function destroy($id)
     {
-        $role = Role::findOrFail($id);
+        $role = Role::query()->where('scope', 'platform')->findOrFail($id);
 
         // WHY:
-        // Admin role is protected to prevent system lockout.
-        if ($role->name === 'admin') {
+        // System and protected roles are immutable to prevent lockout
+        // or accidental removal of seeded platform access.
+        if ($role->is_system || $role->is_protected || $role->name === 'admin') {
             return back()->with('error', 'Admin role cannot be deleted');
         }
 

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\Rbac\PermissionScope;
 use Illuminate\Database\Eloquent\Model;
 
 /**
@@ -13,7 +14,13 @@ class Permission extends Model
 {
     protected $fillable = [
         'name',
+        'scope',
+        'scope_reference',
         'description',
+    ];
+
+    protected $casts = [
+        'scope' => PermissionScope::class,
     ];
 
     /**

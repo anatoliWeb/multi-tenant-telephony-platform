@@ -11,7 +11,14 @@ export class AuthApiService {
   me() {
     return this.apiClient
       .get<SessionAuthPayload>('/v1/auth/me')
-      .pipe(map((response: ApiResponse<SessionAuthPayload>) => response.data ?? { token: null, user: null, permissions: [], roles: [] }));
+      .pipe(map((response: ApiResponse<SessionAuthPayload>) => response.data ?? {
+        token: null,
+        user: null,
+        permissions: [],
+        platform_permissions: [],
+        tenant_permissions: [],
+        roles: [],
+      }));
   }
 
   login(credentials: { email: string; password: string; remember: boolean }) {
@@ -20,7 +27,14 @@ export class AuthApiService {
         '/v1/auth/token',
         credentials,
       )
-      .pipe(map((response: ApiResponse<SessionAuthPayload>) => response.data ?? { token: null, user: null, permissions: [], roles: [] }));
+      .pipe(map((response: ApiResponse<SessionAuthPayload>) => response.data ?? {
+        token: null,
+        user: null,
+        permissions: [],
+        platform_permissions: [],
+        tenant_permissions: [],
+        roles: [],
+      }));
   }
 
   logout() {

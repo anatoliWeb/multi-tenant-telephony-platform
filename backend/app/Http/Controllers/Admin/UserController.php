@@ -10,6 +10,7 @@ use App\Models\Permission;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 /**
  * Admin users management controller.
@@ -67,9 +68,9 @@ class UserController extends Controller
     {
         $user = User::with(['roles', 'permissions', 'deniedPermissions'])->findOrFail($id);
 
-        $roles = Role::all();
-        $permissions = Permission::all();
-        $rolePermissions = Role::with('permissions:id,name')
+        $roles = Role::query()->where('scope', 'platform')->get();
+        $permissions = Permission::query()->where('scope', 'platform')->get();
+        $rolePermissions = Role::query()->where('scope', 'platform')->with('permissions:id,name')
             ->get()
             ->mapWithKeys(function (Role $role) {
                 return [
@@ -91,8 +92,8 @@ class UserController extends Controller
      */
     public function create()
     {
-        $roles = Role::all();
-        $permissions = Permission::all();
+        $roles = Role::query()->where('scope', 'platform')->get();
+        $permissions = Permission::query()->where('scope', 'platform')->get();
 
         return view('admin.users.create', compact(
             'roles',
@@ -110,11 +111,17 @@ class UserController extends Controller
             'email' => ['required', 'email', 'max:255', 'unique:users,email'],
             'password' => ['required', 'string', 'min:6'],
             'roles' => ['array'],
-            'roles.*' => ['exists:roles,id'],
+            'roles.*' => [
+                Rule::exists('roles', 'id')->where(fn ($query) => $query->where('scope', 'platform')),
+            ],
             'permissions' => ['array'],
-            'permissions.*' => ['exists:permissions,id'],
+            'permissions.*' => [
+                Rule::exists('permissions', 'id')->where(fn ($query) => $query->where('scope', 'platform')),
+            ],
             'denied_permissions' => ['array'],
-            'denied_permissions.*' => ['exists:permissions,id'],
+            'denied_permissions.*' => [
+                Rule::exists('permissions', 'id')->where(fn ($query) => $query->where('scope', 'platform')),
+            ],
         ]);
 
         $user = User::create([
@@ -124,8 +131,12 @@ class UserController extends Controller
         ]);
 
         $user->roles()->sync($validated['roles'] ?? []);
-        $user->permissions()->sync($validated['permissions'] ?? []);
-        $user->deniedPermissions()->sync($validated['denied_permissions'] ?? []);
+        $user->permissions()->sync(
+            Permission::query()->where('scope', 'platform')->whereIn('id', $validated['permissions'] ?? [])->pluck('id')
+        );
+        $user->deniedPermissions()->sync(
+            Permission::query()->where('scope', 'platform')->whereIn('id', $validated['denied_permissions'] ?? [])->pluck('id')
+        );
 
         return redirect()
             ->route('admin.users.index')
@@ -147,11 +158,17 @@ class UserController extends Controller
             'email' => ['required', 'email', 'max:255', 'unique:users,email,' . $user->id],
             'password' => ['nullable', 'string', 'min:6'],
             'roles' => ['array'],
-            'roles.*' => ['exists:roles,id'],
+            'roles.*' => [
+                Rule::exists('roles', 'id')->where(fn ($query) => $query->where('scope', 'platform')),
+            ],
             'permissions' => ['array'],
-            'permissions.*' => ['exists:permissions,id'],
+            'permissions.*' => [
+                Rule::exists('permissions', 'id')->where(fn ($query) => $query->where('scope', 'platform')),
+            ],
             'denied_permissions' => ['array'],
-            'denied_permissions.*' => ['exists:permissions,id'],
+            'denied_permissions.*' => [
+                Rule::exists('permissions', 'id')->where(fn ($query) => $query->where('scope', 'platform')),
+            ],
         ]);
 
         /**
@@ -180,12 +197,12 @@ class UserController extends Controller
             /**
              * Sync direct permissions
              */
-            $user->permissions()->sync($validated['permissions'] ?? []);
+            $user->permissions()->sync(Permission::query()->where('scope', 'platform')->whereIn('id', $validated['permissions'] ?? [])->pluck('id'));
 
             /**
              * Sync denied permissions
              */
-            $user->deniedPermissions()->sync($validated['denied_permissions'] ?? []);
+            $user->deniedPermissions()->sync(Permission::query()->where('scope', 'platform')->whereIn('id', $validated['denied_permissions'] ?? [])->pluck('id'));
         }
 
         return redirect()

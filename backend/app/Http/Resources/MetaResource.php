@@ -57,6 +57,14 @@ class MetaResource extends JsonResource
             $payload['current_user_permissions'] = array_values(data_get($this->resource, 'current_user_permissions', []));
         }
 
+        if (is_array($this->resource) && array_key_exists('platform_permissions', $this->resource)) {
+            $payload['platform_permissions'] = array_values(data_get($this->resource, 'platform_permissions', []));
+        }
+
+        if (is_array($this->resource) && array_key_exists('tenant_permissions', $this->resource)) {
+            $payload['tenant_permissions'] = array_values(data_get($this->resource, 'tenant_permissions', []));
+        }
+
         return $payload;
     }
 

@@ -17,8 +17,8 @@ describe('RouterPermissionGuard', () => {
       makeRoute('/chat', { requiresAuth: true, permissions: ['chat.admin.view', 'chat.admin.view_metadata'] }),
       {
         hydrateSession: async () => true,
-        hasPermission: (permission) => permission === 'chat.admin.view',
-        hasAnyPermission: (permissions) => permissions.includes('chat.admin.view'),
+        hasPlatformPermission: (permission) => permission === 'chat.admin.view',
+        hasAnyPlatformPermission: (permissions) => permissions.includes('chat.admin.view'),
       },
     );
 
@@ -30,8 +30,8 @@ describe('RouterPermissionGuard', () => {
       makeRoute('/chat', { requiresAuth: true, permissions: ['chat.admin.view', 'chat.admin.view_metadata'] }),
       {
         hydrateSession: async () => true,
-        hasPermission: (permission) => permission === 'chat.admin.view_metadata',
-        hasAnyPermission: (permissions) => permissions.includes('chat.admin.view_metadata'),
+        hasPlatformPermission: (permission) => permission === 'chat.admin.view_metadata',
+        hasAnyPlatformPermission: (permissions) => permissions.includes('chat.admin.view_metadata'),
       },
     );
 
@@ -43,8 +43,8 @@ describe('RouterPermissionGuard', () => {
       makeRoute('/chat', { requiresAuth: true, permissions: ['chat.admin.view', 'chat.admin.view_metadata'] }),
       {
         hydrateSession: async () => true,
-        hasPermission: () => false,
-        hasAnyPermission: () => false,
+        hasPlatformPermission: () => false,
+        hasAnyPlatformPermission: () => false,
       },
     );
 
@@ -56,8 +56,8 @@ describe('RouterPermissionGuard', () => {
       makeRoute('/chat', { requiresAuth: true }),
       {
         hydrateSession: async () => false,
-        hasPermission: () => false,
-        hasAnyPermission: () => false,
+        hasPlatformPermission: () => false,
+        hasAnyPlatformPermission: () => false,
       },
     );
 
@@ -69,8 +69,8 @@ describe('RouterPermissionGuard', () => {
       makeRoute('/login', { guestOnly: true }),
       {
         hydrateSession: async () => false,
-        hasPermission: () => false,
-        hasAnyPermission: () => false,
+        hasPlatformPermission: () => false,
+        hasAnyPlatformPermission: () => false,
       },
     );
 
@@ -82,16 +82,16 @@ describe('RouterPermissionGuard', () => {
       makeRoute('/users', { requiresAuth: true, permission: 'users.view' }),
       {
         hydrateSession: async () => true,
-        hasPermission: () => false,
-        hasAnyPermission: () => false,
+        hasPlatformPermission: () => false,
+        hasAnyPlatformPermission: () => false,
       },
     );
     const allowed = await evaluateAdminRouteAccess(
       makeRoute('/users', { requiresAuth: true, permission: 'users.view' }),
       {
         hydrateSession: async () => true,
-        hasPermission: (permission) => permission === 'users.view',
-        hasAnyPermission: () => false,
+        hasPlatformPermission: (permission) => permission === 'users.view',
+        hasAnyPlatformPermission: () => false,
       },
     );
 
@@ -110,18 +110,18 @@ describe('RouterPermissionGuard', () => {
           order.push('hydrate:end');
           return true;
         },
-        hasPermission: () => {
-          order.push('hasPermission');
+        hasPlatformPermission: () => {
+          order.push('hasPlatformPermission');
           return false;
         },
-        hasAnyPermission: () => {
-          order.push('hasAnyPermission');
+        hasAnyPlatformPermission: () => {
+          order.push('hasAnyPlatformPermission');
           return true;
         },
       },
     );
 
-    expect(order.indexOf('hydrate:end')).toBeLessThan(order.indexOf('hasAnyPermission'));
+    expect(order.indexOf('hydrate:end')).toBeLessThan(order.indexOf('hasAnyPlatformPermission'));
     expect(result).toBe(true);
   });
 
@@ -130,8 +130,8 @@ describe('RouterPermissionGuard', () => {
       makeRoute('/dashboard', { requiresAuth: true, permission: 'dashboard.view' }),
       {
         hydrateSession: async () => true,
-        hasPermission: () => false,
-        hasAnyPermission: () => false,
+        hasPlatformPermission: () => false,
+        hasAnyPlatformPermission: () => false,
       },
     );
 
@@ -143,11 +143,12 @@ describe('RouterPermissionGuard', () => {
       makeRoute('/login', { guestOnly: true }),
       {
         hydrateSession: async () => true,
-        hasPermission: vi.fn(() => true),
-        hasAnyPermission: vi.fn(() => true),
+        hasPlatformPermission: vi.fn(() => true),
+        hasAnyPlatformPermission: vi.fn(() => true),
       },
     );
 
     expect(result).toEqual({ path: '/dashboard' });
   });
 });
+

@@ -41,7 +41,7 @@ The boundaries below are planning rules for new code. They do not require a whol
 
 ## AccessControl
 
-- Responsibility: roles, permissions, permission caches, authorization policies.
+- Responsibility: platform roles, tenant roles, permissions, permission caches, authorization policies.
 - Owned entities: roles, permissions, role/permission assignments, cache metadata.
 - Public application services: `PermissionService`, `RoleService`, `PermissionCacheService`.
 - Events emitted: permission changed, role permissions changed.

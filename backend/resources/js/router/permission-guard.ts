@@ -10,8 +10,8 @@ type GuardResult = true | false | { path: string; query?: Record<string, string>
 
 type AuthGuardLike = {
   hydrateSession: () => Promise<boolean>
-  hasPermission: (permission: string) => boolean
-  hasAnyPermission: (permissions: string[]) => boolean
+  hasPlatformPermission: (permission: string) => boolean
+  hasAnyPlatformPermission: (permissions: string[]) => boolean
 };
 
 export const evaluateAdminRouteAccess = async (to: RouteLike, auth: AuthGuardLike): Promise<GuardResult> => {
@@ -41,10 +41,10 @@ export const evaluateAdminRouteAccess = async (to: RouteLike, auth: AuthGuardLik
 
   if (requiresAuth && hasSession) {
     const isAllowedBySinglePermission = requiredPermission
-      ? auth.hasPermission(requiredPermission)
+      ? auth.hasPlatformPermission(requiredPermission)
       : true;
     const isAllowedByAnyPermission = requiredPermissions.length > 0
-      ? auth.hasAnyPermission(requiredPermissions)
+      ? auth.hasAnyPlatformPermission(requiredPermissions)
       : true;
 
     if (!isAllowedBySinglePermission || !isAllowedByAnyPermission) {

@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Enums\Rbac\PermissionScope;
 use App\Events\Rbac\PermissionChanged;
 use App\Http\Resources\PermissionResource;
 use App\Models\Permission;
@@ -28,6 +29,7 @@ class PermissionService
     public function getPermissionsForApi(): array
     {
         return Permission::query()
+            ->where('scope', PermissionScope::Platform->value)
             ->with(['roles:id,name'])
             ->orderBy('name')
             ->get()
@@ -52,6 +54,8 @@ class PermissionService
         return DB::transaction(function () use ($data): Permission {
             $permission = Permission::query()->create([
                 'name' => $data['name'],
+                'scope' => $data['scope'] ?? PermissionScope::Platform->value,
+                'scope_reference' => $data['scope_reference'] ?? ($data['scope'] ?? PermissionScope::Platform->value),
                 'description' => $data['description'] ?? null,
             ]);
 
@@ -124,6 +128,7 @@ class PermissionService
             (new PermissionResource($permission))->resolve(),
             [
                 'module' => $group,
+                'scope' => $permission->scope?->value ?? $permission->scope,
                 'group_label' => $this->translateWithFallback(
                     'permissions.groups.' . $group,
                     ucfirst(str_replace('_', ' ', $group))

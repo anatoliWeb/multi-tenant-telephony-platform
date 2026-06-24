@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { BehaviorSubject, firstValueFrom } from 'rxjs';
 import { AuthTokenStorageService } from '../../auth/services/auth-token-storage.service';
+import { AuthStateService } from './auth-state.service';
 import { TenantApiService } from './tenant-api.service';
 import type { TenantContextPayload, TenantMembershipSummary, TenantSummary } from '../models/tenant-context.model';
 
@@ -19,6 +20,7 @@ export class TenantContextService {
   constructor(
     private readonly tenantApi: TenantApiService,
     private readonly tokenStorage: AuthTokenStorageService,
+    private readonly authState: AuthStateService,
   ) {}
 
   get activeTenantId(): string | null {
@@ -53,6 +55,7 @@ export class TenantContextService {
     this.tenantsSubject.next([]);
     this.activeTenantSubject.next(null);
     this.setActiveTenantId(null);
+    this.authState.clearTenantPermissions();
   }
 
   async hydrateTenantContext(): Promise<void> {
@@ -65,6 +68,12 @@ export class TenantContextService {
       const payload = await firstValueFrom(this.tenantApi.listTenants());
       this.syncTenants(payload.tenants);
       this.reconcileActiveTenant(payload.current_tenant_id);
+      const selectedTenantId = this.activeTenantIdSubject.value;
+      this.authState.setPermissionScopes({
+        platform_permissions: payload.platform_permissions ?? [],
+        tenant_permissions: payload.tenant_permissions ?? [],
+        current_tenant_id: selectedTenantId,
+      });
     } catch {
       this.clear();
     }
@@ -74,8 +83,20 @@ export class TenantContextService {
     const payload = await firstValueFrom(this.tenantApi.switchTenant(tenantId));
     this.activeTenantSubject.next(payload.tenant);
     this.setActiveTenantId(payload.current_tenant_id ?? payload.tenant?.id ?? tenantId);
+    this.authState.setPermissionScopes({
+      platform_permissions: payload.platform_permissions ?? [],
+      tenant_permissions: payload.tenant_permissions ?? [],
+      current_tenant_id: payload.current_tenant_id,
+    });
     await this.hydrateTenantContext();
-    return payload;
+    return {
+      tenant: payload.tenant,
+      membership: payload.membership,
+      current_tenant_id: payload.current_tenant_id,
+      permissions: payload.permissions ?? [],
+      platform_permissions: payload.platform_permissions ?? [],
+      tenant_permissions: payload.tenant_permissions ?? [],
+    };
   }
 
   async refreshCurrentTenant(): Promise<void> {
@@ -87,6 +108,11 @@ export class TenantContextService {
       const payload = await firstValueFrom(this.tenantApi.currentTenant());
       this.activeTenantSubject.next(payload.tenant);
       this.setActiveTenantId(payload.current_tenant_id ?? payload.tenant?.id ?? this.activeTenantId);
+      this.authState.setPermissionScopes({
+        platform_permissions: payload.platform_permissions ?? [],
+        tenant_permissions: payload.tenant_permissions ?? [],
+        current_tenant_id: this.activeTenantId,
+      });
     } catch {
       this.clear();
     }

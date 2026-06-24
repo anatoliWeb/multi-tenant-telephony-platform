@@ -32,10 +32,15 @@ export interface TenantMembershipSummary {
 export interface TenantMembershipListPayload {
   tenants: TenantMembershipSummary[];
   current_tenant_id: string | null;
+  platform_permissions: string[];
+  tenant_permissions: string[];
 }
 
 export interface TenantContextPayload {
   tenant: TenantSummary | null;
   membership: TenantMembershipSummary | null;
   current_tenant_id: string | null;
+  permissions: string[];
+  platform_permissions: string[];
+  tenant_permissions: string[];
 }

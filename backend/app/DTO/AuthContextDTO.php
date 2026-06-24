@@ -15,11 +15,15 @@ class AuthContextDTO
     /**
      * @param array<string, mixed>|null $user
      * @param array<int, string> $permissions
+     * @param array<int, string> $platformPermissions
+     * @param array<int, string> $tenantPermissions
      * @param array<int, string> $roles
      */
     public function __construct(
         public readonly ?array $user,
         public readonly array $permissions,
+        public readonly array $platformPermissions,
+        public readonly array $tenantPermissions,
         public readonly array $roles,
     ) {
     }
@@ -28,6 +32,8 @@ class AuthContextDTO
      * @return array{
      *   user: array<string, mixed>|null,
      *   permissions: array<int, string>,
+     *   platform_permissions: array<int, string>,
+     *   tenant_permissions: array<int, string>,
      *   roles: array<int, string>
      * }
      */
@@ -36,8 +42,9 @@ class AuthContextDTO
         return [
             'user' => $this->user,
             'permissions' => $this->permissions,
+            'platform_permissions' => $this->platformPermissions,
+            'tenant_permissions' => $this->tenantPermissions,
             'roles' => $this->roles,
         ];
     }
 }
-

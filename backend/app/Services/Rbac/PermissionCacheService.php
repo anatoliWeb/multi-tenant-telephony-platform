@@ -2,15 +2,22 @@
 
 namespace App\Services\Rbac;
 
+use App\Enums\Rbac\RoleScope;
 use App\Models\User;
 use App\Models\Permission;
+use App\Models\Role;
+use App\Models\TenantMembership;
+use App\Models\Tenant;
+use App\Services\Tenancy\TenantContext;
 use Illuminate\Support\Collection;
 use Illuminate\Contracts\Cache\Repository as CacheRepository;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 
 class PermissionCacheService
 {
-    private const GLOBAL_VERSION_KEY = 'rbac:effective_permissions:version';
+    private const PLATFORM_VERSION_KEY = 'rbac:effective_permissions:platform:version';
+    private const TENANT_VERSION_KEY_PREFIX = 'rbac:effective_permissions:tenant:version:';
     private const USER_VERSION_KEY_PREFIX = 'rbac:user:effective_permissions:version:';
 
     /**
@@ -24,16 +31,52 @@ class PermissionCacheService
      */
     public function getEffectivePermissionsForUser(User $user): array
     {
-        if (! $this->cacheEnabled()) {
-            return $this->resolveEffectivePermissions($user);
+        $tenant = app(TenantContext::class)->tenant();
+
+        if ($tenant instanceof Tenant) {
+            return $this->getTenantPermissionsForUser($user, $tenant);
         }
 
-        $cacheKey = $this->keyForUserId((int) $user->id);
+        return $this->getPlatformPermissionsForUser($user);
+    }
+
+    /**
+     * Resolve and cache platform permissions for a user.
+     *
+     * @return array<int, string>
+     */
+    public function getPlatformPermissionsForUser(User $user): array
+    {
+        if (! $this->cacheEnabled()) {
+            return $this->resolvePlatformPermissions($user);
+        }
+
+        $cacheKey = $this->platformKeyForUserId((int) $user->id);
 
         return $this->cacheStore()->remember(
             $cacheKey,
             now()->addSeconds($this->ttlSeconds()),
-            fn () => $this->resolveEffectivePermissions($user)
+            fn () => $this->resolvePlatformPermissions($user)
+        );
+    }
+
+    /**
+     * Resolve and cache tenant permissions for a user in the active tenant.
+     *
+     * @return array<int, string>
+     */
+    public function getTenantPermissionsForUser(User $user, Tenant $tenant): array
+    {
+        if (! $this->cacheEnabled()) {
+            return $this->resolveTenantPermissions($user, $tenant);
+        }
+
+        $cacheKey = $this->tenantKeyForUserId((int) $user->id, (string) $tenant->getKey());
+
+        return $this->cacheStore()->remember(
+            $cacheKey,
+            now()->addSeconds($this->ttlSeconds()),
+            fn () => $this->resolveTenantPermissions($user, $tenant)
         );
     }
 
@@ -44,9 +87,6 @@ class PermissionCacheService
 
     public function forgetForUserId(int $userId): void
     {
-        // WHY:
-        // Bump a small user-scoped version key instead of deleting wildcard keys.
-        // This keeps invalidation O(1) and avoids global cache churn.
         $key = $this->userVersionKey($userId);
         $this->cacheStore()->add($key, 1, now()->addDays(7));
         $this->cacheStore()->increment($key);
@@ -54,16 +94,12 @@ class PermissionCacheService
 
     public function forgetAll(): void
     {
-        // WHY:
-        // Global version bump invalidates all effective permission cache keys
-        // without performing a full cache-store flush that would evict unrelated keys.
-        $this->cacheStore()->add(self::GLOBAL_VERSION_KEY, 1, now()->addDays(7));
-        $this->cacheStore()->increment(self::GLOBAL_VERSION_KEY);
+        $this->bumpPlatformVersion();
     }
 
     public function globalVersion(): int
     {
-        return (int) $this->cacheStore()->get(self::GLOBAL_VERSION_KEY, 1);
+        return $this->platformVersion();
     }
 
     public function userVersion(int $userId): int
@@ -71,19 +107,14 @@ class PermissionCacheService
         return (int) $this->cacheStore()->get($this->userVersionKey($userId), 1);
     }
 
-    protected function keyForUserId(int $userId): string
+    public function forgetForTenant(string $tenantId): void
     {
-        return sprintf(
-            'rbac:user:%d:effective_permissions:v%d:%d',
-            $userId,
-            $this->globalVersion(),
-            $this->userVersion($userId)
-        );
+        $this->bumpTenantVersion($tenantId);
     }
 
-    protected function userVersionKey(int $userId): string
+    public function forgetForUserTenant(int $userId, string $tenantId): void
     {
-        return self::USER_VERSION_KEY_PREFIX.$userId;
+        $this->bumpTenantVersion($tenantId);
     }
 
     protected function ttlSeconds(): int
@@ -106,18 +137,35 @@ class PermissionCacheService
      */
     protected function resolveEffectivePermissions(User $user): array
     {
+        return $this->resolvePlatformPermissions($user);
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    protected function resolvePlatformPermissions(User $user): array
+    {
         $freshUser = User::query()
             ->with(['roles.permissions', 'permissions', 'deniedPermissions'])
             ->find($user->id);
 
-        if (!$freshUser) {
+        if (! $freshUser) {
             return [];
         }
 
-        $rolePermissions = $freshUser->roles->flatMap(fn ($role) => $role->permissions);
-        $directPermissions = $freshUser->permissions;
+        $rolePermissions = $freshUser->roles
+            ->filter(fn ($role) => $this->scopeValue(data_get($role, 'scope')) === RoleScope::Platform->value)
+            ->flatMap(fn ($role) => $role->permissions)
+            ->filter(fn ($permission) => $this->scopeValue(data_get($permission, 'scope')) === RoleScope::Platform->value);
+
+        $directPermissions = $freshUser->permissions
+            ->filter(fn ($permission) => $this->scopeValue(data_get($permission, 'scope')) === RoleScope::Platform->value);
         $denied = $freshUser->deniedPermissions ?? collect();
-        $deniedIds = $denied->pluck('id')->map(fn ($id) => (int) $id)->all();
+        $deniedIds = $denied
+            ->filter(fn ($permission) => $this->scopeValue(data_get($permission, 'scope')) === RoleScope::Platform->value)
+            ->pluck('id')
+            ->map(fn ($id) => (int) $id)
+            ->all();
 
         /** @var Collection<int, Permission> $permissions */
         $permissions = $rolePermissions
@@ -130,6 +178,106 @@ class PermissionCacheService
             ->pluck('name')
             ->values()
             ->all();
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    protected function resolveTenantPermissions(User $user, Tenant $tenant): array
+    {
+        $hasActiveMembership = TenantMembership::query()
+            ->where('tenant_id', $tenant->getKey())
+            ->where('user_id', $user->getKey())
+            ->where('status', 'active')
+            ->exists();
+
+        if (!$hasActiveMembership) {
+            return [];
+        }
+
+        $roleIds = DB::table('role_user')
+            ->join('roles', 'roles.id', '=', 'role_user.role_id')
+            ->where('role_user.user_id', $user->getKey())
+            ->where('roles.scope', RoleScope::Tenant->value)
+            ->where('roles.tenant_id', $tenant->getKey())
+            ->pluck('roles.id')
+            ->all();
+
+        if ($roleIds === []) {
+            return [];
+        }
+
+        return DB::table('permission_role')
+            ->join('permissions', 'permissions.id', '=', 'permission_role.permission_id')
+            ->whereIn('permission_role.role_id', $roleIds)
+            ->where('permissions.scope', RoleScope::Tenant->value)
+            ->orderBy('permissions.name')
+            ->pluck('permissions.name')
+            ->values()
+            ->all();
+    }
+
+    protected function platformKeyForUserId(int $userId): string
+    {
+        return sprintf(
+            'rbac:platform:user:%d:v%d:%d',
+            $userId,
+            $this->platformVersion(),
+            $this->userVersion($userId)
+        );
+    }
+
+    protected function tenantKeyForUserId(int $userId, string $tenantId): string
+    {
+        return sprintf(
+            'rbac:tenant:%s:user:%d:v%d:%d',
+            $tenantId,
+            $userId,
+            $this->tenantVersion($tenantId),
+            $this->userVersion($userId)
+        );
+    }
+
+    protected function platformVersion(): int
+    {
+        return (int) $this->cacheStore()->get(self::PLATFORM_VERSION_KEY, 1);
+    }
+
+    protected function tenantVersion(string $tenantId): int
+    {
+        return (int) $this->cacheStore()->get($this->tenantVersionKey($tenantId), 1);
+    }
+
+    protected function bumpPlatformVersion(): void
+    {
+        $this->cacheStore()->add(self::PLATFORM_VERSION_KEY, 1, now()->addDays(7));
+        $this->cacheStore()->increment(self::PLATFORM_VERSION_KEY);
+    }
+
+    protected function bumpTenantVersion(string $tenantId): void
+    {
+        $key = $this->tenantVersionKey($tenantId);
+        $this->cacheStore()->add($key, 1, now()->addDays(7));
+        $this->cacheStore()->increment($key);
+    }
+
+    protected function tenantVersionKey(string $tenantId): string
+    {
+        return self::TENANT_VERSION_KEY_PREFIX.$tenantId;
+    }
+
+    protected function userVersionKey(int $userId): string
+    {
+        return self::USER_VERSION_KEY_PREFIX.$userId;
+    }
+
+    protected function scopeValue(mixed $scope): ?string
+    {
+        if ($scope instanceof \BackedEnum) {
+            return $scope->value;
+        }
+
+        return is_string($scope) ? $scope : null;
     }
 
     protected function cacheEnabled(): bool

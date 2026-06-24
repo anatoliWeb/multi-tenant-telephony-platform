@@ -16,3 +16,4 @@ Roles represent reusable permission sets rather than standalone privilege contai
 - Permission assignment stays explicit.
 - Platform and tenant role catalogs can be separated later.
 - Permission checks remain the backend source of truth.
+- The same role name may be scoped differently for platform and tenant catalogs when needed for compatibility.

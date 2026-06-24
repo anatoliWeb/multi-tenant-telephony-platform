@@ -2,8 +2,9 @@ import { flushPromises, shallowMount } from '@vue/test-utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const hydrateSessionMock = vi.fn();
-const hasPermissionMock = vi.fn(() => true);
+const hasPlatformPermissionMock = vi.fn(() => true);
 const hasAnyPermissionMock = vi.fn(() => true);
+const hasAnyPlatformPermissionMock = vi.fn(() => true);
 const routerReplaceMock = vi.fn();
 const loadUnreadCountMock = vi.fn(() => Promise.resolve());
 const getUnreadConversationsCountMock = vi.fn(() => Promise.resolve(3));
@@ -51,8 +52,10 @@ vi.mock('../stores/auth.store', () => ({
     user: { id: 10, name: 'Admin' },
     permissions: ['notifications.view'],
     hydrateSession: hydrateSessionMock,
-    hasPermission: hasPermissionMock,
+    hasPermission: hasPlatformPermissionMock,
+    hasPlatformPermission: hasPlatformPermissionMock,
     hasAnyPermission: hasAnyPermissionMock,
+    hasAnyPlatformPermission: hasAnyPlatformPermissionMock,
     logout: vi.fn(),
   }),
 }));
@@ -101,6 +104,9 @@ vi.mock('../shared/services/realtime/realtime.channels', () => ({
 describe('AdminLayout auth bootstrap guard', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    hasPlatformPermissionMock.mockReturnValue(true);
+    hasAnyPermissionMock.mockReturnValue(true);
+    hasAnyPlatformPermissionMock.mockReturnValue(true);
   });
 
   it('redirects to login and skips protected loading when hydrate fails', async () => {
@@ -170,7 +176,7 @@ describe('AdminLayout auth bootstrap guard', () => {
 
   it('hides chat navigation item when admin chat permissions are missing', async () => {
     hydrateSessionMock.mockResolvedValue(true);
-    hasAnyPermissionMock.mockImplementation((permissions: string[]) => {
+    hasAnyPlatformPermissionMock.mockImplementation((permissions: string[]) => {
       if (permissions.includes('chat.admin.view') || permissions.includes('chat.admin.view_metadata')) {
         return false;
       }
@@ -201,7 +207,7 @@ describe('AdminLayout auth bootstrap guard', () => {
 
   it('shows chat navigation item when admin chat permission is available', async () => {
     hydrateSessionMock.mockResolvedValue(true);
-    hasAnyPermissionMock.mockImplementation((permissions: string[]) => {
+    hasAnyPlatformPermissionMock.mockImplementation((permissions: string[]) => {
       if (permissions.includes('chat.admin.view') || permissions.includes('chat.admin.view_metadata')) {
         return true;
       }
@@ -232,7 +238,7 @@ describe('AdminLayout auth bootstrap guard', () => {
 
   it('shows API documentation sidebar link when api.docs.view permission is available', async () => {
     hydrateSessionMock.mockResolvedValue(true);
-    hasPermissionMock.mockImplementation((permission: string) => {
+    hasPlatformPermissionMock.mockImplementation((permission: string) => {
       if (permission === 'api.docs.view') {
         return true;
       }
@@ -269,7 +275,7 @@ describe('AdminLayout auth bootstrap guard', () => {
 
   it('hides API documentation sidebar link without api.docs.view permission', async () => {
     hydrateSessionMock.mockResolvedValue(true);
-    hasPermissionMock.mockImplementation((permission: string) => permission !== 'api.docs.view');
+    hasPlatformPermissionMock.mockImplementation((permission: string) => permission !== 'api.docs.view');
 
     const { default: AdminLayout } = await import('./AdminLayout.vue');
     const wrapper = shallowMount(AdminLayout, {
@@ -295,10 +301,10 @@ describe('AdminLayout auth bootstrap guard', () => {
 
   it('shows users roles permissions links only when matching permissions are present', async () => {
     hydrateSessionMock.mockResolvedValue(true);
-    hasPermissionMock.mockImplementation((permission: string) => {
+    hasPlatformPermissionMock.mockImplementation((permission: string) => {
       return ['users.view', 'roles.view', 'permissions.view'].includes(permission);
     });
-    hasAnyPermissionMock.mockImplementation((permissions: string[]) => {
+    hasAnyPlatformPermissionMock.mockImplementation((permissions: string[]) => {
       if (permissions.includes('chat.admin.view') || permissions.includes('chat.admin.view_metadata')) {
         return false;
       }
@@ -333,8 +339,8 @@ describe('AdminLayout auth bootstrap guard', () => {
 
   it('hides users roles permissions links when permissions are missing', async () => {
     hydrateSessionMock.mockResolvedValue(true);
-    hasPermissionMock.mockReturnValue(false);
-    hasAnyPermissionMock.mockReturnValue(false);
+    hasPlatformPermissionMock.mockReturnValue(false);
+    hasAnyPlatformPermissionMock.mockReturnValue(false);
 
     const { default: AdminLayout } = await import('./AdminLayout.vue');
     const wrapper = shallowMount(AdminLayout, {

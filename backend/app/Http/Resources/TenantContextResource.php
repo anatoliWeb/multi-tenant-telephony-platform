@@ -13,6 +13,9 @@ class TenantContextResource extends JsonResource
             'tenant' => TenantSummaryResource::make(data_get($this->resource, 'tenant')),
             'membership' => TenantMembershipResource::make(data_get($this->resource, 'membership')),
             'current_tenant_id' => data_get($this->resource, 'current_tenant_id'),
+            'permissions' => array_values(data_get($this->resource, 'permissions', [])),
+            'platform_permissions' => array_values(data_get($this->resource, 'platform_permissions', [])),
+            'tenant_permissions' => array_values(data_get($this->resource, 'tenant_permissions', [])),
         ];
     }
 }

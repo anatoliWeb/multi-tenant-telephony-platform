@@ -18,13 +18,25 @@ export class TenantApiService {
       .get<TenantMembershipListPayload>('/v1/user/tenants', {
         headers: skipTenantHeader,
       })
-      .pipe(map((response: ApiResponse<TenantMembershipListPayload>) => response.data ?? { tenants: [], current_tenant_id: null }));
+      .pipe(map((response: ApiResponse<TenantMembershipListPayload>) => response.data ?? {
+        tenants: [],
+        current_tenant_id: null,
+        platform_permissions: [],
+        tenant_permissions: [],
+      }));
   }
 
   currentTenant() {
     return this.apiClient
       .get<TenantContextPayload>('/v1/user/tenant')
-      .pipe(map((response: ApiResponse<TenantContextPayload>) => response.data ?? { tenant: null, membership: null, current_tenant_id: null }));
+      .pipe(map((response: ApiResponse<TenantContextPayload>) => response.data ?? {
+        tenant: null,
+        membership: null,
+        current_tenant_id: null,
+        permissions: [],
+        platform_permissions: [],
+        tenant_permissions: [],
+      }));
   }
 
   switchTenant(tenantUuid: string) {
@@ -34,6 +46,13 @@ export class TenantApiService {
         { tenant_uuid: tenantUuid },
         { headers: skipTenantHeader },
       )
-      .pipe(map((response: ApiResponse<TenantContextPayload>) => response.data ?? { tenant: null, membership: null, current_tenant_id: null }));
+      .pipe(map((response: ApiResponse<TenantContextPayload>) => response.data ?? {
+        tenant: null,
+        membership: null,
+        current_tenant_id: null,
+        permissions: [],
+        platform_permissions: [],
+        tenant_permissions: [],
+      }));
   }
 }

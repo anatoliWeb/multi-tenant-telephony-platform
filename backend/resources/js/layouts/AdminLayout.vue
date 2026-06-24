@@ -277,11 +277,11 @@ const apiLinks: NavItem[] = [
 
 const canAccessNavItem = (item: NavItem): boolean => {
   if (item.permission) {
-    return authStore.hasPermission(item.permission);
+    return authStore.hasPlatformPermission(item.permission);
   }
 
   if (item.permissions && item.permissions.length > 0) {
-    return authStore.hasAnyPermission(item.permissions);
+    return authStore.hasAnyPlatformPermission(item.permissions);
   }
 
   return true;

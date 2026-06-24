@@ -503,42 +503,42 @@ Do not replace the existing custom RBAC implementation.
 
 ## 9.1 Backend Adaptations
 
-- [ ] Separate platform roles from tenant roles
-- [ ] Separate platform permissions from tenant permissions
-- [ ] Add tenant ownership to custom tenant roles
-- [ ] Preserve multiple roles per user
-- [ ] Keep the existing permission cache foundation
-- [ ] Prevent tenant administrators from assigning platform permissions
-- [ ] Prevent privilege escalation
-- [ ] Prevent deletion of protected system roles
-- [ ] Remove direct user permission behavior from the target UI
-- [ ] Remove denied-permission behavior from the target UI
-- [ ] Preserve legacy database structures only when removal would be unsafe
-- [ ] Do not expose legacy direct permission features through new APIs
-- [ ] Add migration or deprecation documentation if legacy structures remain
-- [ ] Add tenant-aware policy checks
-- [ ] Add tenant-aware permission cache keys
+- [x] Separate platform roles from tenant roles
+- [x] Separate platform permissions from tenant permissions
+- [x] Add tenant ownership to custom tenant roles
+- [x] Preserve multiple roles per user
+- [x] Keep the existing permission cache foundation
+- [x] Prevent tenant administrators from assigning platform permissions
+- [x] Prevent privilege escalation
+- [x] Prevent deletion of protected system roles
+- [x] Remove direct user permission behavior from the target UI
+- [x] Remove denied-permission behavior from the target UI
+- [x] Preserve legacy database structures only when removal would be unsafe
+- [x] Do not expose legacy direct permission features through new APIs
+- [x] Add migration or deprecation documentation if legacy structures remain
+- [x] Add tenant-aware policy checks
+- [x] Add tenant-aware permission cache keys
 - [ ] Add role and permission audit logs
 
 ## 9.2 Angular Permission Integration
 
-- [ ] Tenant-aware route guards
-- [ ] Permission-aware navigation
-- [ ] Permission-aware buttons
-- [ ] Permission-aware tabs
-- [ ] Permission-aware widgets
+- [x] Tenant-aware route guards
+- [x] Permission-aware navigation
+- [x] Permission-aware buttons
+- [x] Permission-aware tabs
+- [x] Permission-aware widgets
 - [ ] Permission-aware chat controls
 - [ ] Permission-aware softphone controls
 - [ ] Permission-aware conference controls
 
 ## 9.3 Vue Permission Integration
 
-- [ ] Platform route guards
-- [ ] Tenant administration permissions
-- [ ] Global permission catalog UI
-- [ ] System role protection
-- [ ] Platform monitoring permissions
-- [ ] Support-tool permissions
+- [x] Platform route guards
+- [x] Tenant administration permissions
+- [x] Global permission catalog UI
+- [x] System role protection
+- [x] Platform monitoring permissions
+- [x] Support-tool permissions
 
 ---
 

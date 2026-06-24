@@ -19,18 +19,38 @@ import type { AuthUser } from '../types/auth.types';
 export const useAuthStore = defineStore('auth', () => {
   const user = ref<AuthUser | null>(null);
   const permissions = ref<string[]>([]);
+  const platformPermissions = ref<string[]>([]);
+  const tenantPermissions = ref<string[]>([]);
   const isHydrated = ref(false);
 
   const isAuthenticated = computed(() => Boolean(user.value));
   const hasPermission = (permission: string): boolean => permissions.value.includes(permission);
+  const hasPlatformPermission = (permission: string): boolean => platformPermissions.value.includes(permission);
+  const hasTenantPermission = (permission: string): boolean => tenantPermissions.value.includes(permission);
   const hasAnyPermission = (requiredPermissions: string[]): boolean => {
     return requiredPermissions.some((permission) => hasPermission(permission));
   };
+  const hasAnyPlatformPermission = (requiredPermissions: string[]): boolean => {
+    return requiredPermissions.some((permission) => hasPlatformPermission(permission));
+  };
 
-  const setSession = (payload: { user: AuthUser | null; permissions: string[] }): void => {
+  const setSession = (payload: { user: AuthUser | null; permissions: string[]; platform_permissions?: string[]; tenant_permissions?: string[] }): void => {
     user.value = payload.user;
-    permissions.value = payload.permissions ?? [];
+    platformPermissions.value = payload.platform_permissions ?? payload.permissions ?? [];
+    permissions.value = platformPermissions.value;
+    tenantPermissions.value = payload.tenant_permissions ?? [];
     isHydrated.value = true;
+  };
+
+  const setPermissionScopes = (payload: { platform_permissions: string[]; tenant_permissions: string[]; current_tenant_id: string | null }): void => {
+    platformPermissions.value = payload.platform_permissions ?? [];
+    tenantPermissions.value = payload.tenant_permissions ?? [];
+    permissions.value = platformPermissions.value;
+  };
+
+  const clearTenantPermissions = (): void => {
+    tenantPermissions.value = [];
+    permissions.value = platformPermissions.value;
   };
 
   const clearAuthState = (options: { preserveTranslations?: boolean } = {}): void => {
@@ -41,6 +61,8 @@ export const useAuthStore = defineStore('auth', () => {
 
     user.value = null;
     permissions.value = [];
+    platformPermissions.value = [];
+    tenantPermissions.value = [];
     isHydrated.value = true;
 
     if (!options.preserveTranslations) {
@@ -86,11 +108,18 @@ export const useAuthStore = defineStore('auth', () => {
   return {
     user,
     permissions,
+    platformPermissions,
+    tenantPermissions,
     isHydrated,
     isAuthenticated,
     hasPermission,
+    hasPlatformPermission,
+    hasTenantPermission,
     hasAnyPermission,
+    hasAnyPlatformPermission,
     setSession,
+    setPermissionScopes,
+    clearTenantPermissions,
     clearAuthState,
     hydrateSession,
     login,

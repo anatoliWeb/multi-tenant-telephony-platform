@@ -44,6 +44,8 @@ class MetaService
             return [
                 'current_user' => null,
                 'current_user_permissions' => [],
+                'platform_permissions' => [],
+                'tenant_permissions' => [],
             ];
         }
 
@@ -61,6 +63,8 @@ class MetaService
                     'roles' => $this->getCurrentUserRoles($user),
                 ],
                 'current_user_permissions' => $this->getUserPermissionNames($user),
+                'platform_permissions' => $this->permissionCacheService->getPlatformPermissionsForUser($user),
+                'tenant_permissions' => $this->getTenantPermissionNames($user),
             ];
         }
 
@@ -73,6 +77,8 @@ class MetaService
                     'roles' => $this->getCurrentUserRoles($user),
                 ],
                 'current_user_permissions' => $this->getUserPermissionNames($user),
+                'platform_permissions' => $this->permissionCacheService->getPlatformPermissionsForUser($user),
+                'tenant_permissions' => $this->getTenantPermissionNames($user),
             ];
         });
 
@@ -91,12 +97,20 @@ class MetaService
         return [
             'roles' => $this->getSafeCachedModelList(
                 cacheKey: sprintf('meta:rbac:roles:v%d', $rbacVersion),
-                query: fn () => Role::query()->select('id', 'name', 'description')->orderBy('name')->get(),
+                query: fn () => Role::query()
+                    ->where('scope', 'platform')
+                    ->select('id', 'name', 'scope', 'scope_reference', 'tenant_id', 'description', 'is_system', 'is_protected')
+                    ->orderBy('name')
+                    ->get(),
                 modelClass: Role::class,
             ),
             'permissions' => $this->getSafeCachedModelList(
                 cacheKey: sprintf('meta:rbac:permissions:v%d', $rbacVersion),
-                query: fn () => Permission::query()->select('id', 'name', 'description')->orderBy('name')->get(),
+                query: fn () => Permission::query()
+                    ->where('scope', 'platform')
+                    ->select('id', 'name', 'scope', 'scope_reference', 'description')
+                    ->orderBy('name')
+                    ->get(),
                 modelClass: Permission::class,
             ),
             'role_permissions' => $this->getSafeCachedRolePermissionsMap(
@@ -215,15 +229,32 @@ class MetaService
     }
 
     /**
+     * @return array<int, string>
+     */
+    protected function getTenantPermissionNames(User $user): array
+    {
+        $tenant = app(\App\Services\Tenancy\TenantContext::class)->tenant();
+
+        if (!$tenant) {
+            return [];
+        }
+
+        return $this->permissionCacheService->getTenantPermissionsForUser($user, $tenant);
+    }
+
+    /**
      * @return array<string, array<int, string>>
      */
     protected function getRolePermissionsMap(): array
     {
-        return Role::with('permissions:id,name')
+        return Role::query()
+            ->where('scope', 'platform')
+            ->with('permissions:id,name,scope')
             ->get()
             ->mapWithKeys(function (Role $role) {
                 return [
                     $role->name => $role->permissions
+                        ->filter(fn (Permission $permission) => $this->scopeValue(data_get($permission, 'scope')) === 'platform')
                         ->pluck('name')
                         ->filter(fn ($name) => is_string($name) && $name !== '')
                         ->values()
@@ -272,7 +303,12 @@ class MetaService
                     return [
                         'id' => (int) $item->id,
                         'name' => (string) $item->name,
+                        'scope' => $item->scope instanceof \BackedEnum ? $item->scope->value : ($item->scope !== null ? (string) $item->scope : null),
+                        'scope_reference' => $item->scope_reference !== null ? (string) $item->scope_reference : null,
+                        'tenant_id' => $item->tenant_id !== null ? (string) $item->tenant_id : null,
                         'description' => $item->description !== null ? (string) $item->description : null,
+                        'is_system' => (bool) $item->is_system,
+                        'is_protected' => (bool) $item->is_protected,
                     ];
                 }
 
@@ -280,17 +316,21 @@ class MetaService
                     return [
                         'id' => (int) $item->id,
                         'name' => (string) $item->name,
+                        'scope' => $item->scope instanceof \BackedEnum ? $item->scope->value : ($item->scope !== null ? (string) $item->scope : null),
+                        'scope_reference' => $item->scope_reference !== null ? (string) $item->scope_reference : null,
                         'description' => $item->description !== null ? (string) $item->description : null,
                     ];
                 }
 
                 if (is_array($item)) {
-                    return [
-                        'id' => data_get($item, 'id'),
-                        'name' => data_get($item, 'name'),
-                        'description' => data_get($item, 'description'),
-                    ];
-                }
+                return [
+                    'id' => data_get($item, 'id'),
+                    'name' => data_get($item, 'name'),
+                    'scope' => data_get($item, 'scope'),
+                    'scope_reference' => data_get($item, 'scope_reference'),
+                    'description' => data_get($item, 'description'),
+                ];
+            }
 
                 return [
                     'id' => null,
@@ -309,14 +349,25 @@ class MetaService
     protected function getCurrentUserRoles(User $user): array
     {
         return $user->roles()
-            ->select('roles.id', 'roles.name')
+            ->where('roles.scope', 'platform')
+            ->select('roles.id', 'roles.name', 'roles.scope')
             ->orderBy('roles.name')
             ->get()
             ->map(static fn (Role $role): array => [
                 'id' => (int) $role->id,
                 'name' => (string) $role->name,
+                'scope' => $role->scope instanceof \BackedEnum ? $role->scope->value : ($role->scope !== null ? (string) $role->scope : null),
             ])
             ->values()
             ->all();
+    }
+
+    protected function scopeValue(mixed $scope): ?string
+    {
+        if ($scope instanceof \BackedEnum) {
+            return $scope->value;
+        }
+
+        return is_string($scope) ? $scope : null;
     }
 }

@@ -9,3 +9,10 @@ export interface AuthUser {
   email: string;
 }
 
+export interface AuthSessionPayload {
+  user: AuthUser | null;
+  permissions: string[];
+  platform_permissions: string[];
+  tenant_permissions: string[];
+  roles: string[];
+}

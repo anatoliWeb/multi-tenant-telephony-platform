@@ -21,6 +21,7 @@ class PermissionResource extends JsonResource
             return [
                 'id' => $permission->id,
                 'name' => $permission->name,
+                'scope' => $permission->scope?->value ?? $permission->scope,
                 'label' => $localization->getPermissionLabel($permission),
                 'description' => $localization->getPermissionDescription($permission),
                 'translations' => $localization->getPermissionTranslations($permission),
@@ -44,18 +45,20 @@ class PermissionResource extends JsonResource
             return [
                 'id' => data_get($permission, 'id'),
                 'name' => is_string($name) ? $name : '',
+                'scope' => data_get($permission, 'scope'),
                 'label' => is_string($name) ? $name : '',
                 'description' => is_string($description) ? $description : null,
                 'translations' => data_get($permission, 'translations', []),
             ];
         }
 
-        return [
-            'id' => null,
-            'name' => '',
-            'label' => '',
-            'description' => null,
-            'translations' => [],
-        ];
-    }
+            return [
+                'id' => null,
+                'name' => '',
+                'scope' => null,
+                'label' => '',
+                'description' => null,
+                'translations' => [],
+            ];
+        }
 }

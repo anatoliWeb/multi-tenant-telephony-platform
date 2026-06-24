@@ -5,10 +5,12 @@ namespace App\Services;
 use App\Actions\Users\CreateUserAction;
 use App\Events\Users\UserCreated;
 use App\Events\Users\UserUpdated;
+use App\Enums\Rbac\RoleScope;
 use App\Services\MetaCacheService;
 use App\Services\Rbac\PermissionCacheService;
 use App\Models\User;
 use App\Models\Permission;
+use App\Models\Role;
 use App\Observers\UserObserver;
 use App\DTO\UserDTO;
 use Illuminate\Support\Facades\Hash;
@@ -289,17 +291,21 @@ class UserService
         // WHY:
         // Sync roles (many-to-many)
         // Using sync ensures full replacement (no duplicates)
-        $user->roles()->sync($data['roles'] ?? []);
+        $this->syncRoles($user, $data['roles'] ?? []);
 
         // WHY:
         // Permissions are passed as names from frontend
         // Convert them to IDs before syncing to maintain DB integrity
         $user->permissions()->sync(
-            Permission::whereIn('name', $data['permissions'] ?? [])->pluck('id')
+            Permission::where('scope', 'platform')
+                ->whereIn('name', $data['permissions'] ?? [])
+                ->pluck('id')
         );
 
         $user->deniedPermissions()->sync(
-            Permission::whereIn('name', $data['denied_permissions'] ?? [])->pluck('id')
+            Permission::where('scope', 'platform')
+                ->whereIn('name', $data['denied_permissions'] ?? [])
+                ->pluck('id')
         );
 
         $this->permissionCacheService->forgetForUser($user);
@@ -360,16 +366,20 @@ class UserService
         if (!$isSelfUpdate) {
             // WHY:
             // Sync roles to reflect current state exactly
-            $user->roles()->sync($data['roles'] ?? []);
+            $this->syncRoles($user, $data['roles'] ?? []);
 
             // WHY:
             // Convert permission names to IDs and sync
             $user->permissions()->sync(
-                Permission::whereIn('name', $data['permissions'] ?? [])->pluck('id')
+                Permission::where('scope', 'platform')
+                    ->whereIn('name', $data['permissions'] ?? [])
+                    ->pluck('id')
             );
 
             $user->deniedPermissions()->sync(
-                Permission::whereIn('name', $data['denied_permissions'] ?? [])->pluck('id')
+                Permission::where('scope', 'platform')
+                    ->whereIn('name', $data['denied_permissions'] ?? [])
+                    ->pluck('id')
             );
 
             $changedFields[] = 'roles';
@@ -415,5 +425,72 @@ class UserService
         $this->metaCacheService->bumpUserBootstrapVersion((int) $user->id);
 
         $user->delete();
+    }
+
+    /**
+     * Sync user roles with scope-aware pivot data.
+     *
+     * WHY:
+     * Role assignments are tenant-aware, so the pivot must carry the
+     * role's tenant scope metadata instead of attaching bare role IDs.
+     *
+     * @param array<int, int|string> $roleIds
+     */
+    protected function syncRoles(User $user, array $roleIds): void
+    {
+        $normalizedRoleIds = collect($roleIds)
+            ->filter(fn ($roleId) => is_numeric($roleId))
+            ->map(fn ($roleId) => (int) $roleId)
+            ->unique()
+            ->values()
+            ->all();
+
+        if ($normalizedRoleIds === []) {
+            $user->roles()->sync([]);
+            return;
+        }
+
+        $roles = Role::query()
+            ->whereIn('id', $normalizedRoleIds)
+            ->get(['id', 'scope', 'scope_reference', 'tenant_id']);
+
+        $syncData = [];
+
+        foreach ($roles as $role) {
+            $syncData[$role->getKey()] = [
+                'scope_reference' => $this->resolveRoleScopeReference($role),
+                'tenant_id' => $this->resolveRoleTenantId($role),
+            ];
+        }
+
+        $user->roles()->sync($syncData);
+    }
+
+    protected function resolveRoleScopeReference(Role $role): string
+    {
+        $scope = $role->scope instanceof \BackedEnum ? $role->scope->value : (string) $role->scope;
+
+        if ($scope === RoleScope::Tenant->value) {
+            if (is_string($role->scope_reference) && $role->scope_reference !== '') {
+                return $role->scope_reference;
+            }
+
+            if (! empty($role->tenant_id)) {
+                return (string) $role->tenant_id;
+            }
+        }
+
+        return RoleScope::Platform->value;
+    }
+
+    protected function resolveRoleTenantId(Role $role): ?string
+    {
+        $scope = $role->scope instanceof \BackedEnum ? $role->scope->value : (string) $role->scope;
+
+        if ($scope !== RoleScope::Tenant->value) {
+            return null;
+        }
+
+        return $role->tenant_id ? (string) $role->tenant_id : null;
     }
 }

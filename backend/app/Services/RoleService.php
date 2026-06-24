@@ -2,6 +2,8 @@
 
 namespace App\Services;
 
+use App\Enums\Rbac\PermissionScope;
+use App\Enums\Rbac\RoleScope;
 use App\Events\Rbac\RolePermissionsChanged;
 use App\Models\Permission;
 use App\Models\Role;
@@ -10,6 +12,7 @@ use App\Services\MetaCacheService;
 use App\Services\Rbac\PermissionCacheService;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class RoleService
 {
@@ -32,6 +35,7 @@ class RoleService
     public function getRolesForApi(): Collection
     {
         return Role::query()
+            ->where('scope', RoleScope::Platform->value)
             ->withCount(['permissions', 'users'])
             ->orderBy('name')
             ->get();
@@ -56,7 +60,12 @@ class RoleService
         return DB::transaction(function () use ($data): Role {
             $role = Role::query()->create([
                 'name' => $data['name'],
+                'scope' => $data['scope'] ?? RoleScope::Platform->value,
+                'scope_reference' => $data['scope_reference'] ?? ($data['tenant_id'] ?? ($data['scope'] ?? RoleScope::Platform->value)),
+                'tenant_id' => $data['tenant_id'] ?? null,
                 'description' => $data['description'] ?? null,
+                'is_system' => (bool) ($data['is_system'] ?? false),
+                'is_protected' => (bool) ($data['is_protected'] ?? false),
             ]);
 
             $this->syncPermissions($role, $data['permissions'] ?? []);
@@ -125,12 +134,21 @@ class RoleService
      */
     public function syncPermissions(Role $role, array $permissionNames): void
     {
-        $permissionIds = Permission::query()
+        $scope = $role->scope instanceof \BackedEnum ? $role->scope->value : (string) $role->scope;
+
+        $matchedPermissions = Permission::query()
+            ->where('scope', $scope)
             ->whereIn('name', $permissionNames)
-            ->pluck('id')
+            ->pluck('name', 'id')
             ->all();
 
-        $role->permissions()->sync($permissionIds);
+        if (count($matchedPermissions) !== count(array_unique($permissionNames))) {
+            throw ValidationException::withMessages([
+                'permissions' => ['One or more permissions are not allowed for this role scope.'],
+            ]);
+        }
+
+        $role->permissions()->sync(array_keys($matchedPermissions));
     }
 
     /**
@@ -180,7 +198,7 @@ class RoleService
             'permissions_count' => $role->permissions_count,
             'users_count' => $role->users_count,
             'status' => 'active',
-            'type' => in_array(strtolower($role->name), ['admin', 'manager', 'user'], true) ? 'system' : 'custom',
+            'type' => $role->is_system ? 'system' : 'custom',
             'created_at' => $role->created_at?->toISOString(),
         ];
     }

@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Services\Rbac\PermissionCacheService;
+use App\Enums\Rbac\RoleScope;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -52,7 +53,7 @@ class User extends Authenticatable
      */
     public function roles()
     {
-        return $this->belongsToMany(Role::class);
+        return $this->belongsToMany(Role::class)->withPivot(['scope_reference', 'tenant_id']);
     }
 
     /**
@@ -97,6 +98,7 @@ class User extends Authenticatable
     {
         return $this->roles()
             ->where('name', $role)
+            ->where('scope', RoleScope::Platform->value)
             ->exists();
     }
 
@@ -107,6 +109,7 @@ class User extends Authenticatable
     {
         return $this->roles()
             ->whereIn('name', $roles)
+            ->where('scope', RoleScope::Platform->value)
             ->exists();
     }
 
@@ -143,7 +146,10 @@ class User extends Authenticatable
      */
     public function isAdmin(): bool
     {
-        return $this->hasRole('admin');
+        return $this->roles()
+            ->where('name', 'admin')
+            ->where('scope', RoleScope::Platform->value)
+            ->exists();
     }
 
     public function deniedPermissions()

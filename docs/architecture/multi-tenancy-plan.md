@@ -20,6 +20,15 @@ Slice 1 of the foundation is now implemented in the backend:
 - Memberships connect users to tenants.
 - `TenantContext` stores the active tenant.
 
+## 2.5 Access Control Scope
+
+The existing RBAC implementation is being adapted rather than replaced.
+
+- platform permissions continue to protect the admin shell;
+- tenant permissions are resolved from the active tenant context;
+- legacy direct user permissions remain only as compatibility data;
+- new tenant-facing authorization does not rely on the legacy direct-permission flow.
+
 ## 1. Proposed Entities
 
 ### Tenant
@@ -187,6 +196,12 @@ Status:
 - separate platform permissions from tenant permissions;
 - enforce tenant ownership in policies and middleware;
 - prevent cross-tenant reads, writes, exports, and realtime access.
+
+Current slice status:
+
+- platform role and permission scoping has been added to the schema and resolver;
+- tenant-scoped permission resolution is available through tenant context payloads;
+- tenant role-management APIs remain a deferred slice.
 
 ### Phase 4: operational propagation
 

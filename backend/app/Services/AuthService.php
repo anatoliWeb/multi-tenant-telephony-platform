@@ -7,6 +7,7 @@ use App\DTO\AuthContextDTO;
 use App\Models\User;
 use App\Observers\PersonalAccessTokenObserver;
 use App\Services\Rbac\PermissionCacheService;
+use App\Services\Tenancy\TenantContext;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -16,7 +17,8 @@ use Illuminate\Validation\ValidationException;
 class AuthService
 {
     public function __construct(
-        protected PermissionCacheService $permissionCacheService
+        protected PermissionCacheService $permissionCacheService,
+        protected TenantContext $tenantContext,
     ) {
     }
 
@@ -141,7 +143,11 @@ class AuthService
         return (new AuthContextDTO(
             user: $this->toSessionUser($user),
             permissions: $this->resolveEffectivePermissions($user),
-            roles: $user ? $user->roles->pluck('name')->values()->all() : [],
+            platformPermissions: $user ? $this->permissionCacheService->getPlatformPermissionsForUser($user) : [],
+            tenantPermissions: $user && $this->tenantContext->hasTenant()
+                ? $this->permissionCacheService->getTenantPermissionsForUser($user, $this->tenantContext->requireTenant())
+                : [],
+            roles: $user ? $user->roles()->where('scope', 'platform')->pluck('name')->values()->all() : [],
         ))->toArray();
     }
 
