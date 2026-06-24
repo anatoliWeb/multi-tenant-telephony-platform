@@ -20,7 +20,7 @@ vi.mock('./interceptors', () => ({
   attachInterceptors: vi.fn(),
 }));
 
-describe('http auth interceptor', () => {
+describe('http auth and tenant interceptor', () => {
   let interceptor: (config: Record<string, any>) => Record<string, any>;
 
   beforeAll(async () => {
@@ -54,6 +54,21 @@ describe('http auth interceptor', () => {
     const config = interceptor({ headers: {} });
 
     expect(config.headers.Authorization).toBeUndefined();
+  });
+
+  it('adds tenant context header when tenant selection exists', () => {
+    window.localStorage.setItem('admin_active_tenant_id', 'tenant-abc');
+    const config = interceptor({ headers: {} });
+
+    expect(config.headers['X-Tenant-ID']).toBe('tenant-abc');
+  });
+
+  it('removes the internal skip tenant header before dispatching', () => {
+    window.localStorage.setItem('admin_active_tenant_id', 'tenant-abc');
+    const config = interceptor({ headers: { 'X-Skip-Tenant-ID': '1' } });
+
+    expect(config.headers['X-Skip-Tenant-ID']).toBeUndefined();
+    expect(config.headers['X-Tenant-ID']).toBeUndefined();
   });
 
   it('reads token lazily at request time', () => {

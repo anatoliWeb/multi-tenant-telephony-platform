@@ -185,6 +185,18 @@ Security baseline includes:
 - explicit API contracts to reduce unsafe implicit behavior
 - login endpoint protection strategy ready for rate limiting
 
+## Multi-Tenancy
+
+The first shared-database multi-tenancy slice is implemented around:
+
+- `Tenant` and `TenantMembership` records
+- request-scoped `TenantContext`
+- fail-closed tenant resolution from `X-Tenant-ID`
+- explicit tenant switch endpoints for authenticated users
+- safe bootstrap/backfill for existing users
+
+See: `backend/docs/multi-tenancy.md`
+
 ---
 
 ## Key Design Decisions

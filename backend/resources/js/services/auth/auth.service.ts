@@ -1,5 +1,6 @@
 import { getToken, removeToken, setToken } from './token.storage';
 import { api } from '../api/client';
+import { clearActiveTenantId } from '../tenant/tenant.storage';
 import type { ApiResponse } from '../../types/response.types';
 import type { AuthUser } from '../../types/auth.types';
 
@@ -53,14 +54,15 @@ export const authService = {
    * instead of inventing a separate frontend-only logout flow.
    */
   logout: async (): Promise<void> => {
-    if (getToken()) {
-      try {
+    try {
+      if (getToken()) {
         await api.post('/v1/auth/logout', {});
-      } finally {
-        removeToken();
       }
-    }
 
-    await api.post('/v1/auth/session/logout', {});
+      await api.post('/v1/auth/session/logout', {});
+    } finally {
+      removeToken();
+      clearActiveTenantId();
+    }
   },
 };

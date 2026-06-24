@@ -5,6 +5,8 @@ namespace App\Models;
 use App\Services\Rbac\PermissionCacheService;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 
@@ -59,6 +61,33 @@ class User extends Authenticatable
     public function permissions()
     {
         return $this->belongsToMany(Permission::class);
+    }
+
+    public function tenants(): BelongsToMany
+    {
+        return $this->belongsToMany(Tenant::class, 'tenant_memberships')
+            ->withPivot([
+                'id',
+                'status',
+                'invited_by',
+                'invited_at',
+                'accepted_at',
+                'activated_at',
+                'suspended_at',
+                'created_at',
+                'updated_at',
+            ])
+            ->withTimestamps();
+    }
+
+    public function tenantMemberships(): HasMany
+    {
+        return $this->hasMany(TenantMembership::class);
+    }
+
+    public function activeTenantMemberships(): HasMany
+    {
+        return $this->tenantMemberships()->where('status', 'active');
     }
 
     /**

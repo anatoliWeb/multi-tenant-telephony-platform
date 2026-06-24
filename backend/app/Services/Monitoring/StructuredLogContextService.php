@@ -2,12 +2,17 @@
 
 namespace App\Services\Monitoring;
 
+use App\Services\Tenancy\TenantContext;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Throwable;
 
 class StructuredLogContextService
 {
+    public function __construct(
+        private readonly TenantContext $tenantContext
+    ) {
+    }
     /**
      * @param array<string, mixed> $context
      * @return array<string, mixed>
@@ -106,6 +111,8 @@ class StructuredLogContextService
             'path' => '/'.ltrim($request->path(), '/'),
             'route' => is_string($routeName) ? $routeName : null,
             'user_id' => optional($request->user())->id,
+            'tenant_id' => $this->tenantContext->tenantId(),
+            'tenant_slug' => $this->tenantContext->tenant()?->slug,
         ]);
     }
 }

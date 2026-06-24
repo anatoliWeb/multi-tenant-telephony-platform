@@ -5,6 +5,7 @@ import type { ApiResponse } from '../models/api-response.model';
 
 interface RequestOptions {
   params?: Record<string, string | number | boolean>;
+  headers?: Record<string, string>;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -18,6 +19,7 @@ export class ApiClientService {
     const resolved = this.resolveUrl(url);
     return this.http.get<ApiResponse<TData>>(resolved, {
       params: this.toHttpParams(options?.params),
+      headers: options?.headers,
     });
   }
 
@@ -25,6 +27,7 @@ export class ApiClientService {
     const resolved = this.resolveUrl(url);
     return this.http.post<ApiResponse<TData>>(resolved, payload, {
       params: this.toHttpParams(options?.params),
+      headers: options?.headers,
     });
   }
 
@@ -32,6 +35,7 @@ export class ApiClientService {
     const resolved = this.resolveUrl(url);
     return this.http.patch<ApiResponse<TData>>(resolved, payload, {
       params: this.toHttpParams(options?.params),
+      headers: options?.headers,
     });
   }
 
@@ -39,6 +43,7 @@ export class ApiClientService {
     const resolved = this.resolveUrl(url);
     return this.http.delete<ApiResponse<TData>>(resolved, {
       params: this.toHttpParams(options?.params),
+      headers: options?.headers,
     });
   }
 

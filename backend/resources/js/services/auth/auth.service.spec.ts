@@ -101,6 +101,7 @@ describe('authService token/session behavior', async () => {
 
   it('logout revokes token when present and also calls session logout', async () => {
     window.localStorage.setItem('admin_access_token', 'token-b');
+    window.localStorage.setItem('admin_active_tenant_id', 'tenant-z');
     apiMock.post.mockResolvedValue({ data: {} });
 
     await authService.logout();
@@ -108,5 +109,6 @@ describe('authService token/session behavior', async () => {
     expect(apiMock.post).toHaveBeenCalledWith('/v1/auth/logout', {});
     expect(apiMock.post).toHaveBeenCalledWith('/v1/auth/session/logout', {});
     expect(window.localStorage.getItem('admin_access_token')).toBeNull();
+    expect(window.localStorage.getItem('admin_active_tenant_id')).toBeNull();
   });
 });

@@ -2,6 +2,7 @@ import axios, { type AxiosInstance } from 'axios';
 
 import { attachInterceptors } from './interceptors';
 import { getToken } from '../auth/token.storage';
+import { getActiveTenantId } from '../tenant/tenant.storage';
 import { i18n, getStoredLocale } from '../../shared/i18n';
 
 const normalizeApiBaseUrl = (value?: string): string => {
@@ -44,14 +45,45 @@ export const http: AxiosInstance = axios.create({
 
 http.interceptors.request.use((config) => {
   const token = getToken();
+  const tenantId = getActiveTenantId();
   const activeLocale = i18n.global.locale.value || getStoredLocale();
   const headers = config.headers;
+  const skipTenantHeader = (() => {
+    if (headers && typeof (headers as { get?: unknown }).get === 'function') {
+      return Boolean((headers as { get: (key: string) => unknown }).get('X-Skip-Tenant-ID'));
+    }
+
+    if (headers && typeof headers === 'object' && 'X-Skip-Tenant-ID' in headers) {
+      return Boolean((headers as Record<string, unknown>)['X-Skip-Tenant-ID']);
+    }
+
+    return false;
+  })();
+
+  const applyTenantHeader = (target: { set?: (key: string, value: string) => void } | Record<string, string>): void => {
+    if (!tenantId || skipTenantHeader) {
+      return;
+    }
+
+    if ('set' in target && typeof target.set === 'function') {
+      target.set('X-Tenant-ID', tenantId);
+      return;
+    }
+
+    (target as Record<string, string>)['X-Tenant-ID'] = tenantId;
+  };
 
   if (headers && typeof (headers as { set?: unknown }).set === 'function') {
     (headers as { set: (key: string, value: string) => void }).set('Accept-Language', activeLocale);
 
     if (token) {
       (headers as { set: (key: string, value: string) => void }).set('Authorization', `Bearer ${token}`);
+    }
+
+    applyTenantHeader(headers as { set: (key: string, value: string) => void });
+
+    if (skipTenantHeader && typeof (headers as { delete?: unknown }).delete === 'function') {
+      (headers as { delete: (key: string) => void }).delete('X-Skip-Tenant-ID');
     }
 
     return config;
@@ -66,6 +98,12 @@ http.interceptors.request.use((config) => {
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
+
+  if (skipTenantHeader) {
+    delete config.headers['X-Skip-Tenant-ID'];
+  }
+
+  applyTenantHeader(config.headers);
 
   return config;
 });

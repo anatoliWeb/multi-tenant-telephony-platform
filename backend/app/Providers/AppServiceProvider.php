@@ -6,6 +6,7 @@ use App\Models\Conversation;
 use App\Models\ActivityLog;
 use App\Models\User;
 use App\Models\SystemTranslation;
+use App\Services\Tenancy\TenantContext;
 use App\Observers\PersonalAccessTokenObserver;
 use App\Observers\SystemTranslationObserver;
 use App\Observers\UserObserver;
@@ -40,7 +41,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->scoped(TenantContext::class, fn () => new TenantContext());
     }
 
     /**

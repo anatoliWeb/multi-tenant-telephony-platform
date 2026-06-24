@@ -14,6 +14,7 @@ use App\Http\Controllers\Api\RealtimeController;
 use App\Http\Controllers\Api\PermissionController;
 use App\Http\Controllers\Api\TranslationManagementController;
 use App\Http\Controllers\Api\NotificationController;
+use App\Http\Controllers\Api\User\TenantController;
 use App\Http\Controllers\Api\V1\Chat\ChatConversationController;
 use App\Http\Controllers\Api\V1\Chat\ChatDeviceController;
 use App\Http\Controllers\Api\V1\Chat\ChatConversationParticipantController;
@@ -247,7 +248,7 @@ Route::prefix('v1')
                 Route::prefix('auth')
                     ->as('auth.')
                     ->group(function () {
-                        Route::get('/me', [AuthController::class, 'me'])
+                Route::get('/me', [AuthController::class, 'me'])
                             ->name('me');
                         Route::post('/logout', [AuthController::class, 'logout'])
                             ->name('logout');
@@ -257,6 +258,21 @@ Route::prefix('v1')
                         Route::post('/session/logout', [AuthController::class, 'sessionLogout'])
                             ->middleware('web')
                             ->name('session.logout');
+                    });
+
+                Route::prefix('user')
+                    ->as('user.')
+                    ->middleware('resolve.tenant')
+                    ->group(function () {
+                        Route::get('/tenants', [TenantController::class, 'index'])
+                            ->name('tenants.index');
+
+                        Route::get('/tenant', [TenantController::class, 'show'])
+                            ->middleware('require.tenant')
+                            ->name('tenant.show');
+
+                        Route::post('/tenant/switch', [TenantController::class, 'switchTenant'])
+                            ->name('tenant.switch');
                     });
 
                 /**

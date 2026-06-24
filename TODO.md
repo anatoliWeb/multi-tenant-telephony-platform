@@ -429,40 +429,40 @@ No telephony-domain implementation may begin before tenant isolation is operatio
 
 ## 8.1 Tenant Domain
 
-- [ ] Create `Tenant`
-- [ ] Add tenant UUID
-- [ ] Add name
-- [ ] Add slug
-- [ ] Add status
-- [ ] Add timezone
-- [ ] Add locale
-- [ ] Add currency
-- [ ] Add settings
-- [ ] Add activation
-- [ ] Add suspension
+- [x] Create `Tenant`
+- [x] Add tenant UUID
+- [x] Add name
+- [x] Add slug
+- [x] Add status
+- [x] Add timezone
+- [x] Add locale
+- [x] Add currency
+- [x] Add settings
+- [x] Add activation
+- [x] Add suspension
 
 ## 8.2 Tenant Membership
 
-- [ ] Create `TenantMembership`
-- [ ] Connect existing users to tenants
-- [ ] Allow users to belong to multiple tenants
-- [ ] Add membership statuses
+- [x] Create `TenantMembership`
+- [x] Connect existing users to tenants
+- [x] Allow users to belong to multiple tenants
+- [x] Add membership statuses
 - [ ] Add invitation flow
 - [ ] Add invitation acceptance
 - [ ] Add membership activation
 - [ ] Add membership suspension
 - [ ] Add membership removal
 - [ ] Prevent removal of the final tenant owner
-- [ ] Add tenant switching
+- [x] Add tenant switching
 
 ## 8.3 Tenant Context
 
-- [ ] Create `TenantContext`
-- [ ] Add tenant resolution middleware
-- [ ] Resolve tenant from authenticated membership
+- [x] Create `TenantContext`
+- [x] Add tenant resolution middleware
+- [x] Resolve tenant from authenticated membership
 - [ ] Resolve tenant from API tokens where required
 - [ ] Resolve tenant from integration connections where required
-- [ ] Clear context safely after requests
+- [x] Clear context safely after requests
 - [ ] Propagate tenant context to queued jobs
 - [ ] Propagate tenant context to listeners
 - [ ] Propagate tenant context to scheduled commands
@@ -550,7 +550,7 @@ Do not discard the existing seeders.
 
 - [x] Existing user and RBAC seeding is present
 - [x] Existing chat demo seeder is present
-- [ ] Adapt existing user and RBAC seeding to tenants
+- [x] Adapt existing user and RBAC seeding to tenants
 - [ ] Adapt the existing chat demo seeder to tenants
 - [ ] Create `CoreSeeder`
 - [ ] Create `DemoSeeder`
@@ -1196,8 +1196,8 @@ Do not treat the existing billing page as a completed telephony billing implemen
 - [x] Rename existing documentation branding
 - [x] Preserve useful existing documentation
 - [x] Create baseline validation report
-- [ ] Update the architecture overview
-- [ ] Add tenant architecture
+- [x] Update the architecture overview
+- [x] Add tenant architecture
 - [ ] Add RBAC matrix
 - [ ] Add permission catalog
 - [ ] Add telephony domain model
@@ -1244,9 +1244,9 @@ Do not treat the existing billing page as a completed telephony billing implemen
 
 ## Step 4: Implement Multi-Tenancy
 
-- [ ] Tenant
-- [ ] TenantMembership
-- [ ] TenantContext
+- [x] Tenant
+- [x] TenantMembership
+- [x] TenantContext
 - [ ] Tenant-aware RBAC
 - [ ] Tenant-aware seeders
 - [ ] Tenant-aware chat
@@ -1298,12 +1298,12 @@ Still required before closing Milestone 1:
 
 # 33. Milestone 2: Multi-Tenant Foundation
 
-Milestone status: `NOT_STARTED`
+Milestone status: `IN_PROGRESS`
 
-- [ ] Tenants exist
-- [ ] Tenant memberships exist
-- [ ] Tenant switching works
-- [ ] TenantContext works
+- [x] Tenants exist
+- [x] Tenant memberships exist
+- [x] Tenant switching works
+- [x] TenantContext works
 - [ ] Platform and tenant roles are separated
 - [ ] Custom tenant roles work
 - [ ] Existing chat is tenant-isolated

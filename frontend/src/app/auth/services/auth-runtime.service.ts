@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { AuthStateService } from '../../core/services/auth-state.service';
+import { TenantContextService } from '../../core/services/tenant-context.service';
 import type { SessionAuthPayload } from '../models/session-auth.model';
 import { AuthApiService } from './auth-session.service';
 import { AuthTokenStorageService } from './auth-token-storage.service';
@@ -13,6 +14,7 @@ export class AuthRuntimeService {
   constructor(
     private readonly authApi: AuthApiService,
     private readonly authState: AuthStateService,
+    private readonly tenantContext: TenantContextService,
     private readonly tokenStorage: AuthTokenStorageService,
     private readonly router: Router,
   ) {}
@@ -37,10 +39,12 @@ export class AuthRuntimeService {
 
         const payload = await firstValueFrom(this.authApi.me());
         this.authState.setSession(payload);
+        await this.tenantContext.hydrateTenantContext();
       } catch {
         // Guest 401 is normal; hydration must never break app bootstrap.
         this.tokenStorage.clearToken();
         this.authState.clearSession();
+        this.tenantContext.clear();
       } finally {
         this.authState.setHydrating(false);
         this.hydratePromise = null;
@@ -58,9 +62,11 @@ export class AuthRuntimeService {
         this.tokenStorage.setToken(payload.token);
       }
       this.authState.setSession(payload);
+      await this.tenantContext.hydrateTenantContext();
       return payload;
     } catch (error) {
       this.tokenStorage.clearToken();
+      this.tenantContext.clear();
       throw error;
     } finally {
       this.authState.setAuthLoading(false);
@@ -76,6 +82,7 @@ export class AuthRuntimeService {
     } finally {
       this.tokenStorage.clearToken();
       this.authState.clearSession();
+      this.tenantContext.clear();
       this.authState.setAuthLoading(false);
       await this.router.navigateByUrl('/login');
     }

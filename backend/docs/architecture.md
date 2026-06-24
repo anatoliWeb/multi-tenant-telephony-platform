@@ -105,6 +105,16 @@ See: `backend/docs/performance.md`
 
 See: `backend/docs/monitoring.md`
 
+### Multi-Tenancy Foundation
+
+- Shared-database tenant model with membership-based access
+- Request-scoped `TenantContext`
+- Fail-closed tenant resolution through explicit request context
+- Client-driven active tenant selection using `X-Tenant-ID`
+- Default tenant bootstrap/backfill for non-platform users
+
+See: `backend/docs/multi-tenancy.md`
+
 ## Documentation Map
 
 This file is the architecture hub. Use these documents for deep dives:

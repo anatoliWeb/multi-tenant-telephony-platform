@@ -4,7 +4,13 @@
 
 This document defines the concrete implementation plan for the approved shared-database multi-tenancy model.
 
-No migrations, tenant classes, or tenant context code are created yet. This is the planning and sequencing document only.
+Slice 1 of the foundation is now implemented in the backend:
+
+- `Tenant` and `TenantMembership` persistence exists;
+- request-scoped tenant context exists;
+- tenant switching exists;
+- initial backfill/seed logic exists;
+- initial isolation tests are being added.
 
 ## Approved Model
 
@@ -163,6 +169,11 @@ Implementation rule for later:
 - introduce `TenantContext`;
 - add tenant switching semantics;
 - add tenant-aware seed data.
+
+Status:
+
+- completed backend slice: tenant models, persistence, request context, middleware, switch API, bootstrap service, seed wiring, and request-log enrichment;
+- remaining work: client-side context selection, tenant ownership propagation, isolation coverage, and tenant-aware runtime propagation.
 
 ### Phase 2: data ownership
 

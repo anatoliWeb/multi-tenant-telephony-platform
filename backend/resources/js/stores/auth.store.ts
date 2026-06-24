@@ -5,6 +5,8 @@ import { authService } from '../services/auth/auth.service';
 import { cacheStore } from '../shared/cache';
 import { useTranslationStore } from './translation.store';
 import { useGlobalLoadingStore } from './global-loading.store';
+import { useTenantStore } from './tenant.store';
+import { clearActiveTenantId } from '../services/tenant/tenant.storage';
 import type { AuthUser } from '../types/auth.types';
 
 /**
@@ -34,6 +36,8 @@ export const useAuthStore = defineStore('auth', () => {
   const clearAuthState = (options: { preserveTranslations?: boolean } = {}): void => {
     authService.removeToken();
     cacheStore.clear();
+    clearActiveTenantId();
+    useTenantStore().clearTenantContext();
 
     user.value = null;
     permissions.value = [];
@@ -52,6 +56,7 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       const payload = await authService.fetchSession();
       setSession(payload);
+      await useTenantStore().hydrateTenantContext();
       return Boolean(payload.user);
     } catch {
       clearAuthState({ preserveTranslations: true });
@@ -62,6 +67,7 @@ export const useAuthStore = defineStore('auth', () => {
   const login = async (credentials: { email: string; password: string; remember?: boolean }): Promise<void> => {
     const payload = await authService.login(credentials);
     setSession(payload);
+    await useTenantStore().hydrateTenantContext();
   };
 
   const logout = async (): Promise<void> => {

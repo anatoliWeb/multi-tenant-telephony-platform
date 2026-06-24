@@ -9,6 +9,8 @@ use Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful;
 
 use App\Http\Middleware\CorsMiddleware;
 use App\Http\Middleware\PermissionMiddleware;
+use App\Http\Middleware\ResolveTenantContext;
+use App\Http\Middleware\RequireTenantContext;
 use App\Http\Middleware\RoleMiddleware;
 use App\Http\Middleware\LogRequestMiddleware;
 use App\Http\Middleware\SecurityHeadersMiddleware;
@@ -158,6 +160,8 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'permission' => PermissionMiddleware::class,
             'role' => RoleMiddleware::class,
+            'resolve.tenant' => ResolveTenantContext::class,
+            'require.tenant' => RequireTenantContext::class,
             'external.chat.scope' => ExternalChatScopeMiddleware::class,
         ]);
     })

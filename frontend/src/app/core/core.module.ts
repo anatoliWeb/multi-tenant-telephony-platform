@@ -2,6 +2,7 @@ import { APP_INITIALIZER, NgModule } from '@angular/core';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { AppInitService } from './services/app-init.service';
 import { authSessionInterceptor } from './interceptors/auth-session.interceptor';
+import { tenantContextInterceptor } from './interceptors/tenant-context.interceptor';
 import { localeInterceptor } from './interceptors/locale.interceptor';
 import { errorInterceptor } from './interceptors/error.interceptor';
 import { AuthGuard } from './guards/auth.guard';
@@ -26,6 +27,7 @@ const initializeApp = (appInit: AppInitService) => {
     provideHttpClient(
       withInterceptors([
         authSessionInterceptor,
+        tenantContextInterceptor,
         localeInterceptor,
         errorInterceptor,
       ]),
@@ -33,4 +35,3 @@ const initializeApp = (appInit: AppInitService) => {
   ],
 })
 export class CoreModule {}
-
