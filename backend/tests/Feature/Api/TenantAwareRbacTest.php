@@ -89,6 +89,12 @@ class TenantAwareRbacTest extends TestCase
                 'scope_reference' => (string) $tenant->getKey(),
             ],
         ]);
+        TenantMembership::create([
+            'tenant_id' => $tenant->getKey(),
+            'user_id' => $user->id,
+            'status' => 'active',
+            'activated_at' => now(),
+        ]);
 
         /** @var TenantContext $tenantContext */
         $tenantContext = app(TenantContext::class);
@@ -151,5 +157,97 @@ class TenantAwareRbacTest extends TestCase
         $this->getJson('/api/v1/users')
             ->assertForbidden();
     }
-}
 
+    public function test_tenant_permission_cache_is_isolated_between_tenants_and_switches_cleanly(): void
+    {
+        $tenants = app(TenantBootstrapService::class)->ensureBaseTenants();
+        /** @var Tenant $tenantA */
+        $tenantA = $tenants['default'];
+        /** @var Tenant $tenantB */
+        $tenantB = $tenants['secondary'];
+
+        $permissionA = Permission::create([
+            'name' => 'tenant-a.view',
+            'scope' => PermissionScope::Tenant->value,
+            'scope_reference' => PermissionScope::Tenant->value,
+            'description' => 'Tenant A view',
+        ]);
+        $permissionB = Permission::create([
+            'name' => 'tenant-b.view',
+            'scope' => PermissionScope::Tenant->value,
+            'scope_reference' => PermissionScope::Tenant->value,
+            'description' => 'Tenant B view',
+        ]);
+
+        $roleA = Role::create([
+            'name' => 'tenant_a_viewer',
+            'scope' => RoleScope::Tenant->value,
+            'scope_reference' => (string) $tenantA->getKey(),
+            'tenant_id' => $tenantA->getKey(),
+            'description' => 'Tenant A viewer',
+            'is_system' => false,
+            'is_protected' => false,
+        ]);
+        $roleA->permissions()->sync([$permissionA->id]);
+
+        $roleB = Role::create([
+            'name' => 'tenant_b_viewer',
+            'scope' => RoleScope::Tenant->value,
+            'scope_reference' => (string) $tenantB->getKey(),
+            'tenant_id' => $tenantB->getKey(),
+            'description' => 'Tenant B viewer',
+            'is_system' => false,
+            'is_protected' => false,
+        ]);
+        $roleB->permissions()->sync([$permissionB->id]);
+
+        $user = User::create([
+            'name' => 'Multi Tenant User',
+            'email' => 'multi-tenant@example.com',
+            'password' => Hash::make('password'),
+        ]);
+        $user->roles()->syncWithoutDetaching([
+            $roleA->id => [
+                'tenant_id' => $tenantA->getKey(),
+                'scope_reference' => (string) $tenantA->getKey(),
+            ],
+            $roleB->id => [
+                'tenant_id' => $tenantB->getKey(),
+                'scope_reference' => (string) $tenantB->getKey(),
+            ],
+        ]);
+        TenantMembership::create([
+            'tenant_id' => $tenantA->getKey(),
+            'user_id' => $user->id,
+            'status' => 'active',
+            'activated_at' => now(),
+        ]);
+        TenantMembership::create([
+            'tenant_id' => $tenantB->getKey(),
+            'user_id' => $user->id,
+            'status' => 'active',
+            'activated_at' => now(),
+        ]);
+
+        /** @var TenantContext $tenantContext */
+        $tenantContext = app(TenantContext::class);
+        /** @var PermissionCacheService $cache */
+        $cache = app(PermissionCacheService::class);
+
+        $tenantContext->setTenant($tenantA);
+        $this->assertSame(['tenant-a.view'], $cache->getTenantPermissionsForUser($user, $tenantA));
+        $this->assertSame(['tenant-a.view'], $cache->getEffectivePermissionsForUser($user));
+
+        $tenantContext->setTenant($tenantB);
+        $this->assertSame(['tenant-b.view'], $cache->getTenantPermissionsForUser($user, $tenantB));
+        $this->assertSame(['tenant-b.view'], $cache->getEffectivePermissionsForUser($user));
+
+        $tenantContext->setTenant($tenantA);
+        $this->assertSame(['tenant-a.view'], $cache->getEffectivePermissionsForUser($user));
+
+        $this->assertNotSame(
+            $cache->getTenantPermissionsForUser($user, $tenantA),
+            $cache->getTenantPermissionsForUser($user, $tenantB)
+        );
+    }
+}

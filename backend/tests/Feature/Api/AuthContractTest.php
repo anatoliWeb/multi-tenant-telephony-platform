@@ -173,11 +173,11 @@ class AuthContractTest extends TestCase
             'password' => bcrypt('secret123'),
         ]);
 
-        $role = Role::create(['name' => 'contract-role']);
+        $role = Role::create(['name' => 'contract-role', 'scope' => 'platform', 'scope_reference' => 'platform']);
 
-        $rolePermission = Permission::firstOrCreate(['name' => 'reports.view']);
-        $directPermission = Permission::firstOrCreate(['name' => 'settings.view']);
-        $deniedPermission = Permission::firstOrCreate(['name' => 'users.delete']);
+        $rolePermission = Permission::firstOrCreate(['name' => 'reports.view', 'scope' => 'platform']);
+        $directPermission = Permission::firstOrCreate(['name' => 'settings.view', 'scope' => 'platform']);
+        $deniedPermission = Permission::firstOrCreate(['name' => 'users.delete', 'scope' => 'platform']);
 
         $role->permissions()->sync([$rolePermission->id, $deniedPermission->id]);
         $user->roles()->sync([$role->id]);
@@ -282,11 +282,11 @@ class AuthContractTest extends TestCase
             'password' => bcrypt('secret123'),
         ]);
 
-        $role = Role::create(['name' => 'cache-role']);
-        $rolePermission = Permission::firstOrCreate(['name' => 'reports.view']);
-        $directPermission = Permission::firstOrCreate(['name' => 'settings.view']);
-        $deniedPermission = Permission::firstOrCreate(['name' => 'users.delete']);
-        $newDirectPermission = Permission::firstOrCreate(['name' => 'tokens.view']);
+        $role = Role::create(['name' => 'cache-role', 'scope' => 'platform', 'scope_reference' => 'platform']);
+        $rolePermission = Permission::firstOrCreate(['name' => 'reports.view', 'scope' => 'platform']);
+        $directPermission = Permission::firstOrCreate(['name' => 'settings.view', 'scope' => 'platform']);
+        $deniedPermission = Permission::firstOrCreate(['name' => 'users.delete', 'scope' => 'platform']);
+        $newDirectPermission = Permission::firstOrCreate(['name' => 'tokens.view', 'scope' => 'platform']);
 
         $role->permissions()->sync([$rolePermission->id, $deniedPermission->id]);
         $user->roles()->sync([$role->id]);
@@ -337,9 +337,9 @@ class AuthContractTest extends TestCase
             'password' => bcrypt('secret123'),
         ]);
 
-        $role = Role::create(['name' => 'role-cache-role']);
-        $initialPermission = Permission::firstOrCreate(['name' => 'reports.view']);
-        $nextPermission = Permission::firstOrCreate(['name' => 'tokens.view']);
+        $role = Role::create(['name' => 'role-cache-role', 'scope' => 'platform', 'scope_reference' => 'platform']);
+        $initialPermission = Permission::firstOrCreate(['name' => 'reports.view', 'scope' => 'platform']);
+        $nextPermission = Permission::firstOrCreate(['name' => 'tokens.view', 'scope' => 'platform']);
         $role->permissions()->sync([$initialPermission->id]);
         $user->roles()->sync([$role->id]);
 

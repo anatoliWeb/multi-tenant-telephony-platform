@@ -17,8 +17,8 @@ class RoleEventsTest extends TestCase
 
     public function test_role_service_update_dispatches_role_permissions_changed_event(): void
     {
-        $role = Role::create(['name' => 'qa-role']);
-        Permission::firstOrCreate(['name' => 'users.view']);
+        $role = Role::create(['name' => 'qa-role', 'scope' => 'platform', 'scope_reference' => 'platform']);
+        Permission::firstOrCreate(['name' => 'users.view', 'scope' => 'platform']);
         $actor = User::factory()->create();
         $this->actingAs($actor, 'web');
 

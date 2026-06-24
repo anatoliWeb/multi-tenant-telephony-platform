@@ -1,6 +1,6 @@
 # Baseline Validation Report
 
-Validation date: 2026-06-23
+Validation date: 2026-06-24
 
 ## Summary
 
@@ -13,7 +13,7 @@ Verified results:
 - Migrations and seeders complete.
 - Angular build and tests pass.
 - Vue build and tests pass.
-- The complete backend suite now passes.
+- The complete backend suite now passes, including the tenant-aware RBAC regression that originally failed on tenant permission isolation.
 - The NG8107 Angular template warning is resolved.
 - Manual browser login, logout, and authenticated-state validation were confirmed by the project owner.
 - Angular realtime connection status was confirmed as connected by the project owner.
@@ -58,11 +58,24 @@ Latest verified totals:
 - Assertions: `16096`
 - Duration: `797.94s`
 
+Latest verified totals after the RBAC isolation fix:
+
+- Passed: `502`
+- Failed: `0`
+- Skipped: `21`
+- Incomplete: `0`
+- Risky: `0`
+- Assertions: `16110`
+- Duration: `699.48s`
+
 Fixes made during validation:
 
 - Seeded the RBAC version key before bumping it so cache invalidation works even when the key is missing.
 - Updated the admin meta runtime test to invalidate the RBAC cache version before asserting role permissions.
 - Updated the typing indicator test to clear the throttle key directly instead of relying on cache TTL travel.
+- Added the missing active tenant membership to the tenant-permission isolation regression test.
+- Added a tenant cache-isolation regression test that proves permissions do not leak across tenant switches.
+- Pinned auth contract fixtures to the platform permission scope so tenant-scoped permissions do not get picked up accidentally.
 
 ## Manual Browser Validation
 

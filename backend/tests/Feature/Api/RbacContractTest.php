@@ -117,8 +117,17 @@ class RbacContractTest extends TestCase
 
         $globalBefore = $cacheService->globalVersion();
 
-        $role = Role::create(['name' => 'rbac-contract-role']);
-        Permission::firstOrCreate(['name' => 'users.view']);
+        $role = Role::create([
+            'name' => 'rbac-contract-role',
+            'scope' => 'platform',
+            'scope_reference' => 'platform',
+        ]);
+        Permission::create([
+            'name' => 'users.view',
+            'scope' => 'platform',
+            'scope_reference' => 'platform',
+            'description' => 'Users view',
+        ]);
         $actor = User::factory()->create();
         $this->actingAs($actor, 'web');
 
@@ -130,7 +139,12 @@ class RbacContractTest extends TestCase
 
         $targetUser = User::factory()->create();
         $operator = User::factory()->create();
-        $role->permissions()->sync([Permission::firstOrCreate(['name' => 'users.edit'])->id]);
+        $role->permissions()->sync([Permission::create([
+            'name' => 'users.edit',
+            'scope' => 'platform',
+            'scope_reference' => 'platform',
+            'description' => 'Users edit',
+        ])->id]);
 
         $userVersionBefore = $cacheService->userVersion((int) $targetUser->id);
         $this->actingAs($operator, 'web');
@@ -172,10 +186,10 @@ class RbacContractTest extends TestCase
         $withFullPermission = User::factory()->create();
 
         $withViewPermission->permissions()->syncWithoutDetaching([
-            Permission::firstOrCreate(['name' => 'api.docs.view'])->id,
+            Permission::firstOrCreate(['name' => 'api.docs.view', 'scope' => 'platform'])->id,
         ]);
         $withFullPermission->permissions()->syncWithoutDetaching([
-            Permission::firstOrCreate(['name' => 'api.docs.view.full'])->id,
+            Permission::firstOrCreate(['name' => 'api.docs.view.full', 'scope' => 'platform'])->id,
         ]);
 
         $this->assertFalse(Gate::forUser($withoutPermission)->allows('viewApiDocs'));
@@ -201,7 +215,7 @@ class RbacContractTest extends TestCase
     {
         $user = User::factory()->create();
         $permissionIds = collect($permissions)
-            ->map(fn (string $name) => Permission::firstOrCreate(['name' => $name])->id)
+            ->map(fn (string $name) => Permission::firstOrCreate(['name' => $name, 'scope' => 'platform'])->id)
             ->all();
 
         $user->permissions()->sync($permissionIds);

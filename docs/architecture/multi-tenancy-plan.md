@@ -200,7 +200,8 @@ Status:
 Current slice status:
 
 - platform role and permission scoping has been added to the schema and resolver;
-- tenant-scoped permission resolution is available through tenant context payloads;
+- tenant-scoped permission resolution is available through tenant context payloads and now requires an active tenant membership;
+- tenant permission cache isolation is covered by regression tests that switch between tenants cleanly;
 - tenant role-management APIs remain a deferred slice.
 
 ### Phase 4: operational propagation
@@ -215,6 +216,12 @@ Current slice status:
 - add tenant-aware chat and notification tests;
 - verify queue and broadcast context safety;
 - document the new runtime behavior.
+
+Verification status:
+
+- the complete backend suite passes after the tenant permission isolation fix;
+- the RBAC tenant-resolution regression is covered by `TenantAwareRbacTest`;
+- platform-scope permission fixtures in auth contract tests now explicitly avoid tenant catalog collisions.
 
 ## 7. Acceptance Criteria
 

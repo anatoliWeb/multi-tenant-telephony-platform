@@ -38,6 +38,8 @@ test('auth context dto toArray returns expected payload shape', function () {
     $dto = new AuthContextDTO(
         user: ['id' => 5, 'name' => 'John'],
         permissions: ['roles.view'],
+        platformPermissions: ['roles.view'],
+        tenantPermissions: [],
         roles: ['manager'],
     );
 
@@ -46,11 +48,15 @@ test('auth context dto toArray returns expected payload shape', function () {
     expect(array_keys($payload))->toBe([
         'user',
         'permissions',
+        'platform_permissions',
+        'tenant_permissions',
         'roles',
     ]);
 
     expect($payload['user'])->toBe(['id' => 5, 'name' => 'John']);
     expect($payload['permissions'])->toBe(['roles.view']);
+    expect($payload['platform_permissions'])->toBe(['roles.view']);
+    expect($payload['tenant_permissions'])->toBe([]);
     expect($payload['roles'])->toBe(['manager']);
 });
 
@@ -58,6 +64,8 @@ test('auth context dto supports guest-safe null user payload', function () {
     $dto = new AuthContextDTO(
         user: null,
         permissions: [],
+        platformPermissions: [],
+        tenantPermissions: [],
         roles: [],
     );
 
@@ -65,6 +73,8 @@ test('auth context dto supports guest-safe null user payload', function () {
 
     expect($payload['user'])->toBeNull();
     expect($payload['permissions'])->toBe([]);
+    expect($payload['platform_permissions'])->toBe([]);
+    expect($payload['tenant_permissions'])->toBe([]);
     expect($payload['roles'])->toBe([]);
 });
 
