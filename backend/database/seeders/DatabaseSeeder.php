@@ -2,31 +2,36 @@
 
 namespace Database\Seeders;
 
-use App\Models\User;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
+use App\Services\Seeding\SeederEnvironmentService;
 use Illuminate\Database\Seeder;
-use Database\Seeders\settings\SettingsSeeder;
-use Database\Seeders\Translations\TranslationsSeeder;
 
 class DatabaseSeeder extends Seeder
 {
-    use WithoutModelEvents;
-
-    /**
-     * Seed the application's database.
-     */
     public function run(): void
     {
-        $this->call([
-            UserSeeder::class,
-            TenantSeeder::class,
-            ActivitySeeder::class,
-            SettingsSeeder::class,
-            TranslationsSeeder::class,
-        ]);
+        $environment = app(SeederEnvironmentService::class);
 
-        if (! app()->environment('production') && (bool) env('CHAT_DEMO_SEED', false)) {
-            $this->call(ChatDemoSeeder::class);
+        $this->call(CoreSeeder::class);
+
+        if ($environment->isProduction()) {
+            return;
         }
+
+        if ($environment->isTesting()) {
+            if ($this->isEnabled('SEED_TEST_DATA', true)) {
+                $this->call(TestSeeder::class);
+            }
+
+            return;
+        }
+
+        if ($this->isEnabled('SEED_DEMO_DATA', false)) {
+            $this->call(DemoSeeder::class);
+        }
+    }
+
+    protected function isEnabled(string $envKey, bool $default): bool
+    {
+        return filter_var(env($envKey, $default), FILTER_VALIDATE_BOOL);
     }
 }

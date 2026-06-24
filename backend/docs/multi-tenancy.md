@@ -81,6 +81,17 @@ The current bootstrap service creates:
 
 Platform-only users are identified through the existing `admin` role and are not automatically attached to tenant memberships.
 
+## Seeder Layout
+
+Tenant-aware fixtures are now split by intent:
+
+- `CoreSeeder` seeds shared RBAC and system baseline data;
+- `DemoSeeder` seeds deterministic demo tenants and personas;
+- `TestSeeder` seeds testing-only tenant fixtures;
+- `PerformanceSeeder` seeds high-volume tenant data on demand.
+
+The demo and test seeders intentionally use stable identity keys so repeated runs stay predictable and do not rewrite existing passwords.
+
 ## Next Step
 
 The next slice should start applying `tenant_id` to tenant-owned data and propagate tenant context through the rest of the runtime.

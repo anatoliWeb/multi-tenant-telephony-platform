@@ -552,10 +552,10 @@ Do not discard the existing seeders.
 - [x] Existing chat demo seeder is present
 - [x] Adapt existing user and RBAC seeding to tenants
 - [ ] Adapt the existing chat demo seeder to tenants
-- [ ] Create `CoreSeeder`
-- [ ] Create `DemoSeeder`
-- [ ] Create `TestSeeder`
-- [ ] Create `PerformanceSeeder`
+- [x] Create `CoreSeeder`
+- [x] Create `DemoSeeder`
+- [x] Create `TestSeeder`
+- [x] Create `PerformanceSeeder`
 
 ## 10.2 CoreSeeder
 
@@ -1298,7 +1298,7 @@ Still required before closing Milestone 1:
 
 # 33. Milestone 2: Multi-Tenant Foundation
 
-Milestone status: `IN_PROGRESS`
+Milestone status: `PARTIAL`
 
 - [x] Tenants exist
 - [x] Tenant memberships exist
@@ -1310,8 +1310,8 @@ Milestone status: `IN_PROGRESS`
 - [ ] Existing realtime channels are tenant-isolated
 - [ ] Existing notifications are tenant-aware
 - [ ] Existing activity logs are tenant-aware
-- [ ] CoreSeeder works
-- [ ] DemoSeeder creates multiple tenants
+- [x] CoreSeeder works
+- [x] DemoSeeder creates multiple tenants
 - [ ] Dashboard widgets are not empty
 - [ ] Cross-tenant security tests pass
 - [ ] No telephony code bypasses TenantContext or RBAC

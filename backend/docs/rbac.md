@@ -44,6 +44,14 @@ Verified behavior:
 - tenant permission cache entries are rebuilt from the active tenant context only;
 - platform and tenant permission catalogs can now contain the same permission name without colliding in resolution.
 
+## Seeder Coverage
+
+`CoreSeeder` seeds the shared permission catalog and platform roles.
+
+`DemoSeeder`, `TestSeeder`, and `PerformanceSeeder` seed tenant roles per tenant so that tenant-specific role names stay isolated by tenant scope and `scope_reference`.
+
+The seeding flow keeps role and permission identity stable by using `name` plus `scope`, rather than auto-increment ids.
+
 ## Middleware
 
 `PermissionMiddleware` understands scoped permission strings:

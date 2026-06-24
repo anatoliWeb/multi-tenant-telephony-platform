@@ -57,6 +57,22 @@ docker compose exec backend php artisan migrate
 docker compose exec backend php artisan migrate --seed
 ```
 
+Seeder-specific commands:
+
+```bash
+docker compose exec backend php artisan app:seed-core
+docker compose exec backend php artisan app:seed-demo
+docker compose exec backend php artisan app:seed-performance --tenants=3 --users=150
+```
+
+Seeder notes:
+
+- `app:seed-core` is the mandatory baseline and is safe to rerun.
+- `app:seed-demo` is local/demo only and refuses production.
+- `app:seed-performance` is explicit and should be used only when high-volume fixtures are needed.
+- Use `--allow-production` only for controlled performance validation.
+- The generic `migrate --seed` flow should be reserved for environments that intentionally want the full default database seed path.
+
 Clear framework caches:
 
 ```bash

@@ -179,6 +179,8 @@ docker compose down
 
 More commands are centralized in `backend/docs/commands.md`.
 
+For deterministic demo and test fixture setup, prefer the explicit seeder commands documented in `backend/docs/seeders.md` rather than relying on a blanket `migrate --seed` run.
+
 ## Troubleshooting
 
 ### Docker daemon unavailable / pipe permission denied

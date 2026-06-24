@@ -12,6 +12,12 @@ Slice 1 of the foundation is now implemented in the backend:
 - initial backfill/seed logic exists;
 - initial isolation tests are being added.
 
+Seeder status:
+
+- `CoreSeeder`, `DemoSeeder`, `TestSeeder`, and `PerformanceSeeder` now exist;
+- the default database seeding path is split by environment;
+- demo and performance seed data use stable identity keys for repeatability.
+
 ## Approved Model
 
 - Shared database.
