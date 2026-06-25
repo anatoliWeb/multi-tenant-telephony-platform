@@ -68,3 +68,14 @@ The legacy direct-permission and denied-permission tables stay in place for now.
 - They are not exposed in the new tenant-facing permission flow.
 - They cannot be used to bypass tenant boundaries.
 - Platform session payloads may still include platform-compatible legacy behavior where needed.
+
+## Tenant Chat Boundary
+
+Tenant chat is now explicitly protected against platform-permission bleed-through.
+
+- platform permissions may still protect platform-shell routes and external-chat entry middleware;
+- once tenant context is active, tenant chat authorization resolves tenant permissions only;
+- active membership without tenant chat permission is insufficient for chat view, send, attachment, webhook-management, and external-message actions;
+- cross-tenant isolation regressions cover tenant switching, permission cache separation, tenant chat view denial, and tenant external-message denial.
+
+See `backend/docs/tenant-isolation-tests.md` for the current matrix.

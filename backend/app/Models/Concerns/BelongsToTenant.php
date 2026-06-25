@@ -80,6 +80,14 @@ trait BelongsToTenant
             return $tenantId;
         }
 
+        $request = request();
+        $identifier = trim((string) $request?->header('X-Tenant-ID', ''));
+        if ($identifier !== '') {
+            $tenant = app(TenantBootstrapService::class)->resolveTenantByIdentifier($identifier);
+
+            return $tenant ? (string) $tenant->getKey() : null;
+        }
+
         if (app()->runningUnitTests()) {
             return TenantBootstrapService::DEFAULT_TENANT_UUID;
         }

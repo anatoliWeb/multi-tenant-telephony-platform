@@ -13,6 +13,7 @@ Implemented in this slice:
 - initial tenant membership bootstrap/backfill
 - initial request logging enrichment
 - initial isolation tests
+- cross-tenant isolation regressions for tenant switching, tenant chat access, external integrations, and route binding
 - tenant-owned chat schema enforcement and live backfill validation
 
 Not yet implemented:
@@ -107,6 +108,21 @@ Key rules:
 - live development migration/backfill validation completed without chat data loss;
 - chat ownership columns are database-enforced as `NOT NULL` after backfill;
 - chat integrity can be audited with `php artisan chat:verify-tenant-integrity`.
+
+## Isolation Verification
+
+Latest hardening added:
+
+- tenant route model binding now honors `X-Tenant-ID` before controller execution, so tenant-owned resources resolve correctly and still fail closed outside the selected tenant;
+- authenticated tenant switching now returns the same safe `403 Tenant access denied` response for unknown and inaccessible tenant identifiers;
+- ordinary tenant chat and tenant external-message flows no longer accept platform chat permissions as a bypass for tenant-scoped permissions;
+- authenticated external chat rate limiting now keys by actor plus explicit tenant header to avoid cross-tenant collisions for the same user token.
+
+Coverage status:
+
+- dedicated regression suite: `Tests\Feature\Tenancy\Isolation\*`;
+- full matrix and current gaps: `backend/docs/tenant-isolation-tests.md`;
+- full backend verification: `516` passed, `0` failed, `21` skipped, `16402` assertions.
 
 See `backend/docs/chat.md` for the chat-specific runtime summary.
 

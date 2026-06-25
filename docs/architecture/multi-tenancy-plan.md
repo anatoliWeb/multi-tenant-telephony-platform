@@ -10,7 +10,7 @@ Slice 1 of the foundation is now implemented in the backend:
 - request-scoped tenant context exists;
 - tenant switching exists;
 - initial backfill/seed logic exists;
-- initial isolation tests are being added.
+- dedicated isolation tests now cover tenant switching, tenant chat boundaries, tenant route binding, and tenant external integrations.
 
 Seeder status:
 
@@ -90,7 +90,7 @@ Resolution order is fail-closed.
 ### Authenticated Angular request
 
 1. Read the authenticated user.
-2. Resolve the active tenant from the selected membership in `TenantContext`.
+2. Resolve the active tenant from `X-Tenant-ID` or the selected membership in `TenantContext`.
 3. If the request specifies a tenant switch, validate that the user belongs to that tenant and that the membership is active.
 4. If tenant context cannot be resolved, reject the request.
 
@@ -234,6 +234,7 @@ Verification status:
 
 - the complete backend suite passes after the tenant permission isolation fix;
 - the RBAC tenant-resolution regression is covered by `TenantAwareRbacTest`;
+- dedicated isolation regressions now cover tenant-switch indistinguishability, tenant-scoped route binding, tenant chat view denial, tenant external-message denial, tenant-isolated webhook endpoint binding, and tenant-isolated external mapping keys;
 - platform-scope permission fixtures in auth contract tests now explicitly avoid tenant catalog collisions.
 - chat ownership is database-enforced in development and validated through a dedicated integrity audit command.
 

@@ -96,8 +96,23 @@ Fail-closed rules:
 - webhook-token requests always bind tenant context from the owning endpoint;
 - authenticated external API requests must provide an explicit `X-Tenant-ID` when the actor has more than one active tenant membership;
 - authenticated requests may use the only active membership when tenant selection is unambiguous;
+- explicit tenant-scoped chat permissions are still required after tenant resolution; platform chat permissions alone do not bypass tenant chat access;
+- authenticated external API throttling now includes the explicit tenant header in the limiter key so one tenant cannot exhaust another tenant's bucket for the same actor;
 - test-only compatibility fallback to the default tenant remains limited to unit-test runtime for legacy bare-user fixtures;
 - production HTTP requests never fall back to the default tenant.
+
+## Cross-Tenant Isolation Coverage
+
+Latest dedicated regressions verify that:
+
+- same-tenant chat route model binding resolves correctly from `X-Tenant-ID`;
+- cross-tenant chat conversation lookup fails closed;
+- platform chat permissions do not bypass tenant chat view access;
+- platform external-chat permissions do not bypass tenant external-message access;
+- external message mappings are unique per tenant, not globally;
+- webhook endpoint listing and route binding remain inside the active tenant.
+
+Reference matrix: `backend/docs/tenant-isolation-tests.md`.
 
 ## Demo Data
 
@@ -138,9 +153,9 @@ Safe verification workflow:
 
 Verified backend totals:
 
-- targeted Stage 7 chat rerun: `19` passed, `0` failed, `0` skipped, `398` assertions, `516.23s`;
-- tenant and RBAC regression rerun: `21` passed, `0` failed, `0` skipped, `163` assertions, `477.91s`;
-- full backend suite rerun: `509` passed, `0` failed, `21` skipped, `16375` assertions, `910.82s`.
+- targeted tenant-isolation rerun: `7` passed, `0` failed, `0` skipped, `27` assertions, `426.78s`;
+- external-chat regression rerun: `3` passed, `0` failed, `0` skipped, `27` assertions, `422.61s`;
+- full backend suite rerun: `516` passed, `0` failed, `21` skipped, `16402` assertions, `850.41s`.
 
 Development integrity recheck after the reruns:
 

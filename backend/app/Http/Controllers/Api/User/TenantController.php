@@ -68,7 +68,7 @@ class TenantController extends BaseController
         $tenant = $this->tenantBootstrapService->resolveTenantByIdentifier($identifier);
 
         if ($tenant === null) {
-            abort(404, 'Tenant not found');
+            abort(403, 'Tenant access denied');
         }
 
         $user = $request->user();

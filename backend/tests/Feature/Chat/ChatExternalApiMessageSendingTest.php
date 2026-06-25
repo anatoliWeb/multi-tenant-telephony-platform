@@ -2,6 +2,8 @@
 
 namespace Tests\Feature\Chat;
 
+use App\Enums\Rbac\PermissionScope;
+use App\Enums\Rbac\RoleScope;
 use App\Enums\TenantMembershipStatus;
 use App\Enums\TenantStatus;
 use App\Jobs\Chat\DeliverChatWebhookJob;
@@ -12,6 +14,7 @@ use App\Models\ConversationParticipant;
 use App\Models\ExternalMessageMapping;
 use App\Models\Message;
 use App\Models\Permission;
+use App\Models\Role;
 use App\Models\Tenant;
 use App\Models\TenantMembership;
 use App\Models\User;
@@ -35,6 +38,42 @@ class ChatExternalApiMessageSendingTest extends TestCase
         Sanctum::actingAs($user);
 
         return $user;
+    }
+
+    private function assignTenantPermissions(User $user, Tenant $tenant, array $permissions, string $roleName): void
+    {
+        $role = Role::create([
+            'name' => $roleName,
+            'scope' => RoleScope::Tenant->value,
+            'scope_reference' => (string) $tenant->getKey(),
+            'tenant_id' => (string) $tenant->getKey(),
+            'description' => 'External API tenant test role',
+            'is_system' => false,
+            'is_protected' => false,
+        ]);
+
+        $permissionIds = collect($permissions)
+            ->map(function (string $name): int {
+                $permission = Permission::firstOrCreate(
+                    ['name' => $name, 'scope' => PermissionScope::Tenant->value],
+                    [
+                        'scope_reference' => PermissionScope::Tenant->value,
+                        'description' => ucfirst(str_replace('.', ' ', $name)),
+                    ]
+                );
+
+                return (int) $permission->id;
+            })
+            ->all();
+
+        $role->permissions()->sync($permissionIds);
+
+        $user->roles()->syncWithoutDetaching([
+            $role->id => [
+                'tenant_id' => (string) $tenant->getKey(),
+                'scope_reference' => (string) $tenant->getKey(),
+            ],
+        ]);
     }
 
     private function makeConversation(User $owner, array $overrides = []): Conversation
@@ -270,8 +309,39 @@ class ChatExternalApiMessageSendingTest extends TestCase
             'idempotency_key' => 'ambiguous-tenant',
         ]))->assertForbidden();
 
+        $tenantScopedSender = $this->actingAsWithPermissions([
+            'chat.external_api.send',
+            'chat.send',
+            'chat.view',
+            'chat.conversations.view',
+        ]);
+
+        foreach ([$tenantA, $tenantB] as $tenant) {
+            TenantMembership::create([
+                'tenant_id' => $tenant->id,
+                'user_id' => $tenantScopedSender->id,
+                'status' => TenantMembershipStatus::Active,
+                'accepted_at' => now(),
+                'activated_at' => now(),
+            ]);
+        }
+
+        $this->assignTenantPermissions($tenantScopedSender, $tenantA, [
+            'chat.external_api.send',
+            'chat.send',
+            'chat.view',
+            'chat.conversations.view',
+        ], 'external_api_tenant_a_sender');
+
+        $scopedConversation = $this->makeConversation($tenantScopedSender, [
+            'tenant_id' => $tenantA->id,
+        ]);
+        $this->addParticipant($scopedConversation, $tenantScopedSender, [
+            'tenant_id' => $tenantA->id,
+        ]);
+
         $this->withHeader('X-Tenant-ID', $tenantA->id)
-            ->postJson('/api/v1/chat/external/messages', $this->validPayload($conversation, [
+            ->postJson('/api/v1/chat/external/messages', $this->validPayload($scopedConversation, [
                 'external_message_id' => 'explicit-tenant',
                 'idempotency_key' => 'explicit-tenant',
             ]))->assertCreated();

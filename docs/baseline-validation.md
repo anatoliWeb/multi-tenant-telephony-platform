@@ -178,8 +178,9 @@ Backend verification follow-up on 2026-06-25:
 - testing safety guard was re-verified through `Tests\Unit\TestingDatabaseGuardTest`;
 - safe cleanup performed: inspected backend container processes and MySQL process lists, waited for one still-active targeted rerun to finish its DDL work, and confirmed the lingering `php artisan test` worker and `saas_testing` session had exited before starting the final clean reruns;
 - targeted Stage 7 chat rerun: `19` passed, `0` failed, `0` skipped, `398` assertions, `516.23s`;
-- tenant and RBAC regression rerun: `21` passed, `0` failed, `0` skipped, `163` assertions, `477.91s`;
-- full backend suite rerun: `509` passed, `0` failed, `21` skipped, `16375` assertions, `910.82s`;
+- tenant-isolation rerun: `7` passed, `0` failed, `0` skipped, `27` assertions, `426.78s`;
+- external-chat regression rerun: `3` passed, `0` failed, `0` skipped, `27` assertions, `422.61s`;
+- full backend suite rerun: `516` passed, `0` failed, `21` skipped, `16402` assertions, `850.41s`;
 - development chat counts remained unchanged after testing:
   - conversations `6`
   - messages `324`
@@ -191,7 +192,7 @@ Backend verification follow-up on 2026-06-25:
 - integrity recheck after all reruns still reported zero null tenant ownership rows, zero tenant mismatch rows, zero duplicate tenant-scoped device rows, and no data loss;
 - Stage 7 is now complete;
 - Milestone 2 remains partial because notifications tenancy, activity-log tenancy, queue and listener propagation, scheduler propagation, and broader tenant-isolation work remain unfinished;
-- the next TODO item is now `Step 4: Implement Multi-Tenancy` -> `[ ] Tenant isolation tests`.
+- the next TODO item is now `Step 5: Begin Telephony Foundation` -> `[ ] Shared telephony contracts`.
 
 Owner-confirmed browser checks:
 

@@ -485,15 +485,15 @@ Adapt existing models instead of creating duplicate replacements.
 
 ## 8.5 Tenant Isolation Tests
 
-- [ ] Cross-tenant reads are blocked
-- [ ] Cross-tenant updates are blocked
+- [x] Cross-tenant reads are blocked
+- [x] Cross-tenant updates are blocked
 - [ ] Cross-tenant deletes are blocked
 - [ ] Cross-tenant exports are blocked
-- [ ] Cross-tenant file access is blocked
+- [x] Cross-tenant file access is blocked
 - [x] Cross-tenant chat access is blocked
 - [x] Cross-tenant realtime access is blocked
 - [ ] Queue jobs cannot leak tenant context
-- [ ] Platform access requires platform permissions
+- [x] Platform access requires platform permissions
 
 ---
 
@@ -1265,7 +1265,7 @@ Do not treat the existing billing page as a completed telephony billing implemen
 - [x] Tenant-aware RBAC
 - [x] Tenant-aware seeders
 - [x] Tenant-aware chat
-- [ ] Tenant isolation tests
+- [x] Tenant isolation tests
 
 ## Step 5: Begin Telephony Foundation
 
@@ -1328,7 +1328,7 @@ Milestone status: `PARTIAL`
 - [x] CoreSeeder works
 - [x] DemoSeeder creates multiple tenants
 - [ ] Dashboard widgets are not empty
-- [ ] Cross-tenant security tests pass
+- [x] Cross-tenant security tests pass
 - [ ] No telephony code bypasses TenantContext or RBAC
 
 ---
