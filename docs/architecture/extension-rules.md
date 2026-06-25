@@ -50,6 +50,7 @@ Before adding a backend feature:
 ## Integration Feature Checklist
 
 - provider contract;
+- provider registry;
 - provider DTOs;
 - idempotency;
 - retries;

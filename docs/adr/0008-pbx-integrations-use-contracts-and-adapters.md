@@ -16,3 +16,4 @@ PBX integrations will be accessed through contracts and adapters.
 - Telephony domain services stay provider-neutral.
 - Provider-specific behavior lives in `Integrations`.
 - Testing can use fake adapters without leaking vendor details into the domain model.
+- Shared contracts should use provider-neutral names such as `TelephonyProvider`, `EndpointProvisioningProvider`, and `CallControlProvider`.

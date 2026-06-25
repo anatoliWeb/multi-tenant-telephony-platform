@@ -657,18 +657,18 @@ Stage status: `COMPLETE`
 
 # 12. Stage 8: Shared Telephony Contracts
 
-- [ ] `PBXProvider`
-- [ ] `PBXHealthProvider`
-- [ ] `ExtensionProvisioningProvider`
+- [x] `TelephonyProvider`
+- [x] `TelephonyHealthProvider`
+- [x] `EndpointProvisioningProvider`
 - [ ] `PhoneNumberProvider`
-- [ ] `CallControlProvider`
-- [ ] `ConferenceProvider`
+- [x] `CallControlProvider`
+- [x] `ConferenceControlProvider`
 - [ ] `RecordingProvider`
-- [ ] `PBXEventProvider`
-- [ ] Provider capability model
-- [ ] Normalized provider DTOs
-- [ ] Normalized provider exceptions
-- [ ] Idempotency rules
+- [ ] TelephonyEventProvider
+- [x] Provider capability model
+- [x] Normalized provider DTOs
+- [x] Normalized provider exceptions
+- [x] Idempotency rules
 - [ ] Integration-event persistence
 - [ ] Retry rules
 - [ ] Dead-letter state
@@ -680,24 +680,24 @@ The Laravel domain must not depend directly on FreeSWITCH-specific classes.
 
 # 13. Stage 9: Fake PBX Adapter
 
-- [ ] Simulate extension registration
+- [x] Simulate extension registration
 - [ ] Simulate incoming calls
-- [ ] Simulate outgoing calls
+- [x] Simulate outgoing calls
 - [ ] Simulate ringing
-- [ ] Simulate answer
+- [x] Simulate answer
 - [ ] Simulate decline
 - [ ] Simulate busy
-- [ ] Simulate failure
-- [ ] Simulate hangup
-- [ ] Simulate hold and resume
-- [ ] Simulate transfer
-- [ ] Simulate conference creation
-- [ ] Simulate participant invitations
+- [x] Simulate failure
+- [x] Simulate hangup
+- [x] Simulate hold and resume
+- [x] Simulate transfer
+- [x] Simulate conference creation
+- [x] Simulate participant invitations
 - [ ] Simulate participant joins and leaves
 - [ ] Simulate recordings
 - [ ] Simulate duplicate events
 - [ ] Simulate out-of-order events
-- [ ] Use it in automated tests
+- [x] Use it in automated tests
 - [ ] Use it in the default demo environment
 
 ---
@@ -1269,8 +1269,8 @@ Do not treat the existing billing page as a completed telephony billing implemen
 
 ## Step 5: Begin Telephony Foundation
 
-- [ ] Shared telephony contracts
-- [ ] Fake PBX adapter
+- [x] Shared telephony contracts
+- [x] Fake PBX adapter
 - [ ] Contacts
 - [ ] Extensions
 - [ ] Phone numbers
@@ -1335,10 +1335,10 @@ Milestone status: `PARTIAL`
 
 # 34. Milestone 3: Telephony Foundation
 
-Milestone status: `NOT_STARTED`
+Milestone status: `PARTIAL`
 
-- [ ] Shared PBX contracts exist
-- [ ] Fake PBX adapter works
+- [x] Shared PBX contracts exist
+- [x] Fake PBX adapter works
 - [ ] Contacts work
 - [ ] Extensions work
 - [ ] Phone numbers and DIDs work

@@ -1,0 +1,130 @@
+# Telephony
+
+## Scope
+
+This slice implements provider-neutral telephony contracts, a deterministic fake provider, tenant-aware application services, and test coverage.
+
+Implemented now:
+
+- shared telephony contracts;
+- provider capability model;
+- provider-neutral DTOs;
+- provider-neutral enums;
+- typed telephony exceptions;
+- telephony provider registry;
+- telephony configuration;
+- deterministic fake provider;
+- tenant-aware fake provider state;
+- idempotency contract for create-style operations;
+- contract and fake-provider tests.
+
+Deferred:
+
+- FreeSWITCH adapter;
+- real calls;
+- SIP.js;
+- extensions, DIDs, call logs, recordings, queues, IVR, billing, and real provider webhooks.
+
+## Module Boundary
+
+Namespaces:
+
+- `App\Contracts\Telephony`
+- `App\DTO\Telephony`
+- `App\Enums\Telephony`
+- `App\Exceptions\Telephony`
+- `App\Services\Telephony`
+
+The telephony domain stays provider-neutral. No shared contract names mention FreeSWITCH.
+
+## Contracts
+
+- `TelephonyProvider`
+  - provider identity, capabilities, version, and health.
+- `EndpointProvisioningProvider`
+  - endpoint lifecycle operations through DTOs.
+- `CallControlProvider`
+  - call origination and lifecycle operations.
+- `ConferenceControlProvider`
+  - minimal future-facing conference lifecycle operations.
+- `TelephonyHealthProvider`
+  - safe provider health reporting.
+
+## Tenant Boundary
+
+- application code resolves tenant identity through `TenantContext`;
+- provider input DTOs carry tenant identity explicitly;
+- fake provider state is partitioned by tenant id;
+- idempotency keys are tenant-scoped;
+- no production default-tenant fallback exists in this module.
+
+## Idempotency
+
+Implemented for:
+
+- endpoint creation;
+- call origination;
+- conference creation.
+
+Rules:
+
+- same tenant plus same operation plus same idempotency key plus same payload returns the same result;
+- same key in a different tenant is isolated;
+- same key with a different payload raises a typed conflict.
+
+## Fake Provider
+
+The fake provider supports configurable capabilities and deterministic failure injection.
+
+Supported simulated behavior:
+
+- endpoint create, update, suspend, activate, delete, fetch;
+- call originate, answer, hold, resume, hang up, transfer, mute;
+- conference create, destroy, participant add, participant remove, participant mute, participant list;
+- provider health reporting.
+
+It does not simulate SIP signaling, RTP, or media transport.
+
+## Configuration
+
+Config file: `backend/config/telephony.php`
+
+Safe defaults:
+
+- `enabled=false`
+- `default_provider=fake`
+- no real credentials
+- fake provider enabled for local development and tests
+
+Environment example:
+
+- `TELEPHONY_ENABLED=false`
+- `TELEPHONY_DEFAULT_PROVIDER=fake`
+
+## Logging
+
+`TelephonyService` emits structured success and failure logs with:
+
+- tenant id;
+- provider id;
+- operation;
+- correlation id;
+- duration.
+
+Logs are sanitized through the existing structured log sanitizer and do not include secrets.
+
+## Tests
+
+Coverage includes:
+
+- DTO serialization;
+- safe exception serialization;
+- registry resolution and disabled behavior;
+- fake provider capability restrictions;
+- endpoint lifecycle;
+- call lifecycle;
+- conference lifecycle;
+- deterministic failure injection;
+- tenant isolation;
+- idempotency;
+- application-service tenant enforcement.

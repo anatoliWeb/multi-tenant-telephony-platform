@@ -99,6 +99,18 @@ Channel authorization is enforced in `backend/routes/channels.php` through `Chat
 - `App\Jobs\LogActivityJob` -> Redis queue `activity` -> `ActivityService`.
 - `App\Jobs\Notifications\CreateNotificationJob` -> Redis queue `notifications` -> notification creation and optional realtime broadcast.
 
+## Telephony Application Flow
+
+### Example: fake telephony call origination
+
+`TenantContext`
+-> `App\Services\Telephony\TelephonyService::originateCall()`
+-> `App\Services\Telephony\TelephonyProviderRegistry`
+-> configured `CallControlProvider`
+-> normalized shared DTO result
+
+The current implementation uses a deterministic fake provider. No real PBX transport, SIP signaling, or FreeSWITCH adapter is active in this phase.
+
 ## Notes
 
 - Current flows are still modular-monolith flows.

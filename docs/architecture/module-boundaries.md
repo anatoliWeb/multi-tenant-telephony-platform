@@ -73,7 +73,7 @@ The boundaries below are planning rules for new code. They do not require a whol
 
 - Responsibility: telephony domain behavior and provider-neutral call lifecycle.
 - Owned entities: call sessions, call legs, routing decisions, extension bindings.
-- Public application services: `CallControlService`, `CallRoutingService`, `ExtensionService`.
+- Public application services: `TelephonyService`.
 - Events emitted: call started, call answered, call ended, routing changed.
 - Contracts consumed: Integrations, Contacts, AccessControl, Tenancy.
 - Allowed dependencies: Shared, Integrations, Contacts, AccessControl.
@@ -103,7 +103,7 @@ The boundaries below are planning rules for new code. They do not require a whol
 
 - Responsibility: provider contracts, adapters, credential handling, normalized DTOs, retry policy boundaries.
 - Owned entities: provider connections, adapter metadata, integration credentials.
-- Public application services: `PBXProvider`, `CallControlProvider`, `ConferenceProvider`, `RecordingProvider`, `PBXHealthProvider`.
+- Public application services: `TelephonyProvider`, `EndpointProvisioningProvider`, `CallControlProvider`, `ConferenceControlProvider`, `TelephonyHealthProvider`.
 - Events emitted: integration state changes, provider health changes, delivery outcomes.
 - Contracts consumed: Telephony, Conferences, Webhooks, Billing, Monitoring.
 - Allowed dependencies: Shared, Queue, Monitoring.

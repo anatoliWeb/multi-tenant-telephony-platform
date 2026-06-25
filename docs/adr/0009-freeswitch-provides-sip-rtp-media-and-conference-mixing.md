@@ -16,3 +16,4 @@ FreeSWITCH is the planned external provider for SIP, RTP, media handling, and co
 - Laravel must integrate through provider contracts instead of direct FreeSWITCH classes.
 - Media and conference logic stays outside generic telephony services.
 - The platform can defer the actual FreeSWITCH integration until tenant isolation is ready.
+- The first telephony slice may ship with a fake provider only, as long as shared contracts remain FreeSWITCH-neutral.
