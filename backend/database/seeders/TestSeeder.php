@@ -5,6 +5,9 @@ namespace Database\Seeders;
 use App\Enums\TenantMembershipStatus;
 use App\Models\Tenant;
 use App\Models\TenantMembership;
+use App\Models\Contact;
+use App\Models\ContactPhone;
+use App\Models\ContactTag;
 use App\Models\User;
 use App\Services\Seeding\RbacSeedService;
 use App\Services\Seeding\SeederEnvironmentService;
@@ -83,6 +86,9 @@ class TestSeeder extends Seeder
 
         $this->assignMembership($suspendedTenant, $suspendedMembershipUser, TenantMembershipStatus::Suspended);
         $rbacSeed->assignTenantRole($suspendedMembershipUser, $tenantRoles[$suspendedTenant->id]['read_only'], $suspendedTenant);
+
+        $this->seedContacts($defaultTenant, $tenantOwner, '+15558880001');
+        $this->seedContacts($secondaryTenant, $tenantAdmin, '+15558880001');
     }
 
     protected function upsertUser(string $email, string $name): User
@@ -112,6 +118,69 @@ class TestSeeder extends Seeder
                 'activated_at' => $status === TenantMembershipStatus::Active ? now() : null,
                 'suspended_at' => $status === TenantMembershipStatus::Suspended ? now() : null,
             ]
+        );
+    }
+
+    protected function seedContacts(Tenant $tenant, User $owner, string $sharedPhone): void
+    {
+        $tag = ContactTag::updateOrCreate(
+            [
+                'tenant_id' => $tenant->getKey(),
+                'slug' => 'test-tag',
+            ],
+            [
+                'uuid' => $this->stableUuid($tenant, 'test-tag'),
+                'name' => 'Test Tag',
+            ]
+        );
+
+        $contact = Contact::updateOrCreate(
+            [
+                'tenant_id' => $tenant->getKey(),
+                'display_name' => 'Fixture Contact',
+            ],
+            [
+                'uuid' => $this->stableUuid($tenant, 'fixture-contact'),
+                'first_name' => 'Fixture',
+                'last_name' => 'Contact',
+                'company_name' => 'Fixture Corp',
+                'status' => 'active',
+                'created_by' => $owner->getKey(),
+                'updated_by' => $owner->getKey(),
+            ]
+        );
+
+        $contact->tags()->sync([$tag->getKey()]);
+
+        ContactPhone::updateOrCreate(
+            [
+                'tenant_id' => $tenant->getKey(),
+                'contact_id' => $contact->getKey(),
+                'normalized_number' => $sharedPhone,
+            ],
+            [
+                'uuid' => $this->stableUuid($tenant, 'fixture-phone'),
+                'label' => 'work',
+                'raw_number' => $sharedPhone,
+                'extension' => null,
+                'is_primary' => true,
+                'is_sms_capable' => true,
+                'is_active' => true,
+            ]
+        );
+    }
+
+    protected function stableUuid(Tenant $tenant, string $key): string
+    {
+        $hash = substr(sha1((string) $tenant->getKey().':'.$key), 0, 32);
+
+        return sprintf(
+            '%s-%s-%s-%s-%s',
+            substr($hash, 0, 8),
+            substr($hash, 8, 4),
+            substr($hash, 12, 4),
+            substr($hash, 16, 4),
+            substr($hash, 20, 12),
         );
     }
 }

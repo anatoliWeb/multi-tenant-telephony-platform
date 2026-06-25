@@ -39,6 +39,14 @@ export class ApiClientService {
     });
   }
 
+  put<TData, TPayload>(url: string, payload: TPayload, options?: RequestOptions) {
+    const resolved = this.resolveUrl(url);
+    return this.http.put<ApiResponse<TData>>(resolved, payload, {
+      params: this.toHttpParams(options?.params),
+      headers: options?.headers,
+    });
+  }
+
   delete<TData>(url: string, options?: RequestOptions) {
     const resolved = this.resolveUrl(url);
     return this.http.delete<ApiResponse<TData>>(resolved, {

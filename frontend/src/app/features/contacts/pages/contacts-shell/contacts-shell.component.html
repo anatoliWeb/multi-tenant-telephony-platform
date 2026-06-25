@@ -1,0 +1,146 @@
+<section class="contacts-page">
+  <ui-card>
+    <div class="hero">
+      <div>
+        <h2>{{ 'contacts.title' | t }}</h2>
+        <p>{{ 'contacts.subtitle' | t }}</p>
+      </div>
+      <div class="hero-actions">
+        <app-button *ngIf="canExport" (click)="exportContacts()">{{ 'contacts.actions.export' | t }}</app-button>
+        <app-button *ngIf="canCreate" (click)="openCreate()">{{ 'contacts.actions.create' | t }}</app-button>
+      </div>
+    </div>
+
+    <div class="filters" *ngIf="filters$ | async as filters">
+      <app-search-input
+        [value]="filters.search"
+        [placeholderKey]="'contacts.filters.searchPlaceholder'"
+        (valueChange)="onSearchChange($event)"
+      />
+      <app-select-filter
+        [labelKey]="'contacts.fields.status'"
+        [value]="filters.status"
+        [options]="[
+          { value: 'active', labelKey: 'contacts.status.active' },
+          { value: 'archived', labelKey: 'contacts.status.archived' },
+          { value: 'blocked', labelKey: 'contacts.status.blocked' }
+        ]"
+        (valueChange)="onStatusChange($event)"
+      />
+      <app-select-filter
+        [labelKey]="'contacts.fields.tags'"
+        [value]="filters.tag"
+        [options]="(tagOptions$ | async) ?? []"
+        (valueChange)="onTagChange($event)"
+      />
+    </div>
+  </ui-card>
+
+  <div class="layout">
+    <ui-card>
+      <div *ngIf="loading$ | async" class="state">{{ 'contacts.loading' | t }}</div>
+      <div *ngIf="!(loading$ | async) && (error$ | async) as error" class="state error">{{ error }}</div>
+      <div *ngIf="!(loading$ | async) && !(error$ | async) && ((contacts$ | async)?.length ?? 0) === 0" class="state">
+        {{ 'contacts.empty' | t }}
+      </div>
+
+      <div class="contact-list" *ngIf="!(loading$ | async) && ((contacts$ | async)?.length ?? 0) > 0">
+        <button
+          type="button"
+          class="contact-row"
+          *ngFor="let contact of (contacts$ | async); trackBy: trackContact"
+          [class.active]="(activeContact$ | async)?.id === contact.id"
+          (click)="selectContact(contact)"
+          data-testid="contact-row"
+        >
+          <div>
+            <strong>{{ contact.display_name }}</strong>
+            <p>{{ contact.company_name || ('contacts.emptyCompany' | t) }}</p>
+          </div>
+          <div class="meta">
+            <span class="badge">{{ ('contacts.status.' + contact.status) | t }}</span>
+            <small>{{ contact.primary_phone?.raw_number || ('contacts.noPhone' | t) }}</small>
+          </div>
+        </button>
+      </div>
+
+      <app-pagination
+        *ngIf="pagination$ | async as pagination"
+        [currentPage]="pagination.current_page ?? 1"
+        [lastPage]="pagination.last_page ?? 1"
+        [perPage]="pagination.per_page ?? 15"
+        [total]="pagination.total ?? 0"
+        (pageChange)="onPageChange($event)"
+      />
+    </ui-card>
+
+    <ui-card>
+      <div *ngIf="detailLoading$ | async" class="state">{{ 'contacts.detailLoading' | t }}</div>
+      <div *ngIf="!(detailLoading$ | async) && !(activeContact$ | async)" class="state">
+        {{ 'contacts.detailEmpty' | t }}
+      </div>
+
+      <div *ngIf="!(detailLoading$ | async) && (activeContact$ | async) as contact" class="detail" data-testid="contact-detail">
+        <div class="detail__header">
+          <div>
+            <h3>{{ contact.display_name }}</h3>
+            <p>{{ contact.company_name || ('contacts.emptyCompany' | t) }}</p>
+          </div>
+          <div class="detail__actions">
+            <app-button (click)="openView(contact)">{{ 'common.actions.view' | t }}</app-button>
+            <app-button *ngIf="canUpdate" (click)="openEdit(contact)">{{ 'common.actions.edit' | t }}</app-button>
+            <app-button *ngIf="canDelete" (click)="deleteContact(contact)">{{ 'common.actions.delete' | t }}</app-button>
+          </div>
+        </div>
+
+        <div class="detail-grid">
+          <section>
+            <h4>{{ 'contacts.phones.title' | t }}</h4>
+            <ul>
+              <li *ngFor="let phone of contact.phones">
+                <strong>{{ phone.label || ('contacts.labels.phone' | t) }}:</strong>
+                {{ phone.raw_number }}
+                <span *ngIf="phone.extension">x{{ phone.extension }}</span>
+                <small *ngIf="phone.is_primary">{{ 'contacts.phones.primary' | t }}</small>
+              </li>
+            </ul>
+          </section>
+
+          <section>
+            <h4>{{ 'contacts.emails.title' | t }}</h4>
+            <ul>
+              <li *ngFor="let email of contact.emails">
+                <strong>{{ email.label || ('contacts.labels.email' | t) }}:</strong>
+                {{ email.email }}
+                <small *ngIf="email.is_primary">{{ 'contacts.emails.primary' | t }}</small>
+              </li>
+            </ul>
+          </section>
+        </div>
+
+        <section>
+          <h4>{{ 'contacts.tags.title' | t }}</h4>
+          <div class="tag-row">
+            <span class="pill" *ngFor="let tag of contact.tags; trackBy: trackTag">{{ tag.name }}</span>
+            <small *ngIf="(contact.tags?.length ?? 0) === 0">{{ 'contacts.tags.empty' | t }}</small>
+          </div>
+        </section>
+
+        <section>
+          <h4>{{ 'contacts.fields.notes' | t }}</h4>
+          <p>{{ contact.notes || ('contacts.notesEmpty' | t) }}</p>
+        </section>
+      </div>
+    </ui-card>
+  </div>
+
+  <app-contact-upsert-modal
+    [open]="isModalOpen"
+    [mode]="modalMode"
+    [contact]="modalContact"
+    [tags]="(tags$ | async) ?? []"
+    [saving]="(saving$ | async) ?? false"
+    (close)="closeModal()"
+    (save)="saveContact($event)"
+  />
+</section>

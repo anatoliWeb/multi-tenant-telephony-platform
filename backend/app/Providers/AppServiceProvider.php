@@ -3,9 +3,13 @@
 namespace App\Providers;
 
 use App\Models\Conversation;
+use App\Models\Contact;
+use App\Models\ContactTag;
 use App\Models\ActivityLog;
 use App\Models\User;
 use App\Models\SystemTranslation;
+use App\Policies\ContactPolicy;
+use App\Policies\ContactTagPolicy;
 use App\Services\Rbac\PermissionCacheService;
 use App\Services\Tenancy\TenantContext;
 use App\Observers\PersonalAccessTokenObserver;
@@ -598,6 +602,8 @@ class AppServiceProvider extends ServiceProvider
         });
 
         Gate::policy(Conversation::class, ConversationPolicy::class);
+        Gate::policy(Contact::class, ContactPolicy::class);
+        Gate::policy(ContactTag::class, ContactTagPolicy::class);
 
         /*
         |--------------------------------------------------------------------------

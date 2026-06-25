@@ -38,6 +38,10 @@ const routes: Routes = [
         path: 'chat',
         loadChildren: () => import('./features/chat/chat.module').then((m) => m.ChatModule),
       },
+      {
+        path: 'contacts',
+        loadChildren: () => import('./features/contacts/contacts.module').then((m) => m.ContactsModule),
+      },
     ],
   },
   {

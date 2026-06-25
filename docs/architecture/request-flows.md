@@ -51,6 +51,17 @@ This document records the real request flows that exist in the repository today.
 
 `ChatStateService` also coordinates device registration, presence joins, typing events, and realtime subscriptions after the API request succeeds.
 
+### Example: contacts list
+
+`frontend/src/app/features/contacts/services/contacts-state.service.ts`
+-> `ContactsApiService`
+-> `ApiClientService`
+-> tenant/auth interceptors
+-> `HttpClient`
+-> Laravel API
+
+The contacts state service also clears stale tenant-scoped state when the active tenant changes.
+
 ## Vue Administration Request
 
 ### Example: login
@@ -110,6 +121,19 @@ Channel authorization is enforced in `backend/routes/channels.php` through `Chat
 -> normalized shared DTO result
 
 The current implementation uses a deterministic fake provider. No real PBX transport, SIP signaling, or FreeSWITCH adapter is active in this phase.
+
+## Contacts Lookup Flow
+
+### Example: tenant-scoped caller lookup
+
+`TenantContext`
+-> `App\Http\Controllers\Api\V1\Contacts\ContactController::lookupPhone()`
+-> `App\Services\Contacts\PhoneNumberNormalizer`
+-> `App\Services\Contacts\ContactQueryService`
+-> tenant-scoped `ContactPhone` query
+-> `ContactLookupResource`
+
+This flow is intentionally lookup-only in the current slice and does not place or receive calls.
 
 ## Notes
 

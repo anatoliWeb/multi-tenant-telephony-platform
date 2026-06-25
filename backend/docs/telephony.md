@@ -24,6 +24,24 @@ Deferred:
 - real calls;
 - SIP.js;
 - extensions, DIDs, call logs, recordings, queues, IVR, billing, and real provider webhooks.
+- contacts-to-call integration.
+
+## Contacts Dependency
+
+The tenant-aware Contacts module is now available as a supporting telephony dependency.
+
+Implemented now:
+
+- tenant-scoped caller lookup by normalized phone number;
+- shared contact ownership rules for future call-history enrichment;
+- import and export foundations for tenant contact data.
+
+Still not implemented:
+
+- dialing from contacts;
+- extension resolution from contacts;
+- real inbound or outbound call execution;
+- any FreeSWITCH or SIP.js runtime behavior.
 
 ## Module Boundary
 

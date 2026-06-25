@@ -1,0 +1,141 @@
+<app-modal-shell [open]="open" (close)="close.emit()">
+  <header class="panel__header">
+    <div>
+      <h3>{{ titleKey | t }}</h3>
+      <p>{{ 'contacts.modal.subtitle' | t }}</p>
+    </div>
+    <button type="button" class="close-button" (click)="close.emit()">&times;</button>
+  </header>
+
+  <div class="panel__body">
+    <div class="grid">
+      <label>
+        <span>{{ 'contacts.fields.firstName' | t }}</span>
+        <input [disabled]="readonly" [(ngModel)]="draft.first_name" data-testid="contact-first-name" />
+      </label>
+      <label>
+        <span>{{ 'contacts.fields.lastName' | t }}</span>
+        <input [disabled]="readonly" [(ngModel)]="draft.last_name" />
+      </label>
+      <label>
+        <span>{{ 'contacts.fields.displayName' | t }}</span>
+        <input [disabled]="readonly" [(ngModel)]="draft.display_name" data-testid="contact-display-name" />
+      </label>
+      <label>
+        <span>{{ 'contacts.fields.company' | t }}</span>
+        <input [disabled]="readonly" [(ngModel)]="draft.company_name" />
+      </label>
+      <label>
+        <span>{{ 'contacts.fields.jobTitle' | t }}</span>
+        <input [disabled]="readonly" [(ngModel)]="draft.job_title" />
+      </label>
+      <label>
+        <span>{{ 'contacts.fields.status' | t }}</span>
+        <select [disabled]="readonly" [(ngModel)]="draft.status">
+          <option value="active">{{ 'contacts.status.active' | t }}</option>
+          <option value="archived">{{ 'contacts.status.archived' | t }}</option>
+          <option value="blocked">{{ 'contacts.status.blocked' | t }}</option>
+        </select>
+      </label>
+    </div>
+
+    <label class="field">
+      <span>{{ 'contacts.fields.notes' | t }}</span>
+      <textarea [disabled]="readonly" rows="3" [(ngModel)]="draft.notes"></textarea>
+    </label>
+
+    <section class="section">
+      <div class="section__head">
+        <div>
+          <h4>{{ 'contacts.phones.title' | t }}</h4>
+          <p>{{ 'contacts.phones.subtitle' | t }}</p>
+        </div>
+        <app-button *ngIf="!readonly" (click)="addPhone()">{{ 'contacts.phones.add' | t }}</app-button>
+      </div>
+      <div class="phone-list">
+        <article class="phone-card" *ngFor="let phone of draft.phones; let index = index">
+          <div class="grid compact">
+            <label>
+              <span>{{ 'contacts.fields.label' | t }}</span>
+              <input [disabled]="readonly" [(ngModel)]="phone.label" />
+            </label>
+            <label>
+              <span>{{ 'contacts.fields.phone' | t }}</span>
+              <input [disabled]="readonly" [(ngModel)]="phone.raw_number" />
+            </label>
+            <label>
+              <span>{{ 'contacts.fields.extension' | t }}</span>
+              <input [disabled]="readonly" [(ngModel)]="phone.extension" />
+            </label>
+          </div>
+          <div class="toggles">
+            <label><input type="checkbox" [disabled]="readonly" [checked]="phone.is_primary" (change)="setPrimaryPhone(index)" /> {{ 'contacts.phones.primary' | t }}</label>
+            <label><input type="checkbox" [disabled]="readonly" [(ngModel)]="phone.is_sms_capable" /> {{ 'contacts.phones.sms' | t }}</label>
+            <label><input type="checkbox" [disabled]="readonly" [(ngModel)]="phone.is_active" /> {{ 'contacts.phones.active' | t }}</label>
+          </div>
+          <button type="button" class="remove-link" *ngIf="!readonly && draft.phones.length > 1" (click)="removePhone(index)">
+            {{ 'contacts.phones.remove' | t }}
+          </button>
+        </article>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section__head">
+        <div>
+          <h4>{{ 'contacts.emails.title' | t }}</h4>
+          <p>{{ 'contacts.emails.subtitle' | t }}</p>
+        </div>
+        <app-button *ngIf="!readonly" (click)="addEmail()">{{ 'contacts.emails.add' | t }}</app-button>
+      </div>
+      <div class="phone-list">
+        <article class="phone-card" *ngFor="let email of draft.emails; let index = index">
+          <div class="grid compact">
+            <label>
+              <span>{{ 'contacts.fields.label' | t }}</span>
+              <input [disabled]="readonly" [(ngModel)]="email.label" />
+            </label>
+            <label>
+              <span>{{ 'contacts.fields.email' | t }}</span>
+              <input [disabled]="readonly" type="email" [(ngModel)]="email.email" />
+            </label>
+          </div>
+          <div class="toggles">
+            <label><input type="checkbox" [disabled]="readonly" [checked]="email.is_primary" (change)="setPrimaryEmail(index)" /> {{ 'contacts.emails.primary' | t }}</label>
+            <label><input type="checkbox" [disabled]="readonly" [(ngModel)]="email.is_active" /> {{ 'contacts.emails.active' | t }}</label>
+          </div>
+          <button type="button" class="remove-link" *ngIf="!readonly && draft.emails.length > 1" (click)="removeEmail(index)">
+            {{ 'contacts.emails.remove' | t }}
+          </button>
+        </article>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section__head">
+        <div>
+          <h4>{{ 'contacts.tags.title' | t }}</h4>
+          <p>{{ 'contacts.tags.subtitle' | t }}</p>
+        </div>
+      </div>
+      <div class="tags-grid">
+        <label *ngFor="let tag of tags" class="tag-chip">
+          <input
+            type="checkbox"
+            [disabled]="readonly"
+            [checked]="draft.tag_ids.includes(tag.id)"
+            (change)="toggleTag(tag.id, $any($event.target).checked)"
+          />
+          <span>{{ tag.name }}</span>
+        </label>
+      </div>
+    </section>
+  </div>
+
+  <footer class="panel__footer">
+    <app-button (click)="close.emit()">{{ 'common.actions.close' | t }}</app-button>
+    <app-button *ngIf="!readonly" [disabled]="saving" (click)="emitSave()">
+      {{ saving ? ('common.states.saving' | t) : ('common.actions.save' | t) }}
+    </app-button>
+  </footer>
+</app-modal-shell>

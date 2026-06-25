@@ -79,3 +79,24 @@ Tenant chat is now explicitly protected against platform-permission bleed-throug
 - cross-tenant isolation regressions cover tenant switching, permission cache separation, tenant chat view denial, and tenant external-message denial.
 
 See `backend/docs/tenant-isolation-tests.md` for the current matrix.
+
+## Contacts Permissions
+
+The Contacts module uses tenant-scoped permissions only.
+
+Implemented permissions:
+
+- `tenant.contacts.view`
+- `tenant.contacts.create`
+- `tenant.contacts.update`
+- `tenant.contacts.delete`
+- `tenant.contacts.import`
+- `tenant.contacts.export`
+- `tenant.contacts.manage_tags`
+
+Verified behavior:
+
+- platform permissions alone do not grant tenant contact access;
+- suspended memberships cannot access tenant contacts;
+- contact tags cannot be attached across tenants;
+- export and import follow the same tenant permission boundary as CRUD.

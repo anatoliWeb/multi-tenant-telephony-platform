@@ -54,6 +54,16 @@ Chat demo data is tenant-specific, deterministic, and idempotent. Demo conversat
 
 The live Stage 7 backfill validated that existing demo chat rows can be migrated forward without data loss before tenant ownership is enforced as `NOT NULL`.
 
+Contacts demo data is also tenant-specific, deterministic, and idempotent.
+
+It includes:
+
+- different contacts per tenant;
+- one normalized phone reused safely across two tenants;
+- multiple phone numbers on selected contacts;
+- tag coverage;
+- archived contact coverage.
+
 ### TestSeeder
 
 Seeds the test-only baseline used by feature tests:
@@ -61,7 +71,8 @@ Seeds the test-only baseline used by feature tests:
 - deterministic tenants;
 - active and suspended memberships;
 - platform and tenant role assignments;
-- multi-tenant coverage for isolation tests.
+- multi-tenant coverage for isolation tests;
+- minimal deterministic contact fixtures.
 
 ### PerformanceSeeder
 

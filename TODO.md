@@ -704,23 +704,23 @@ The Laravel domain must not depend directly on FreeSWITCH-specific classes.
 
 # 14. Stage 10: Contacts
 
-- [ ] Company contacts
-- [ ] Personal contacts
-- [ ] Contact phone numbers
-- [ ] Contact email addresses
-- [ ] Tags
-- [ ] Notes
+- [x] Company contacts
+- [x] Personal contacts
+- [x] Contact phone numbers
+- [x] Contact email addresses
+- [x] Tags
+- [x] Notes
 - [ ] Favorites
 - [ ] Unified directory
 - [ ] Tenant user directory
 - [ ] Extension directory
 - [ ] Recent-call contacts
-- [ ] Search
-- [ ] Import
-- [ ] Export
-- [ ] Permission-aware visibility
+- [x] Search
+- [x] Import
+- [x] Export
+- [x] Permission-aware visibility
 - [ ] Private-contact isolation
-- [ ] Demo contact seed data
+- [x] Demo contact seed data
 
 ---
 
@@ -1271,7 +1271,7 @@ Do not treat the existing billing page as a completed telephony billing implemen
 
 - [x] Shared telephony contracts
 - [x] Fake PBX adapter
-- [ ] Contacts
+- [x] Contacts
 - [ ] Extensions
 - [ ] Phone numbers
 - [ ] Call logs
@@ -1339,7 +1339,7 @@ Milestone status: `PARTIAL`
 
 - [x] Shared PBX contracts exist
 - [x] Fake PBX adapter works
-- [ ] Contacts work
+- [x] Contacts work
 - [ ] Extensions work
 - [ ] Phone numbers and DIDs work
 - [ ] Call logs work

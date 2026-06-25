@@ -25,6 +25,10 @@ use App\Http\Controllers\Api\V1\Chat\ChatTypingController;
 use App\Http\Controllers\Api\V1\Chat\ChatPresenceController;
 use App\Http\Controllers\Api\V1\Chat\ChatWebhookEndpointController;
 use App\Http\Controllers\Api\V1\Chat\ChatIncomingWebhookController;
+use App\Http\Controllers\Api\V1\Contacts\ContactController;
+use App\Http\Controllers\Api\V1\Contacts\ContactExportController;
+use App\Http\Controllers\Api\V1\Contacts\ContactImportController;
+use App\Http\Controllers\Api\V1\Contacts\ContactTagController;
 use Illuminate\Support\Facades\Route;
 
 
@@ -661,6 +665,76 @@ Route::prefix('v1')
                         ->name('webhook-endpoints.rotate-secret')
                         ->middleware('throttle:chat-webhook-management')
                         ->middleware('permission:chat.webhooks.manage|chat.admin.moderate');
+                });
+
+                Route::prefix('contacts')
+                    ->as('contacts.')
+                    ->middleware('resolve.tenant')
+                    ->group(function (): void {
+                    Route::get('/', [ContactController::class, 'index'])
+                        ->name('index')
+                        ->middleware('permission:tenant.contacts.view');
+
+                    Route::get('/search', [ContactController::class, 'search'])
+                        ->name('search')
+                        ->middleware('permission:tenant.contacts.view');
+
+                    Route::get('/lookup-phone', [ContactController::class, 'lookupPhone'])
+                        ->name('lookup-phone')
+                        ->middleware('permission:tenant.contacts.view');
+
+                    Route::post('/', [ContactController::class, 'store'])
+                        ->name('store')
+                        ->middleware('permission:tenant.contacts.create');
+
+                    Route::get('/export', ContactExportController::class)
+                        ->name('export')
+                        ->middleware('permission:tenant.contacts.export');
+
+                    Route::post('/import/validate', [ContactImportController::class, 'validateImport'])
+                        ->name('import.validate')
+                        ->middleware('permission:tenant.contacts.import');
+
+                    Route::post('/import', [ContactImportController::class, 'import'])
+                        ->name('import')
+                        ->middleware('permission:tenant.contacts.import');
+
+                    Route::get('/{contact}', [ContactController::class, 'show'])
+                        ->name('show')
+                        ->middleware('permission:tenant.contacts.view');
+
+                    Route::put('/{contact}', [ContactController::class, 'update'])
+                        ->name('update')
+                        ->middleware('permission:tenant.contacts.update');
+
+                    Route::patch('/{contact}', [ContactController::class, 'update'])
+                        ->name('patch')
+                        ->middleware('permission:tenant.contacts.update');
+
+                    Route::delete('/{contact}', [ContactController::class, 'destroy'])
+                        ->name('destroy')
+                        ->middleware('permission:tenant.contacts.delete');
+                });
+
+                Route::prefix('contact-tags')
+                    ->as('contact-tags.')
+                    ->middleware('resolve.tenant')
+                    ->group(function (): void {
+                    Route::get('/', [ContactTagController::class, 'index'])
+                        ->name('index')
+                        ->middleware('permission:tenant.contacts.view');
+
+                    Route::post('/', [ContactTagController::class, 'store'])
+                        ->name('store')
+                        ->middleware('permission:tenant.contacts.manage_tags');
+
+                    Route::put('/{tag}', [ContactTagController::class, 'update'])
+                        ->name('update')
+                        ->middleware('permission:tenant.contacts.manage_tags');
+
+                    Route::delete('/{tag}', [ContactTagController::class, 'destroy'])
+                        ->name('destroy')
+                        ->middleware('permission:tenant.contacts.manage_tags');
                 });
 
 

@@ -205,3 +205,48 @@ Owner-confirmed browser checks:
 - Tenant A conversation URL is rejected under Tenant B;
 - switching back restores only Tenant A data;
 - logout clears chat state.
+
+## Stage 10 Addendum
+
+Follow-up validation on 2026-06-25 confirmed the tenant-aware Contacts baseline on both the development and testing databases.
+
+Verified:
+
+- the pending development migration `2026_06_25_100000_create_contacts_tables` was applied without data loss;
+- development counts before and after migration remained stable for existing datasets:
+  - users `22` -> `22`
+  - tenants `3` -> `3`
+  - conversations `6` -> `6`
+  - messages `324` -> `324`
+- new development contact tables were created with zero unexpected seed rows:
+  - contacts `0`
+  - contact_phones `0`
+  - contact_emails `0`
+  - contact_tags `0`
+- contacts schema verification confirmed tenant and lookup indexes on:
+  - `contacts`
+  - `contact_phones`
+  - `contact_tags`
+- targeted contacts verification:
+  - `11` passed
+  - `0` failed
+  - `0` skipped
+  - `81` assertions
+  - `463.02s`
+- full backend verification after the contacts slice:
+  - `547` passed
+  - `0` failed
+  - `21` skipped
+  - `17048` assertions
+  - `876.71s`
+- Angular tenant contacts validation:
+  - build passed inside the running frontend container;
+  - test suite passed with `19` files and `128` tests;
+  - tenant-aware contacts lazy chunk was emitted successfully.
+
+Contacts-specific notes:
+
+- Contacts are implemented.
+- Real calls are not implemented.
+- FreeSWITCH is not installed.
+- SIP.js is not integrated.

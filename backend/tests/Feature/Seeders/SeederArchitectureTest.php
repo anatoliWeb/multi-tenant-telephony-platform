@@ -8,6 +8,9 @@ use App\Models\Permission;
 use App\Models\Role;
 use App\Models\Tenant;
 use App\Models\TenantMembership;
+use App\Models\Contact;
+use App\Models\ContactPhone;
+use App\Models\ContactTag;
 use App\Models\User;
 use App\Services\Seeding\PerformanceSeedService;
 use Database\Seeders\CoreSeeder;
@@ -78,6 +81,9 @@ class SeederArchitectureTest extends TestCase
         $this->assertSame(0, $platformAdmin->tenantMemberships()->count());
         $this->assertSame(0, $platformSupport->tenantMemberships()->count());
         $this->assertSame(0, User::where('email', 'no-membership@test.local')->count());
+        $this->assertGreaterThan(0, Contact::count());
+        $this->assertGreaterThan(0, ContactPhone::count());
+        $this->assertGreaterThan(0, ContactTag::count());
 
         $multiTenantMemberships = $multiTenantUser->tenantMemberships()->orderBy('tenant_id')->get();
         $this->assertCount(2, $multiTenantMemberships);
@@ -89,6 +95,8 @@ class SeederArchitectureTest extends TestCase
 
         $this->assertSame(TenantMembershipStatus::Suspended->value, $suspendedMembershipUser->tenantMemberships()->firstOrFail()->status->value);
         $this->assertSame('custom_observer', $observerUser->roles()->firstOrFail()->name);
+        $this->assertSame(1, ContactPhone::query()->where('tenant_id', $defaultTenant->id)->where('normalized_number', '+15550009999')->count());
+        $this->assertSame(1, ContactPhone::query()->where('tenant_id', $secondaryTenant->id)->where('normalized_number', '+15550009999')->count());
 
         $tenantOwnerRoles = Role::query()
             ->where('scope', 'tenant')

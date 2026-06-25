@@ -2,6 +2,7 @@
 
 namespace App\Services\Seeding;
 
+use App\Enums\Contacts\ContactStatus;
 use App\Enums\TenantMembershipStatus;
 use App\Models\Tenant;
 use App\Models\TenantMembership;
@@ -16,6 +17,7 @@ class TenantDemoSeedService
     public function __construct(
         protected RbacSeedService $rbacSeedService,
         protected TenantBootstrapService $tenantBootstrapService,
+        protected ContactDemoSeedService $contactDemoSeedService,
     ) {
     }
 
@@ -41,6 +43,7 @@ class TenantDemoSeedService
             'users' => 0,
             'memberships' => 0,
             'role_assignments' => 0,
+            'contacts' => 0,
         ];
 
         $platformAdmin = $this->upsertUser('platform-admin@test.local', 'Platform Admin');
@@ -101,6 +104,9 @@ class TenantDemoSeedService
         $this->rbacSeedService->assignTenantRole($customObserverUser, $customObserver, $defaultTenant);
         $counts['memberships']++;
         $counts['role_assignments']++;
+
+        $counts['contacts'] += $this->contactDemoSeedService->seed($defaultTenant, $this->contactRows('tenant-a'))['contacts'];
+        $counts['contacts'] += $this->contactDemoSeedService->seed($secondaryTenant, $this->contactRows('tenant-b'))['contacts'];
 
         return $counts;
     }
@@ -182,5 +188,77 @@ class TenantDemoSeedService
                 'suspended_at' => $status === TenantMembershipStatus::Suspended ? now() : null,
             ]
         );
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    private function contactRows(string $tenantPrefix): array
+    {
+        $sharedPhone = $tenantPrefix === 'tenant-a' ? '+15550009999' : '+15550009999';
+
+        return [
+            [
+                'owner_email' => sprintf('%s-owner@test.local', $tenantPrefix),
+                'display_name' => Str::title($tenantPrefix).' Support Contact',
+                'first_name' => 'Support',
+                'last_name' => 'Contact',
+                'company_name' => Str::title($tenantPrefix).' Holdings',
+                'job_title' => 'Support Manager',
+                'notes' => 'Synthetic tenant contact fixture.',
+                'status' => ContactStatus::Active->value,
+                'tags' => ['VIP', 'Prospect'],
+                'phones' => [
+                    [
+                        'label' => 'work',
+                        'raw_number' => $sharedPhone,
+                        'normalized_number' => $sharedPhone,
+                        'is_primary' => true,
+                        'is_sms_capable' => true,
+                    ],
+                    [
+                        'label' => 'mobile',
+                        'raw_number' => $tenantPrefix === 'tenant-a' ? '+15550001111' : '+15550002222',
+                        'normalized_number' => $tenantPrefix === 'tenant-a' ? '+15550001111' : '+15550002222',
+                        'is_primary' => false,
+                        'is_sms_capable' => true,
+                    ],
+                ],
+                'emails' => [
+                    [
+                        'label' => 'work',
+                        'email' => sprintf('%s-support@example.test', $tenantPrefix),
+                        'is_primary' => true,
+                    ],
+                ],
+            ],
+            [
+                'owner_email' => sprintf('%s-admin@test.local', $tenantPrefix),
+                'display_name' => Str::title($tenantPrefix).' Archived Vendor',
+                'first_name' => 'Archived',
+                'last_name' => 'Vendor',
+                'company_name' => 'Archive Vendor LLC',
+                'job_title' => 'Vendor',
+                'notes' => 'Archived synthetic fixture.',
+                'status' => ContactStatus::Archived->value,
+                'tags' => ['Vendor'],
+                'phones' => [
+                    [
+                        'label' => 'work',
+                        'raw_number' => $tenantPrefix === 'tenant-a' ? '+15550003333' : '+15550004444',
+                        'normalized_number' => $tenantPrefix === 'tenant-a' ? '+15550003333' : '+15550004444',
+                        'is_primary' => true,
+                        'is_sms_capable' => false,
+                    ],
+                ],
+                'emails' => [
+                    [
+                        'label' => 'work',
+                        'email' => sprintf('%s-vendor@example.test', $tenantPrefix),
+                        'is_primary' => true,
+                    ],
+                ],
+            ],
+        ];
     }
 }

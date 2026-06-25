@@ -22,6 +22,10 @@ describe('TenantContextService', () => {
     resetForTenantChange: vi.fn(),
   };
 
+  const contactsState = {
+    resetForTenantChange: vi.fn(),
+  };
+
   beforeEach(() => {
     window.localStorage.clear();
     vi.clearAllMocks();
@@ -29,7 +33,7 @@ describe('TenantContextService', () => {
 
   it('clears tenant state when no token exists', async () => {
     tokenStorage.getToken.mockReturnValue(null);
-    const service = new TenantContextService(tenantApi as any, tokenStorage as any, authState as any, chatState as any);
+    const service = new TenantContextService(tenantApi as any, tokenStorage as any, authState as any, chatState as any, contactsState as any);
 
     service.setActiveTenantId('tenant-a');
     await service.hydrateTenantContext();
@@ -38,6 +42,7 @@ describe('TenantContextService', () => {
     expect(window.localStorage.getItem('admin_active_tenant_id')).toBeNull();
     expect(tenantApi.listTenants).not.toHaveBeenCalled();
     expect(chatState.resetForTenantChange).toHaveBeenCalled();
+    expect(contactsState.resetForTenantChange).toHaveBeenCalled();
   });
 
   it('hydrates the first available tenant when no selection is stored', async () => {
@@ -80,7 +85,7 @@ describe('TenantContextService', () => {
       }),
     );
 
-    const service = new TenantContextService(tenantApi as any, tokenStorage as any, authState as any, chatState as any);
+    const service = new TenantContextService(tenantApi as any, tokenStorage as any, authState as any, chatState as any, contactsState as any);
     await service.hydrateTenantContext();
 
     expect(service.activeTenantId).toBe('tenant-a');
@@ -152,12 +157,13 @@ describe('TenantContextService', () => {
       }),
     );
 
-    const service = new TenantContextService(tenantApi as any, tokenStorage as any, authState as any, chatState as any);
+    const service = new TenantContextService(tenantApi as any, tokenStorage as any, authState as any, chatState as any, contactsState as any);
     await service.switchTenant('tenant-b');
 
     expect(service.activeTenantId).toBe('tenant-b');
     expect(window.localStorage.getItem('admin_active_tenant_id')).toBe('tenant-b');
     expect(authState.setPermissionScopes).toHaveBeenCalled();
     expect(chatState.resetForTenantChange).toHaveBeenCalled();
+    expect(contactsState.resetForTenantChange).toHaveBeenCalled();
   });
 });

@@ -52,8 +52,8 @@ The boundaries below are planning rules for new code. They do not require a whol
 ## Contacts
 
 - Responsibility: people and organizations that can be called or messaged.
-- Owned entities: contacts, contact methods, tags, notes, favorites.
-- Public application services: `ContactService`, `ContactSearchService`.
+- Owned entities: contacts, contact phones, contact emails, tags, notes, favorites.
+- Public application services: `ContactService`, `ContactQueryService`, `ContactImportService`, `ContactExportService`, `PhoneNumberNormalizer`.
 - Events emitted: contact created/updated/imported.
 - Contracts consumed: Tenancy, AccessControl, Telephony.
 - Allowed dependencies: Identity, Tenancy, Shared.

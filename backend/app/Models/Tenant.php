@@ -72,4 +72,9 @@ class Tenant extends Model
             ])
             ->withTimestamps();
     }
+
+    public function contacts(): HasMany
+    {
+        return $this->hasMany(Contact::class);
+    }
 }

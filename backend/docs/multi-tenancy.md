@@ -23,6 +23,12 @@ Not yet implemented:
 - tenant context propagation to jobs and broadcasts
 - tenant-specific telephony features
 
+Implemented after the initial slice:
+
+- tenant-owned contacts, phones, emails, and tags;
+- tenant-scoped contact search, lookup, import, and export;
+- tenant-aware contact route binding and isolation coverage.
+
 ## Request Contract
 
 Active tenant selection is carried with:
@@ -125,6 +131,18 @@ Coverage status:
 - full backend verification: `516` passed, `0` failed, `21` skipped, `16402` assertions.
 
 See `backend/docs/chat.md` for the chat-specific runtime summary.
+
+## Contacts Ownership
+
+Contacts extend the same shared-database tenant boundary used by chat.
+
+Rules:
+
+- every `contacts`, `contact_phones`, `contact_emails`, and `contact_tags` row stores `tenant_id`;
+- contact writes derive ownership from `TenantContext`;
+- cross-tenant route binding fails before controller logic;
+- duplicate detection is tenant-scoped;
+- the same normalized phone may exist in different tenants without leaking data across lookup APIs.
 
 ## Next Step
 
