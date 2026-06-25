@@ -114,7 +114,7 @@ Resolution order is fail-closed.
 1. Read the integration credential.
 2. Resolve the bound tenant or provider connection.
 3. Validate signature, scope, and status.
-4. Reject the request if tenant context is missing or inactive.
+4. Reject the request if tenant context is missing, inactive, or ambiguous.
 
 ### Queue job
 
@@ -143,6 +143,7 @@ If tenant context is missing or invalid:
 - do not join tenant broadcast channels;
 - do not enqueue tenant-scoped side effects;
 - do not fall back to a default tenant silently;
+- reject ambiguous multi-tenant external-chat requests instead of picking the first membership;
 - return `403` for authenticated but unauthorized access and `401` for missing authentication when appropriate.
 
 ## 4. Data Scoping Matrix
@@ -196,6 +197,12 @@ Status:
 - update route model binding and query scopes;
 - add tenant-aware cache keys and broadcast channels.
 
+Current chat status:
+
+- live development data has been backfilled successfully;
+- required chat ownership columns are now enforced as `NOT NULL`;
+- a dedicated `chat:verify-tenant-integrity` command validates tenant consistency across chat tables.
+
 ### Phase 3: authorization and access control
 
 - separate platform roles from tenant roles;
@@ -228,6 +235,7 @@ Verification status:
 - the complete backend suite passes after the tenant permission isolation fix;
 - the RBAC tenant-resolution regression is covered by `TenantAwareRbacTest`;
 - platform-scope permission fixtures in auth contract tests now explicitly avoid tenant catalog collisions.
+- chat ownership is database-enforced in development and validated through a dedicated integrity audit command.
 
 ## 7. Acceptance Criteria
 

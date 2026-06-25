@@ -2,6 +2,8 @@
 
 namespace Tests\Feature\Chat;
 
+use App\Enums\TenantMembershipStatus;
+use App\Enums\TenantStatus;
 use App\Jobs\Chat\DeliverChatWebhookJob;
 use App\Models\ChatWebhookDelivery;
 use App\Models\ChatWebhookEndpoint;
@@ -10,6 +12,8 @@ use App\Models\ConversationParticipant;
 use App\Models\ExternalMessageMapping;
 use App\Models\Message;
 use App\Models\Permission;
+use App\Models\Tenant;
+use App\Models\TenantMembership;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Bus;
@@ -210,5 +214,66 @@ class ChatExternalApiMessageSendingTest extends TestCase
             'external_message_id' => 'rate-limit-3',
             'idempotency_key' => 'rate-limit-idem-3',
         ]))->assertStatus(429);
+    }
+
+    public function test_external_messages_require_explicit_or_unambiguous_tenant_context(): void
+    {
+        $sender = $this->actingAsWithPermissions([
+            'chat.external_api.send',
+            'chat.send',
+            'chat.view',
+            'chat.conversations.view',
+        ]);
+
+        $tenantA = Tenant::create([
+            'id' => (string) Str::uuid(),
+            'name' => 'Tenant A',
+            'slug' => 'tenant-a',
+            'status' => TenantStatus::Active,
+            'timezone' => 'UTC',
+            'locale' => 'en',
+            'currency' => 'USD',
+            'settings' => [],
+            'activated_at' => now(),
+        ]);
+        $tenantB = Tenant::create([
+            'id' => (string) Str::uuid(),
+            'name' => 'Tenant B',
+            'slug' => 'tenant-b',
+            'status' => TenantStatus::Active,
+            'timezone' => 'UTC',
+            'locale' => 'en',
+            'currency' => 'USD',
+            'settings' => [],
+            'activated_at' => now(),
+        ]);
+
+        foreach ([$tenantA, $tenantB] as $tenant) {
+            TenantMembership::create([
+                'tenant_id' => $tenant->id,
+                'user_id' => $sender->id,
+                'status' => TenantMembershipStatus::Active,
+                'accepted_at' => now(),
+                'activated_at' => now(),
+            ]);
+        }
+
+        $conversation = $this->makeConversation($sender, [
+            'tenant_id' => $tenantA->id,
+        ]);
+        $this->addParticipant($conversation, $sender, [
+            'tenant_id' => $tenantA->id,
+        ]);
+
+        $this->postJson('/api/v1/chat/external/messages', $this->validPayload($conversation, [
+            'external_message_id' => 'ambiguous-tenant',
+            'idempotency_key' => 'ambiguous-tenant',
+        ]))->assertForbidden();
+
+        $this->withHeader('X-Tenant-ID', $tenantA->id)
+            ->postJson('/api/v1/chat/external/messages', $this->validPayload($conversation, [
+                'external_message_id' => 'explicit-tenant',
+                'idempotency_key' => 'explicit-tenant',
+            ]))->assertCreated();
     }
 }

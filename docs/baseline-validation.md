@@ -146,3 +146,39 @@ Verified:
 ## Final Verdict
 
 Milestone 1: COMPLETE
+
+## Stage 7 Addendum
+
+Follow-up validation on 2026-06-25 confirmed the tenant-aware chat baseline on the live development database.
+
+Verified:
+
+- the pending chat tenant backfill migration was applied on development;
+- a follow-up constraint migration enforced `NOT NULL` tenant ownership across tenant-owned chat tables;
+- before migration the live chat tables contained:
+  - conversations `6`
+  - messages `324`
+  - conversation_participants `25`
+  - message_attachments `0`
+  - message_reads `895`
+  - message_device_reads `1211`
+  - message_deliveries `1350`
+  - external_message_mappings `0`
+  - chat_webhook_endpoints `0`
+  - chat_webhook_deliveries `0`
+  - chat_user_devices `15`
+- after migration no chat rows were lost and all enforced chat `tenant_id` null counts were `0`;
+- `php artisan chat:verify-tenant-integrity --json` reported zero chat tenant mismatch counts on the development database;
+- Manual browser validation was performed and confirmed by the project owner.
+
+Owner-confirmed browser checks:
+
+- two independent sessions;
+- Tenant A direct chat;
+- realtime replies without refresh;
+- unread and read behavior;
+- typing behavior;
+- switching Tenant A to Tenant B clears active conversation, conversation list, messages, unread state, typing state, and presence state;
+- Tenant A conversation URL is rejected under Tenant B;
+- switching back restores only Tenant A data;
+- logout clears chat state.

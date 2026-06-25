@@ -104,18 +104,18 @@ class ExternalChatScopeMiddleware
             return;
         }
 
-        $membership = $user->activeTenantMemberships()
+        $memberships = $user->activeTenantMemberships()
             ->with('tenant')
             ->orderBy('tenant_id')
-            ->first();
+            ->get();
 
-        if ($membership?->tenant) {
-            $this->tenantContext->setTenant($membership->tenant);
+        if ($memberships->count() === 1 && $memberships->first()?->tenant) {
+            $this->tenantContext->setTenant($memberships->first()->tenant);
 
             return;
         }
 
-        if (app()->runningUnitTests() || app()->runningInConsole()) {
+        if (app()->runningUnitTests() && $memberships->isEmpty()) {
             $defaultTenant = $this->tenantBootstrapService->resolveTenantByIdentifier(TenantBootstrapService::DEFAULT_TENANT_UUID);
             if ($defaultTenant !== null) {
                 $this->tenantContext->setTenant($defaultTenant);

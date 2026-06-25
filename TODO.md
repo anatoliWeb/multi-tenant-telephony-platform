@@ -638,6 +638,16 @@ Do not discard the existing seeders.
 - [ ] Add permission-controlled recording links
 - [ ] Add conference room chat
 
+## 11.4 Validation
+
+- [x] Enforce required tenant ownership on conversations
+- [x] Enforce required tenant ownership on messages
+- [x] Verify zero orphaned chat tenant rows
+- [x] Verify message and conversation tenant consistency
+- [x] Validate live chat backfill without data loss
+- [x] Verify chat behavior manually across tenant switching
+- [x] Adapt Vue chat monitoring to clear state on tenant change
+
 ---
 
 # 12. Stage 8: Shared Telephony Contracts

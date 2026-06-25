@@ -141,7 +141,7 @@ class ChatWebhookEndpointController extends BaseController
             return $tenantId;
         }
 
-        if (app()->runningUnitTests() || app()->runningInConsole()) {
+        if (app()->runningUnitTests()) {
             return TenantBootstrapService::DEFAULT_TENANT_UUID;
         }
 

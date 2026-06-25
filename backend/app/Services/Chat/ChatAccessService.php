@@ -353,7 +353,7 @@ class ChatAccessService
             return $user->hasAnyPermission($permissions);
         }
 
-        if (app()->runningUnitTests() || app()->runningInConsole()) {
+        if (app()->runningUnitTests()) {
             if ($tenant->getKey() === TenantBootstrapService::DEFAULT_TENANT_UUID) {
                 $platformPermissions = $this->permissionCacheService->getPlatformPermissionsForUser($user);
                 return count(array_intersect($permissions, $platformPermissions)) > 0;

@@ -885,7 +885,7 @@ class ChatConversationService
             return $tenantId;
         }
 
-        if (app()->runningUnitTests() || app()->runningInConsole()) {
+        if (app()->runningUnitTests()) {
             return TenantBootstrapService::DEFAULT_TENANT_UUID;
         }
 
@@ -903,7 +903,7 @@ class ChatConversationService
             return true;
         }
 
-        if ((app()->runningUnitTests() || app()->runningInConsole())
+        if (app()->runningUnitTests()
             && $tenantId === TenantBootstrapService::DEFAULT_TENANT_UUID
             && ! $user->tenantMemberships()->exists()) {
             return true;

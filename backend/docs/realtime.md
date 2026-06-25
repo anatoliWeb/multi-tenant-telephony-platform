@@ -74,7 +74,7 @@ Notes:
 
 Chat broadcast events are sent to `private-chat.conversation.{id}` and use the `realtime` queue.
 
-Chat channels are tenant-bound through the active request context and conversation ownership checks. The channel names remain backward-compatible for the existing frontend, but authorization always resolves the conversation inside the current tenant before the payload is broadcast.
+Chat channels are tenant-bound through the active request context and conversation ownership checks. The channel names remain backward-compatible for the existing frontend because conversation IDs are globally unique and authorization always resolves the conversation inside the current tenant before the payload is broadcast.
 
 Current event names include:
 
@@ -93,6 +93,13 @@ Current event names include:
 - `chat.user.left`
 
 Typing and presence events use the same tenant-owned conversation root so a subscription from another tenant cannot authorize even if the UUID is known.
+
+Decision:
+
+- final channel format stays `private-chat.conversation.{id}` and `presence-chat.{id}`;
+- no tenant-qualified rename was required;
+- the real security boundary is tenant-scoped authorization plus globally unique conversation IDs;
+- structured logs keep tenant context for diagnostics, so retained channel names do not hide tenant identity operationally.
 
 Payloads are intentionally shaped by services/events and must stay safe for the subscribed audience.
 
@@ -145,6 +152,7 @@ Manual check:
 - Presence payloads must stay minimal and safe.
 - Broadcast payloads must not include tokens, secrets, raw payloads, raw responses, storage paths, device keys, or authorization headers.
 - `/broadcasting/auth` failures should return safe 401/403 responses without traces or secrets.
+- production HTTP requests do not receive an implicit default tenant during chat channel authorization.
 
 See `backend/docs/security.md` for the broader realtime channel authorization policy.
 

@@ -1,7 +1,9 @@
+import { createPinia, setActivePinia } from 'pinia';
 import { mount } from '@vue/test-utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { nextTick } from 'vue';
 import ChatAdminMonitoringPage from './ChatAdminMonitoringPage.vue';
+import { useTenantStore } from '../../../stores/tenant.store';
 
 const mocked = vi.hoisted(() => ({
   listConversationsMock: vi.fn(),
@@ -47,6 +49,13 @@ vi.mock('../services/chat-admin-realtime.service', () => ({
 }));
 
 describe('ChatAdminMonitoringPage', () => {
+  let pinia: ReturnType<typeof createPinia>;
+
+  beforeEach(() => {
+    pinia = createPinia();
+    setActivePinia(pinia);
+  });
+
   beforeEach(() => {
     vi.clearAllMocks();
     mocked.subscribeRealtimeMock.mockImplementation(() => undefined);
@@ -533,5 +542,41 @@ describe('ChatAdminMonitoringPage', () => {
     await wrapper.findComponent({ name: 'AdminChatConversationList' }).vm.$emit('select', 52);
     await Promise.resolve();
     expect(mocked.getConversationWebhookDeliveriesMock).toHaveBeenCalledWith(52, { per_page: 25 });
+  });
+
+  it('clears tenant-scoped chat monitoring state when active tenant changes', async () => {
+    mocked.listConversationsMock.mockResolvedValue({ items: [{ id: 61, title: 'A' }], meta: {} });
+    mocked.getConversationMock.mockResolvedValue({ id: 61, title: 'A', status: 'active' });
+    mocked.listMessagesMock.mockResolvedValue([{ id: 301, conversation_id: 61, status: 'sent' }]);
+    mocked.listParticipantsMock.mockResolvedValue([{ user_id: 91, name: 'User' }]);
+    mocked.getConversationWebhookDeliveriesMock.mockResolvedValue([{ id: 9, status: 'sent' }]);
+
+    const wrapper = mount(ChatAdminMonitoringPage, {
+      global: {
+        plugins: [pinia],
+        stubs: {
+          AdminChatConversationList: true,
+          AdminChatConversationDetails: true,
+          AdminChatMessageList: true,
+          AdminChatParticipantsList: true,
+          AdminChatWebhookDeliveryStatus: true,
+        },
+      },
+    });
+
+    const tenantStore = useTenantStore();
+    tenantStore.activeTenantId = 'tenant-a';
+
+    await nextTick();
+    await Promise.resolve();
+    await wrapper.findComponent({ name: 'AdminChatConversationList' }).vm.$emit('select', 61);
+    await Promise.resolve();
+
+    tenantStore.activeTenantId = 'tenant-b';
+    await nextTick();
+    await Promise.resolve();
+
+    expect(mocked.unsubscribeRealtimeMock).toHaveBeenCalled();
+    expect(mocked.listConversationsMock.mock.calls.length).toBeGreaterThanOrEqual(2);
   });
 });

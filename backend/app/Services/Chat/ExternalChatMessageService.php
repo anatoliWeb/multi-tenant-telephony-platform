@@ -219,7 +219,7 @@ class ExternalChatMessageService
             return $user->hasAnyPermission($permissions);
         }
 
-        if ((app()->runningUnitTests() || app()->runningInConsole())
+        if (app()->runningUnitTests()
             && $tenant->getKey() === TenantBootstrapService::DEFAULT_TENANT_UUID) {
             $platformPermissions = $this->permissionCacheService->getPlatformPermissionsForUser($user);
             return count(array_intersect($permissions, $platformPermissions)) > 0;

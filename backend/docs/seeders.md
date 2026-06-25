@@ -52,6 +52,8 @@ Seeds a deterministic demo baseline for local development:
 
 Chat demo data is tenant-specific, deterministic, and idempotent. Demo conversations, participants, messages, webhook endpoints, and webhook deliveries are created under the target tenant so the same demo users can have separate chat histories in different tenants.
 
+The live Stage 7 backfill validated that existing demo chat rows can be migrated forward without data loss before tenant ownership is enforced as `NOT NULL`.
+
 ### TestSeeder
 
 Seeds the test-only baseline used by feature tests:

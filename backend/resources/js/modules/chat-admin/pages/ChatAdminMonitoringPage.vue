@@ -86,7 +86,8 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref } from 'vue';
+import { storeToRefs } from 'pinia';
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 
 import AdminChatConversationDetails from '../components/AdminChatConversationDetails.vue';
 import AdminChatConversationList from '../components/AdminChatConversationList.vue';
@@ -97,6 +98,7 @@ import AdminChatReplyComposer from '../components/AdminChatReplyComposer.vue';
 import AdminChatWebhookDeliveryStatus from '../components/AdminChatWebhookDeliveryStatus.vue';
 import { chatAdminService } from '../services/chat-admin.service';
 import { chatAdminRealtimeService } from '../services/chat-admin-realtime.service';
+import { useTenantStore } from '../../../stores/tenant.store';
 import type {
   ChatAdminConversation,
   ChatAdminConversationFilters,
@@ -104,6 +106,9 @@ import type {
   ChatAdminParticipant,
   ChatAdminWebhookDeliverySummary,
 } from '../types/chat-admin.types';
+
+const tenantStore = useTenantStore();
+const { activeTenantId } = storeToRefs(tenantStore);
 
 const conversations = ref<ChatAdminConversation[]>([]);
 const selectedConversationId = ref<number | null>(null);
@@ -146,6 +151,32 @@ const filters = ref<ChatAdminConversationFilters>({
 let searchDebounce: ReturnType<typeof setTimeout> | undefined;
 let realtimeMessagesReloadDebounce: ReturnType<typeof setTimeout> | undefined;
 let realtimeParticipantsReloadDebounce: ReturnType<typeof setTimeout> | undefined;
+
+const resetTenantScopedState = (): void => {
+  chatAdminRealtimeService.unsubscribeFromConversation();
+  conversations.value = [];
+  selectedConversationId.value = null;
+  selectedConversation.value = null;
+  messages.value = [];
+  participants.value = [];
+  webhookDeliveries.value = [];
+  isConversationsLoading.value = false;
+  isMessagesLoading.value = false;
+  isParticipantsLoading.value = false;
+  isWebhookDeliveriesLoading.value = false;
+  conversationsError.value = '';
+  messagesError.value = '';
+  participantsError.value = '';
+  webhookDeliveriesError.value = '';
+  isReplySending.value = false;
+  replyError.value = '';
+  participantActionLoadingUserIds.value = [];
+  participantActionError.value = '';
+  isConversationLifecycleLoading.value = false;
+  conversationLifecycleError.value = '';
+  messageActionLoadingIds.value = [];
+  messageActionError.value = '';
+};
 
 const listParams = computed<Record<string, string>>(() => {
   const params: Record<string, string> = {};
@@ -540,6 +571,18 @@ const subscribeRealtimeForSelectedConversation = (conversationId: number): void 
 
 onMounted(async () => {
   await loadConversations();
+});
+
+watch(activeTenantId, async (tenantId, previousTenantId) => {
+  if (tenantId === previousTenantId) {
+    return;
+  }
+
+  resetTenantScopedState();
+
+  if (tenantId) {
+    await loadConversations();
+  }
 });
 
 onUnmounted(() => {

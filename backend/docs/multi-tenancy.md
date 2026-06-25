@@ -13,10 +13,11 @@ Implemented in this slice:
 - initial tenant membership bootstrap/backfill
 - initial request logging enrichment
 - initial isolation tests
+- tenant-owned chat schema enforcement and live backfill validation
 
 Not yet implemented:
 
-- tenant ownership across chat, notifications, and activity
+- tenant ownership across notifications and activity
 - tenant-aware RBAC split
 - tenant context propagation to jobs and broadcasts
 - tenant-specific telephony features
@@ -27,7 +28,7 @@ Active tenant selection is carried with:
 
 - `X-Tenant-ID: <tenant UUID or slug>`
 
-If a request needs a tenant and the header is missing, the backend fails closed.
+If a request needs a tenant and the header is missing, the backend fails closed unless the request is on the external chat API and the authenticated actor has exactly one active tenant membership. Ambiguous external-chat tenant selection is rejected.
 
 ## Current API
 
@@ -94,7 +95,7 @@ The demo and test seeders intentionally use stable identity keys so repeated run
 
 ## Chat Ownership
 
-Chat conversations are tenant-owned and act as the root boundary for related messages, participants, attachments, read state, typing, presence, and external chat deliveries.
+Chat conversations are tenant-owned and act as the root boundary for related messages, participants, attachments, read state, typing, presence, webhook records, and external chat deliveries.
 
 Key rules:
 
@@ -103,9 +104,12 @@ Key rules:
 - attachment storage paths include the tenant UUID;
 - chat route binding fails closed outside the active tenant;
 - cross-tenant chat access returns a safe not-found or forbidden response instead of leaking metadata.
+- live development migration/backfill validation completed without chat data loss;
+- chat ownership columns are database-enforced as `NOT NULL` after backfill;
+- chat integrity can be audited with `php artisan chat:verify-tenant-integrity`.
 
 See `backend/docs/chat.md` for the chat-specific runtime summary.
 
 ## Next Step
 
-The next slice should start applying `tenant_id` to tenant-owned data and propagate tenant context through the rest of the runtime.
+The next slice should continue applying tenant ownership to the remaining legacy modules and propagate tenant context through the rest of the runtime.
