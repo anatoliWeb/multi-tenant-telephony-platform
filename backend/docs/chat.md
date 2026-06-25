@@ -119,6 +119,40 @@ Confirmed scenarios:
 - switching back to Tenant A restores only Tenant A data;
 - logout clears tenant chat state.
 
+## Stage 7 Backend Verification
+
+Final backend verification on 2026-06-25 completed after clearing stale activity in the isolated `saas_testing` database.
+
+Root cause of the earlier partial state:
+
+- previous timed-out `php artisan test` runs left abandoned `saas_testing` migration and DDL work behind;
+- development data was not part of the issue and was not reset.
+
+Safe verification workflow:
+
+- confirmed the resolved test context was environment `testing` on database `saas_testing`;
+- re-validated the testing safety guard through `Tests\Unit\TestingDatabaseGuardTest`;
+- inspected backend container processes and MySQL sessions;
+- preserved backend, queue, Horizon, scheduler, Reverb, frontend, Redis, and development-database activity;
+- waited for one still-active targeted rerun to finish its DDL work and confirmed the lingering test worker exited before starting the final clean reruns.
+
+Verified backend totals:
+
+- targeted Stage 7 chat rerun: `19` passed, `0` failed, `0` skipped, `398` assertions, `516.23s`;
+- tenant and RBAC regression rerun: `21` passed, `0` failed, `0` skipped, `163` assertions, `477.91s`;
+- full backend suite rerun: `509` passed, `0` failed, `21` skipped, `16375` assertions, `910.82s`.
+
+Development integrity recheck after the reruns:
+
+- conversations `6`
+- messages `324`
+- conversation_participants `25`
+- message_reads `895`
+- message_device_reads `1211`
+- message_deliveries `1350`
+- chat_user_devices `15`
+- `chat:verify-tenant-integrity --json` still reported zero null ownership rows, zero tenant mismatches, zero duplicate tenant-scoped device rows, and no data loss.
+
 ## Vue Admin Monitoring
 
 The Vue admin application already has a real chat-monitoring feature in `resources/js/modules/chat-admin`.

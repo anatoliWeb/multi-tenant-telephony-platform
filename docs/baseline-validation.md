@@ -171,6 +171,28 @@ Verified:
 - `php artisan chat:verify-tenant-integrity --json` reported zero chat tenant mismatch counts on the development database;
 - Manual browser validation was performed and confirmed by the project owner.
 
+Backend verification follow-up on 2026-06-25:
+
+- root cause of the earlier partial state: timed-out `php artisan test` sessions left abandoned `saas_testing` migration and DDL activity behind;
+- resolved test context before cleanup: environment `testing`, database `saas_testing`;
+- testing safety guard was re-verified through `Tests\Unit\TestingDatabaseGuardTest`;
+- safe cleanup performed: inspected backend container processes and MySQL process lists, waited for one still-active targeted rerun to finish its DDL work, and confirmed the lingering `php artisan test` worker and `saas_testing` session had exited before starting the final clean reruns;
+- targeted Stage 7 chat rerun: `19` passed, `0` failed, `0` skipped, `398` assertions, `516.23s`;
+- tenant and RBAC regression rerun: `21` passed, `0` failed, `0` skipped, `163` assertions, `477.91s`;
+- full backend suite rerun: `509` passed, `0` failed, `21` skipped, `16375` assertions, `910.82s`;
+- development chat counts remained unchanged after testing:
+  - conversations `6`
+  - messages `324`
+  - conversation_participants `25`
+  - message_reads `895`
+  - message_device_reads `1211`
+  - message_deliveries `1350`
+  - chat_user_devices `15`
+- integrity recheck after all reruns still reported zero null tenant ownership rows, zero tenant mismatch rows, zero duplicate tenant-scoped device rows, and no data loss;
+- Stage 7 is now complete;
+- Milestone 2 remains partial because notifications tenancy, activity-log tenancy, queue and listener propagation, scheduler propagation, and broader tenant-isolation work remain unfinished;
+- the next TODO item is now `Step 4: Implement Multi-Tenancy` -> `[ ] Tenant isolation tests`.
+
 Owner-confirmed browser checks:
 
 - two independent sessions;

@@ -601,6 +601,8 @@ Do not discard the existing seeders.
 
 # 11. Stage 7: Adapt Existing Chat to Multi-Tenancy
 
+Stage status: `COMPLETE`
+
 ## 11.1 Backend Adaptations
 
 - [x] Add tenant ownership to conversations
@@ -647,6 +649,9 @@ Do not discard the existing seeders.
 - [x] Validate live chat backfill without data loss
 - [x] Verify chat behavior manually across tenant switching
 - [x] Adapt Vue chat monitoring to clear state on tenant change
+- [x] Re-run targeted Stage 7 backend chat verification after tenant ownership enforcement
+- [x] Re-run tenant and RBAC regression verification after tenant-aware chat enforcement
+- [x] Re-run the complete backend suite after Stage 7 enforcement changes
 
 ---
 
@@ -1238,13 +1243,13 @@ Do not treat the existing billing page as a completed telephony billing implemen
 
 - [x] Run the complete backend test suite
 - [x] Verify live browser login
-- [ ] Verify direct chat between two users
-- [ ] Verify group chat
-- [ ] Verify realtime delivery
-- [ ] Verify permission-denied behavior
+- [x] Verify direct chat between two users
+- [x] Verify group chat
+- [x] Verify realtime delivery
+- [x] Verify permission-denied behavior
 - [x] Verify Horizon runtime
 - [x] Add and verify scheduler runtime
-- [ ] Resolve or document non-blocking frontend warnings
+- [x] Resolve or document non-blocking frontend warnings
 
 ## Step 3: Finalize Architecture Decisions
 
@@ -1257,9 +1262,9 @@ Do not treat the existing billing page as a completed telephony billing implemen
 - [x] Tenant
 - [x] TenantMembership
 - [x] TenantContext
-- [ ] Tenant-aware RBAC
-- [ ] Tenant-aware seeders
-- [ ] Tenant-aware chat
+- [x] Tenant-aware RBAC
+- [x] Tenant-aware seeders
+- [x] Tenant-aware chat
 - [ ] Tenant isolation tests
 
 ## Step 5: Begin Telephony Foundation
@@ -1314,8 +1319,8 @@ Milestone status: `PARTIAL`
 - [x] Tenant memberships exist
 - [x] Tenant switching works
 - [x] TenantContext works
-- [ ] Platform and tenant roles are separated
-- [ ] Custom tenant roles work
+- [x] Platform and tenant roles are separated
+- [x] Custom tenant roles work
 - [x] Existing chat is tenant-isolated
 - [x] Existing realtime channels are tenant-isolated
 - [ ] Existing notifications are tenant-aware

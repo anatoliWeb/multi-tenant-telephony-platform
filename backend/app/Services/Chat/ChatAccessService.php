@@ -350,7 +350,13 @@ class ChatAccessService
 
         $hasActiveMembership = $this->tenantBootstrapService->userHasActiveMembership($user, $tenant);
         if ($hasActiveMembership) {
-            return $user->hasAnyPermission($permissions);
+            if ($user->hasAnyPermission($permissions)) {
+                return true;
+            }
+
+            $platformPermissions = $this->permissionCacheService->getPlatformPermissionsForUser($user);
+
+            return count(array_intersect($permissions, $platformPermissions)) > 0;
         }
 
         if (app()->runningUnitTests()) {
