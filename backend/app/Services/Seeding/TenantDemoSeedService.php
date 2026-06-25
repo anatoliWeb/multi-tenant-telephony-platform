@@ -4,9 +4,13 @@ namespace App\Services\Seeding;
 
 use App\Enums\Contacts\ContactStatus;
 use App\Enums\TenantMembershipStatus;
+use App\Models\Extension;
+use App\Models\ExtensionCredential;
 use App\Models\Tenant;
 use App\Models\TenantMembership;
 use App\Models\User;
+use App\Services\Extensions\ExtensionService;
+use App\Services\Tenancy\TenantContext;
 use App\Services\Tenancy\TenantBootstrapService;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Hash;
@@ -18,6 +22,8 @@ class TenantDemoSeedService
         protected RbacSeedService $rbacSeedService,
         protected TenantBootstrapService $tenantBootstrapService,
         protected ContactDemoSeedService $contactDemoSeedService,
+        protected TenantContext $tenantContext,
+        protected ExtensionService $extensionService,
     ) {
     }
 
@@ -44,6 +50,7 @@ class TenantDemoSeedService
             'memberships' => 0,
             'role_assignments' => 0,
             'contacts' => 0,
+            'extensions' => 0,
         ];
 
         $platformAdmin = $this->upsertUser('platform-admin@test.local', 'Platform Admin');
@@ -107,6 +114,8 @@ class TenantDemoSeedService
 
         $counts['contacts'] += $this->contactDemoSeedService->seed($defaultTenant, $this->contactRows('tenant-a'))['contacts'];
         $counts['contacts'] += $this->contactDemoSeedService->seed($secondaryTenant, $this->contactRows('tenant-b'))['contacts'];
+        $counts['extensions'] += $this->seedExtensions($defaultTenant, 'tenant-a');
+        $counts['extensions'] += $this->seedExtensions($secondaryTenant, 'tenant-b');
 
         return $counts;
     }
@@ -260,5 +269,109 @@ class TenantDemoSeedService
                 ],
             ],
         ];
+    }
+
+    private function seedExtensions(Tenant $tenant, string $tenantPrefix): int
+    {
+        $owner = User::query()->where('email', sprintf('%s-owner@test.local', $tenantPrefix))->first();
+        $agent = User::query()->where('email', sprintf('%s-agent@test.local', $tenantPrefix))->first();
+
+        if (! $owner instanceof User || ! $agent instanceof User) {
+            return 0;
+        }
+
+        $this->tenantContext->setTenant($tenant);
+
+        try {
+            if (! config('telephony.enabled', false)) {
+                $this->seedExtensionsWithoutProvisioning($tenant, $owner, $agent, $tenantPrefix);
+
+                return 2;
+            }
+
+            if (! Extension::query()->where('tenant_id', $tenant->getKey())->where('number', '2001')->exists()) {
+                $this->extensionService->create([
+                    'number' => '2001',
+                    'label' => Str::title($tenantPrefix).' Support',
+                    'assigned_user_id' => $owner->getKey(),
+                ], $owner);
+            }
+
+            if (! Extension::query()->where('tenant_id', $tenant->getKey())->where('number', '2002')->exists()) {
+                $this->extensionService->create([
+                    'number' => '2002',
+                    'label' => Str::title($tenantPrefix).' Sales',
+                    'assigned_user_id' => $agent->getKey(),
+                    'status' => 'active',
+                ], $owner);
+            }
+        } finally {
+            $this->tenantContext->clear();
+        }
+
+        return 2;
+    }
+
+    private function seedExtensionsWithoutProvisioning(Tenant $tenant, User $owner, User $agent, string $tenantPrefix): void
+    {
+        $rows = [
+            ['number' => '2001', 'label' => Str::title($tenantPrefix).' Support', 'user' => $owner],
+            ['number' => '2002', 'label' => Str::title($tenantPrefix).' Sales', 'user' => $agent],
+        ];
+
+        foreach ($rows as $row) {
+            $extension = Extension::updateOrCreate(
+                [
+                    'tenant_id' => $tenant->getKey(),
+                    'number' => $row['number'],
+                ],
+                [
+                    'uuid' => $this->stableExtensionUuid($tenant, $row['number']),
+                    'label' => $row['label'],
+                    'status' => 'active',
+                    'provisioning_status' => 'pending',
+                    'registration_status' => 'unknown',
+                    'assigned_user_id' => $row['user']->getKey(),
+                    'created_by' => $owner->getKey(),
+                    'updated_by' => $owner->getKey(),
+                    'metadata' => [
+                        'provider_state' => [
+                            'provider' => 'fake',
+                            'endpoint_status' => 'not_provisioned',
+                            'registration_status' => 'simulated',
+                        ],
+                    ],
+                ]
+            );
+
+            ExtensionCredential::updateOrCreate(
+                [
+                    'tenant_id' => $tenant->getKey(),
+                    'extension_id' => $extension->getKey(),
+                ],
+                [
+                    'username' => $row['number'],
+                    'secret_encrypted' => encrypt('fixture-secret-'.$tenantPrefix.'-'.$row['number']),
+                    'secret_hint' => substr($row['number'], -4),
+                    'version' => 1,
+                    'rotated_by' => $owner->getKey(),
+                    'rotated_at' => now(),
+                ]
+            );
+        }
+    }
+
+    private function stableExtensionUuid(Tenant $tenant, string $number): string
+    {
+        $hash = substr(sha1((string) $tenant->getKey().':extension:'.$number), 0, 32);
+
+        return sprintf(
+            '%s-%s-%s-%s-%s',
+            substr($hash, 0, 8),
+            substr($hash, 8, 4),
+            substr($hash, 12, 4),
+            substr($hash, 16, 4),
+            substr($hash, 20, 12),
+        );
     }
 }

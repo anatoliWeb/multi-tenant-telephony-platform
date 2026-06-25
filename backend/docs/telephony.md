@@ -23,8 +23,14 @@ Deferred:
 - FreeSWITCH adapter;
 - real calls;
 - SIP.js;
-- extensions, DIDs, call logs, recordings, queues, IVR, billing, and real provider webhooks.
+- DIDs, call logs, recordings, queues, IVR, billing, and real provider webhooks.
 - contacts-to-call integration.
+
+Implemented after this baseline:
+
+- tenant-aware Extensions integrated through the shared endpoint-provisioning contracts;
+- fake-provider-backed endpoint lifecycle for extension create, update, suspend, activate, delete, and sync;
+- one-time extension credential generation and rotation with encrypted storage.
 
 ## Contacts Dependency
 

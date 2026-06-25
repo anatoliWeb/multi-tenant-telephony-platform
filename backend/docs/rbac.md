@@ -100,3 +100,23 @@ Verified behavior:
 - suspended memberships cannot access tenant contacts;
 - contact tags cannot be attached across tenants;
 - export and import follow the same tenant permission boundary as CRUD.
+
+## Extensions Permissions
+
+The Extensions module also uses tenant-scoped permissions only.
+
+Implemented permissions:
+
+- `tenant.extensions.view`
+- `tenant.extensions.create`
+- `tenant.extensions.update`
+- `tenant.extensions.delete`
+- `tenant.extensions.manage_credentials`
+
+Verified behavior:
+
+- platform permissions alone do not grant tenant extension access;
+- suspended memberships cannot access tenant extensions;
+- assigned users and assigned contacts must belong to the active tenant;
+- credential rotation stays behind the dedicated credential-management permission;
+- cross-tenant extension identifiers fail closed.

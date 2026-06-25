@@ -250,3 +250,25 @@ Contacts-specific notes:
 - Real calls are not implemented.
 - FreeSWITCH is not installed.
 - SIP.js is not integrated.
+
+## Stage 11 Addendum
+
+Follow-up validation on 2026-06-25 confirmed the tenant-aware Extensions baseline on the development and testing environments.
+
+Verified:
+
+- the additive development migration for `extensions` and `extension_credentials` applied without data loss;
+- existing development counts for users, tenants, contacts, conversations, and messages were preserved;
+- extension tables were created with tenant foreign keys, tenant-scoped uniqueness, and assignment indexes;
+- fake-provider-backed endpoint provisioning works through the shared telephony contracts;
+- plaintext extension secrets are displayed only once and are not exposed through ordinary list or detail APIs;
+- Angular build passed with the lazy-loaded extensions feature module;
+- Angular tests passed after adding an explicit `pusher-js` constructor mock in the existing realtime spec.
+
+Extensions-specific notes:
+
+- Extensions are implemented.
+- Provisioning uses the fake provider only.
+- FreeSWITCH is not installed.
+- SIP.js is not integrated.
+- Real SIP registration is not implemented.

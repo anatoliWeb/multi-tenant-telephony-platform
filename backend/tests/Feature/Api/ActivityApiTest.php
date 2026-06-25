@@ -5,6 +5,7 @@ namespace Tests\Feature\Api;
 use App\Models\ActivityLog;
 use App\Models\Permission;
 use App\Models\User;
+use App\Enums\Rbac\PermissionScope;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
@@ -18,7 +19,10 @@ class ActivityApiTest extends TestCase
         $user = User::factory()->create();
 
         $permissionIds = collect($permissions)
-            ->map(fn (string $name) => Permission::firstOrCreate(['name' => $name])->id)
+            ->map(fn (string $name) => Permission::firstOrCreate(
+                ['name' => $name, 'scope' => PermissionScope::Platform->value],
+                ['scope_reference' => PermissionScope::Platform->value]
+            )->id)
             ->all();
 
         $user->permissions()->sync($permissionIds);

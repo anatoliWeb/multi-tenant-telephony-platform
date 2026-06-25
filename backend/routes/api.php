@@ -29,6 +29,7 @@ use App\Http\Controllers\Api\V1\Contacts\ContactController;
 use App\Http\Controllers\Api\V1\Contacts\ContactExportController;
 use App\Http\Controllers\Api\V1\Contacts\ContactImportController;
 use App\Http\Controllers\Api\V1\Contacts\ContactTagController;
+use App\Http\Controllers\Api\V1\Extensions\ExtensionController;
 use Illuminate\Support\Facades\Route;
 
 
@@ -735,6 +736,43 @@ Route::prefix('v1')
                     Route::delete('/{tag}', [ContactTagController::class, 'destroy'])
                         ->name('destroy')
                         ->middleware('permission:tenant.contacts.manage_tags');
+                });
+
+                Route::prefix('extensions')
+                    ->as('extensions.')
+                    ->middleware('resolve.tenant')
+                    ->group(function (): void {
+                    Route::get('/', [ExtensionController::class, 'index'])
+                        ->name('index')
+                        ->middleware('permission:tenant.extensions.view');
+
+                    Route::get('/assignment-options', [ExtensionController::class, 'assignmentOptions'])
+                        ->name('assignment-options')
+                        ->middleware('permission:tenant.extensions.view');
+
+                    Route::post('/', [ExtensionController::class, 'store'])
+                        ->name('store')
+                        ->middleware('permission:tenant.extensions.create');
+
+                    Route::get('/{extension}', [ExtensionController::class, 'show'])
+                        ->name('show')
+                        ->middleware('permission:tenant.extensions.view');
+
+                    Route::put('/{extension}', [ExtensionController::class, 'update'])
+                        ->name('update')
+                        ->middleware('permission:tenant.extensions.update');
+
+                    Route::patch('/{extension}', [ExtensionController::class, 'update'])
+                        ->name('patch')
+                        ->middleware('permission:tenant.extensions.update');
+
+                    Route::post('/{extension}/rotate-credentials', [ExtensionController::class, 'rotateCredentials'])
+                        ->name('rotate-credentials')
+                        ->middleware('permission:tenant.extensions.manage_credentials');
+
+                    Route::delete('/{extension}', [ExtensionController::class, 'destroy'])
+                        ->name('destroy')
+                        ->middleware('permission:tenant.extensions.delete');
                 });
 
 

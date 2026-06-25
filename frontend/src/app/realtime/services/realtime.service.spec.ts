@@ -9,6 +9,10 @@ const privateMock = vi.fn();
 const channelMock = vi.fn();
 const leaveMock = vi.fn();
 
+vi.mock('pusher-js', () => ({
+  default: vi.fn(),
+}));
+
 vi.mock('laravel-echo', () => {
   class EchoMock {
     connector = { pusher: { connection: { bind: vi.fn(), state: 'disconnected' } } };

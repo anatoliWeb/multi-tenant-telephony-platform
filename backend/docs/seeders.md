@@ -64,6 +64,15 @@ It includes:
 - tag coverage;
 - archived contact coverage.
 
+Extensions demo data is tenant-specific, deterministic, and idempotent.
+
+It includes:
+
+- the same extension number reused safely across different tenants;
+- valid assignment to tenant members only;
+- fake-provider-backed provisioned metadata;
+- encrypted credential fixtures without stored plaintext secrets.
+
 ### TestSeeder
 
 Seeds the test-only baseline used by feature tests:
@@ -73,6 +82,7 @@ Seeds the test-only baseline used by feature tests:
 - platform and tenant role assignments;
 - multi-tenant coverage for isolation tests;
 - minimal deterministic contact fixtures.
+- minimal deterministic extension fixtures.
 
 ### PerformanceSeeder
 

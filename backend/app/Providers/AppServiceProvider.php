@@ -5,11 +5,13 @@ namespace App\Providers;
 use App\Models\Conversation;
 use App\Models\Contact;
 use App\Models\ContactTag;
+use App\Models\Extension;
 use App\Models\ActivityLog;
 use App\Models\User;
 use App\Models\SystemTranslation;
 use App\Policies\ContactPolicy;
 use App\Policies\ContactTagPolicy;
+use App\Policies\ExtensionPolicy;
 use App\Services\Rbac\PermissionCacheService;
 use App\Services\Tenancy\TenantContext;
 use App\Observers\PersonalAccessTokenObserver;
@@ -407,6 +409,21 @@ class AppServiceProvider extends ServiceProvider
                     ->addProperty('role_permissions', (new ObjectType)->additionalProperties((new ArrayType)->setItems(new StringType)))
                     ->setRequired(['roles', 'permissions', 'role_permissions']);
 
+                $extensionSchema = (new ObjectType)
+                    ->addProperty('id', new IntegerType)
+                    ->addProperty('uuid', new StringType)
+                    ->addProperty('tenant_id', new StringType)
+                    ->addProperty('number', new StringType)
+                    ->addProperty('label', new StringType)
+                    ->addProperty('status', new StringType)
+                    ->addProperty('provisioning_status', new StringType)
+                    ->addProperty('registration_status', new StringType)
+                    ->addProperty('credential_username', new StringType)
+                    ->addProperty('provider_name', new StringType)
+                    ->addProperty('provider_resource_id', new StringType)
+                    ->addProperty('last_provisioned_at', new StringType)
+                    ->setRequired(['id', 'uuid', 'tenant_id', 'number', 'status', 'provisioning_status', 'registration_status']);
+
                 $openApi->components->addSchema('PaginationMeta', Schema::fromType($paginationMeta));
                 $openApi->components->addSchema('ApiSuccessResponse', Schema::fromType($apiSuccess));
                 $openApi->components->addSchema('ApiErrorResponse', Schema::fromType($apiError));
@@ -427,6 +444,7 @@ class AppServiceProvider extends ServiceProvider
                 $openApi->components->addSchema('IncomingWebhookRequest', Schema::fromType($incomingWebhookRequestSchema));
                 $openApi->components->addSchema('MetaBootstrapResponse', Schema::fromType($metaBootstrapResponse));
                 $openApi->components->addSchema('MetaRbacResponse', Schema::fromType($metaRbacResponse));
+                $openApi->components->addSchema('Extension', Schema::fromType($extensionSchema));
             });
 
             Scramble::configure()
@@ -488,6 +506,14 @@ class AppServiceProvider extends ServiceProvider
                         $addQueryParameter('search', 'Search by name/email.', 'admin');
                         $addQueryParameter('sort', 'Sort field.', 'name');
                         $addQueryParameter('direction', 'Sort direction.', 'asc');
+                    }
+
+                    if ($uri === '/api/v1/extensions' && strtolower($operation->method) === 'get') {
+                        $addQueryParameter('page', 'Pagination page number.', 1);
+                        $addQueryParameter('per_page', 'Items per page.', 15);
+                        $addQueryParameter('search', 'Search by extension number, label, assignee, or contact.', '2001');
+                        $addQueryParameter('status', 'Extension status filter.', 'active');
+                        $addQueryParameter('assigned', 'Assignment filter (user, contact, unassigned).', 'user');
                     }
                 });
         }
@@ -604,6 +630,7 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(Conversation::class, ConversationPolicy::class);
         Gate::policy(Contact::class, ContactPolicy::class);
         Gate::policy(ContactTag::class, ContactTagPolicy::class);
+        Gate::policy(Extension::class, ExtensionPolicy::class);
 
         /*
         |--------------------------------------------------------------------------

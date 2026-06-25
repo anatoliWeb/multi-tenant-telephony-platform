@@ -728,24 +728,34 @@ The Laravel domain must not depend directly on FreeSWITCH-specific classes.
 
 ## 15.1 Extensions
 
-- [ ] Extension model
-- [ ] Tenant ownership
-- [ ] Number
-- [ ] Display name
-- [ ] Status
-- [ ] Assigned user
-- [ ] External PBX identifier
-- [ ] Provider metadata
-- [ ] Unique number per tenant
-- [ ] CRUD
-- [ ] Assignment
-- [ ] Activation and suspension
-- [ ] Policies
+- [x] Extension model
+- [x] Tenant ownership
+- [x] Number
+- [x] Display name
+- [x] Status
+- [x] Assigned user
+- [x] External PBX identifier
+- [x] Provider metadata
+- [x] Unique number per tenant
+- [x] CRUD
+- [x] Assignment
+- [x] Activation and suspension
+- [x] Policies
 - [ ] Events
 - [ ] Activity logs
-- [ ] API documentation
-- [ ] Tests
-- [ ] Demo data
+- [x] API documentation
+- [x] Tests
+- [x] Demo data
+- [x] SIP credential generation
+- [x] Encrypted credential storage
+- [x] Credential rotation
+- [x] Extension provisioning state
+- [x] Fake-provider extension provisioning
+- [x] Extension permissions
+- [x] Extension API
+- [x] Angular extensions UI
+- [x] Tenant-aware extension seed data
+- [x] Extension isolation tests
 
 ## 15.2 Phone Numbers and DIDs
 
@@ -1272,7 +1282,7 @@ Do not treat the existing billing page as a completed telephony billing implemen
 - [x] Shared telephony contracts
 - [x] Fake PBX adapter
 - [x] Contacts
-- [ ] Extensions
+- [x] Extensions
 - [ ] Phone numbers
 - [ ] Call logs
 
@@ -1340,10 +1350,10 @@ Milestone status: `PARTIAL`
 - [x] Shared PBX contracts exist
 - [x] Fake PBX adapter works
 - [x] Contacts work
-- [ ] Extensions work
+- [x] Extensions work
 - [ ] Phone numbers and DIDs work
 - [ ] Call logs work
 - [ ] Demo telephony data exists
 - [ ] Initial telephony statistics are populated
-- [ ] Telephony permissions work
-- [ ] Telephony APIs are documented
+- [x] Telephony permissions work
+- [x] Telephony APIs are documented

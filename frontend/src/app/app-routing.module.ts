@@ -42,6 +42,10 @@ const routes: Routes = [
         path: 'contacts',
         loadChildren: () => import('./features/contacts/contacts.module').then((m) => m.ContactsModule),
       },
+      {
+        path: 'extensions',
+        loadChildren: () => import('./features/extensions/extensions.module').then((m) => m.ExtensionsModule),
+      },
     ],
   },
   {

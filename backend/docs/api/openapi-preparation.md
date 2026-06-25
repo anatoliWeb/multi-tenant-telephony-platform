@@ -380,6 +380,27 @@ Metadata gate note:
 - `/api/v1/chat/conversations/123/messages?per_page=50&before_id=900`
 - `/api/v1/chat/conversations/123/messages/search?q=invoice&type=text&has_attachments=true&per_page=20`
 
+## Extension Endpoints
+
+### Tenant Extensions
+| Method | Path | Auth | Permission | Request | Response | Notes |
+|---|---|---|---|---|---|---|
+| GET | `/api/v1/extensions` | sanctum | `tenant.extensions.view` | `ListExtensionsRequest` query (`page`, `per_page`, `search`, `status`, `assigned`) | paginated `ExtensionResource` envelope | tenant-owned extension inventory |
+| GET | `/api/v1/extensions/assignment-options` | sanctum | `tenant.extensions.view` | none | success envelope with `users[]` and `contacts[]` | tenant-safe assignee choices only |
+| POST | `/api/v1/extensions` | sanctum | `tenant.extensions.create` | `StoreExtensionRequest` | `ExtensionResource` envelope with one-time `plain_secret` | creates extension, credentials, and fake-provider endpoint |
+| GET | `/api/v1/extensions/{extension}` | sanctum | `tenant.extensions.view` | path param | `ExtensionResource` envelope | refreshes stored fake-provider state |
+| PUT/PATCH | `/api/v1/extensions/{extension}` | sanctum | `tenant.extensions.update` | `UpdateExtensionRequest` | `ExtensionResource` envelope | updates assignment/status and reprovisions |
+| POST | `/api/v1/extensions/{extension}/rotate-credentials` | sanctum | `tenant.extensions.manage_credentials` | path param | `ExtensionResource` envelope with one-time `plain_secret` | rotates SIP-style secret without exposing stored value later |
+| DELETE | `/api/v1/extensions/{extension}` | sanctum | `tenant.extensions.delete` | path param | success envelope | removes tenant-owned extension and fake endpoint |
+
+Extension safety rules:
+- extension number uniqueness is enforced per tenant;
+- tenant ownership is derived from `TenantContext`;
+- assignment targets must belong to the active tenant;
+- stored credentials never expose `secret_encrypted`;
+- `plain_secret` appears only in create/rotate responses;
+- fake-provider metadata is sanitized before persistence and responses.
+
 ## External API Endpoints
 
 ### External Message Sending
@@ -525,6 +546,7 @@ Safe payload policy:
 - `ChatWebhookDeliverySummary`
 - `ExternalMessageRequest`
 - `IncomingWebhookRequest`
+- `Extension`
 
 ## OpenAPI Schema Definitions
 

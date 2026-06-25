@@ -28,6 +28,9 @@ Implemented after the initial slice:
 - tenant-owned contacts, phones, emails, and tags;
 - tenant-scoped contact search, lookup, import, and export;
 - tenant-aware contact route binding and isolation coverage.
+- tenant-owned extensions and extension credentials;
+- tenant-scoped extension-number uniqueness and credential rotation;
+- tenant-aware fake-provider endpoint provisioning and provider-state reads.
 
 ## Request Contract
 
@@ -147,3 +150,5 @@ Rules:
 ## Next Step
 
 The next slice should continue applying tenant ownership to the remaining legacy modules and propagate tenant context through the rest of the runtime.
+
+Private per-user contacts remain deferred. The completed `Personal contacts` TODO item refers to tenant-owned contacts representing natural persons, not user-private contact books.

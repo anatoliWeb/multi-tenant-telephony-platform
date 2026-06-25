@@ -1,0 +1,51 @@
+<app-modal-shell [open]="open" (close)="close.emit()">
+  <header class="panel__header">
+    <div>
+      <h3>{{ titleKey | t }}</h3>
+      <p>{{ 'extensions.modal.subtitle' | t }}</p>
+    </div>
+    <button type="button" class="close-button" (click)="close.emit()">&times;</button>
+  </header>
+
+  <div class="panel__body">
+    <div class="grid">
+      <label>
+        <span>{{ 'extensions.fields.number' | t }}</span>
+        <input [(ngModel)]="draft.number" data-testid="extension-number" />
+      </label>
+      <label>
+        <span>{{ 'extensions.fields.label' | t }}</span>
+        <input [(ngModel)]="draft.label" />
+      </label>
+      <label>
+        <span>{{ 'extensions.fields.status' | t }}</span>
+        <select [(ngModel)]="draft.status">
+          <option value="active">{{ 'extensions.status.active' | t }}</option>
+          <option value="suspended">{{ 'extensions.status.suspended' | t }}</option>
+          <option value="archived">{{ 'extensions.status.archived' | t }}</option>
+        </select>
+      </label>
+      <label>
+        <span>{{ 'extensions.fields.assignedUser' | t }}</span>
+        <select [(ngModel)]="draft.assigned_user_id">
+          <option [ngValue]="null">{{ 'extensions.filters.allAssignments' | t }}</option>
+          <option *ngFor="let user of users" [ngValue]="user.id">{{ user.name }}</option>
+        </select>
+      </label>
+      <label>
+        <span>{{ 'extensions.fields.assignedContact' | t }}</span>
+        <select [(ngModel)]="draft.assigned_contact_id">
+          <option [ngValue]="null">{{ 'extensions.filters.allAssignments' | t }}</option>
+          <option *ngFor="let contact of contacts" [ngValue]="contact.id">{{ contact.display_name }}</option>
+        </select>
+      </label>
+    </div>
+  </div>
+
+  <footer class="panel__footer">
+    <app-button (click)="close.emit()">{{ 'common.actions.close' | t }}</app-button>
+    <app-button [disabled]="saving || !draft.number.trim()" (click)="emitSave()">
+      {{ saving ? ('common.states.saving' | t) : ('common.actions.save' | t) }}
+    </app-button>
+  </footer>
+</app-modal-shell>

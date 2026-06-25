@@ -23,13 +23,22 @@ Before adding a backend feature:
 - update OpenAPI;
 - update documentation.
 
-For tenant-owned directory modules such as Contacts:
+For tenant-owned directory modules such as Contacts and Extensions:
 
 - derive ownership from `TenantContext` instead of trusting client input;
 - make route model binding fail closed outside the active tenant;
 - normalize searchable phone fields through a dedicated service;
 - define duplicate rules explicitly per tenant;
 - verify import and export safety before exposing bulk actions.
+
+For telephony endpoint modules such as Extensions:
+
+- keep provider integration behind shared telephony contracts;
+- make number normalization deterministic and string-based;
+- treat credential plaintext as one-time output only;
+- store encrypted secrets only;
+- keep fake registration clearly marked as simulated;
+- use tenant-scoped idempotency when provisioning through the fake provider.
 
 ## Angular Feature Checklist
 

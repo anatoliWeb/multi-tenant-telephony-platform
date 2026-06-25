@@ -8,6 +8,8 @@ use App\Models\TenantMembership;
 use App\Models\Contact;
 use App\Models\ContactPhone;
 use App\Models\ContactTag;
+use App\Models\Extension;
+use App\Models\ExtensionCredential;
 use App\Models\User;
 use App\Services\Seeding\RbacSeedService;
 use App\Services\Seeding\SeederEnvironmentService;
@@ -89,6 +91,8 @@ class TestSeeder extends Seeder
 
         $this->seedContacts($defaultTenant, $tenantOwner, '+15558880001');
         $this->seedContacts($secondaryTenant, $tenantAdmin, '+15558880001');
+        $this->seedExtension($defaultTenant, $tenantOwner, '2001');
+        $this->seedExtension($secondaryTenant, $tenantAdmin, '2001');
     }
 
     protected function upsertUser(string $email, string $name): User
@@ -181,6 +185,55 @@ class TestSeeder extends Seeder
             substr($hash, 12, 4),
             substr($hash, 16, 4),
             substr($hash, 20, 12),
+        );
+    }
+
+    protected function seedExtension(Tenant $tenant, User $owner, string $number): void
+    {
+        $extension = Extension::updateOrCreate(
+            [
+                'tenant_id' => $tenant->getKey(),
+                'number' => $number,
+            ],
+            [
+                'uuid' => $this->stableUuid($tenant, 'extension-'.$number),
+                'label' => 'Fixture Extension',
+                'status' => 'active',
+                'provisioning_status' => 'provisioned',
+                'registration_status' => 'unregistered',
+                'assigned_user_id' => $owner->getKey(),
+                'endpoint_key' => 'extension:'.$this->stableUuid($tenant, 'endpoint-'.$number),
+                'provider_name' => 'fake',
+                'provider_resource_id' => 'endpoint-'.$number,
+                'credential_username' => $number,
+                'last_provisioned_at' => now(),
+                'created_by' => $owner->getKey(),
+                'updated_by' => $owner->getKey(),
+                'metadata' => [
+                    'provider_state' => [
+                        'provider' => 'fake',
+                        'endpoint_status' => 'active',
+                        'registration_status' => 'unregistered',
+                        'address' => 'sip:'.$number.'@tenant.invalid',
+                        'updated_at' => now()->toISOString(),
+                    ],
+                ],
+            ]
+        );
+
+        ExtensionCredential::updateOrCreate(
+            [
+                'tenant_id' => $tenant->getKey(),
+                'extension_id' => $extension->getKey(),
+            ],
+            [
+                'username' => $number,
+                'secret_encrypted' => encrypt('fixture-secret-'.$number),
+                'secret_hint' => substr($number, -4),
+                'version' => 1,
+                'rotated_by' => $owner->getKey(),
+                'rotated_at' => now(),
+            ]
         );
     }
 }

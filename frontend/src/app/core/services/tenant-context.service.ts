@@ -6,6 +6,7 @@ import { TenantApiService } from './tenant-api.service';
 import type { TenantContextPayload, TenantMembershipSummary, TenantSummary } from '../models/tenant-context.model';
 import { ChatStateService } from '../../features/chat/services/chat-state.service';
 import { ContactsStateService } from '../../features/contacts/services/contacts-state.service';
+import { ExtensionsStateService } from '../../features/extensions/services/extensions-state.service';
 
 const ACTIVE_TENANT_KEY = 'admin_active_tenant_id';
 
@@ -25,6 +26,7 @@ export class TenantContextService {
     private readonly authState: AuthStateService,
     private readonly chatState: ChatStateService,
     private readonly contactsState: ContactsStateService,
+    private readonly extensionsState: ExtensionsStateService,
   ) {}
 
   get activeTenantId(): string | null {
@@ -58,6 +60,7 @@ export class TenantContextService {
   clear(): void {
     this.chatState.resetForTenantChange();
     this.contactsState.resetForTenantChange();
+    this.extensionsState.resetForTenantChange();
     this.tenantsSubject.next([]);
     this.activeTenantSubject.next(null);
     this.setActiveTenantId(null);
@@ -88,6 +91,7 @@ export class TenantContextService {
   async switchTenant(tenantId: string): Promise<TenantContextPayload> {
     this.chatState.resetForTenantChange();
     this.contactsState.resetForTenantChange();
+    this.extensionsState.resetForTenantChange();
     const payload = await firstValueFrom(this.tenantApi.switchTenant(tenantId));
     this.activeTenantSubject.next(payload.tenant);
     this.setActiveTenantId(payload.current_tenant_id ?? payload.tenant?.id ?? tenantId);
@@ -146,6 +150,7 @@ export class TenantContextService {
     if (this.activeTenantSubject.value?.id !== candidate?.id) {
       this.chatState.resetForTenantChange();
       this.contactsState.resetForTenantChange();
+      this.extensionsState.resetForTenantChange();
     }
     this.activeTenantSubject.next(candidate);
     this.setActiveTenantId(candidate?.id ?? null);

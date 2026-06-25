@@ -1,0 +1,149 @@
+<section class="extensions-page">
+  <ui-card>
+    <div class="hero">
+      <div>
+        <h2>{{ 'extensions.title' | t }}</h2>
+        <p>{{ 'extensions.subtitle' | t }}</p>
+      </div>
+      <div class="hero-actions">
+        <app-button *ngIf="canCreate" (click)="openCreate()">{{ 'extensions.actions.create' | t }}</app-button>
+      </div>
+    </div>
+
+    <div class="secret-banner" *ngIf="latestSecret$ | async as latestSecret">
+      <div>
+        <strong>{{ 'extensions.credentials.title' | t }}</strong>
+        <p>{{ 'extensions.credentials.subtitle' | t }}</p>
+      </div>
+      <code>{{ latestSecret }}</code>
+      <app-button (click)="dismissLatestSecret()">{{ 'common.actions.close' | t }}</app-button>
+    </div>
+
+    <div class="filters" *ngIf="filters$ | async as filters">
+      <app-search-input
+        [value]="filters.search"
+        [placeholderKey]="'extensions.filters.searchPlaceholder'"
+        (valueChange)="onSearchChange($event)"
+      />
+      <app-select-filter
+        [labelKey]="'extensions.fields.status'"
+        [value]="filters.status"
+        [options]="[
+          { value: 'active', labelKey: 'extensions.status.active' },
+          { value: 'suspended', labelKey: 'extensions.status.suspended' },
+          { value: 'archived', labelKey: 'extensions.status.archived' }
+        ]"
+        (valueChange)="onStatusChange($event)"
+      />
+      <app-select-filter
+        [labelKey]="'extensions.fields.assignment'"
+        [value]="filters.assigned"
+        [options]="[
+          { value: 'user', labelKey: 'extensions.filters.user' },
+          { value: 'contact', labelKey: 'extensions.filters.contact' },
+          { value: 'unassigned', labelKey: 'extensions.filters.unassigned' }
+        ]"
+        (valueChange)="onAssignedChange($event)"
+      />
+    </div>
+  </ui-card>
+
+  <div class="layout">
+    <ui-card>
+      <div *ngIf="loading$ | async" class="state">{{ 'extensions.loading' | t }}</div>
+      <div *ngIf="!(loading$ | async) && (error$ | async) as error" class="state error">{{ error }}</div>
+      <div *ngIf="!(loading$ | async) && !(error$ | async) && ((extensions$ | async)?.length ?? 0) === 0" class="state">
+        {{ 'extensions.empty' | t }}
+      </div>
+
+      <div class="extension-list" *ngIf="!(loading$ | async) && ((extensions$ | async)?.length ?? 0) > 0">
+        <button
+          type="button"
+          class="extension-row"
+          *ngFor="let extension of (extensions$ | async); trackBy: trackExtension"
+          [class.active]="(activeExtension$ | async)?.id === extension.id"
+          (click)="selectExtension(extension)"
+          data-testid="extension-row"
+        >
+          <div>
+            <strong>{{ extension.number }}</strong>
+            <p>{{ extension.label || ('extensions.emptyLabel' | t) }}</p>
+          </div>
+          <div class="meta">
+            <span class="badge">{{ ('extensions.status.' + extension.status) | t }}</span>
+            <small>{{ extension.assigned_user?.name || extension.assigned_contact?.display_name || ('extensions.unassigned' | t) }}</small>
+          </div>
+        </button>
+      </div>
+
+      <app-pagination
+        *ngIf="pagination$ | async as pagination"
+        [currentPage]="pagination.current_page ?? 1"
+        [lastPage]="pagination.last_page ?? 1"
+        [perPage]="pagination.per_page ?? 15"
+        [total]="pagination.total ?? 0"
+        (pageChange)="onPageChange($event)"
+      />
+    </ui-card>
+
+    <ui-card>
+      <div *ngIf="detailLoading$ | async" class="state">{{ 'extensions.detailLoading' | t }}</div>
+      <div *ngIf="!(detailLoading$ | async) && !(activeExtension$ | async)" class="state">
+        {{ 'extensions.detailEmpty' | t }}
+      </div>
+
+      <div *ngIf="!(detailLoading$ | async) && (activeExtension$ | async) as extension" class="detail" data-testid="extension-detail">
+        <div class="detail__header">
+          <div>
+            <h3>{{ extension.number }}</h3>
+            <p>{{ extension.label || ('extensions.emptyLabel' | t) }}</p>
+          </div>
+          <div class="detail__actions">
+            <app-button *ngIf="canUpdate" (click)="openEdit(extension)">{{ 'common.actions.edit' | t }}</app-button>
+            <app-button *ngIf="canRotateCredentials" (click)="rotateCredentials(extension)">{{ 'extensions.actions.rotateCredentials' | t }}</app-button>
+            <app-button *ngIf="canDelete" (click)="deleteExtension(extension)">{{ 'common.actions.delete' | t }}</app-button>
+          </div>
+        </div>
+
+        <div class="detail-grid">
+          <section>
+            <h4>{{ 'extensions.fields.assignment' | t }}</h4>
+            <p>{{ extension.assigned_user?.name || extension.assigned_contact?.display_name || ('extensions.unassigned' | t) }}</p>
+          </section>
+          <section>
+            <h4>{{ 'extensions.fields.provisioning' | t }}</h4>
+            <p>{{ extension.provisioning_status }}</p>
+          </section>
+          <section>
+            <h4>{{ 'extensions.fields.registration' | t }}</h4>
+            <p>{{ extension.provider_state?.registration_status || extension.registration_status }}</p>
+          </section>
+          <section>
+            <h4>{{ 'extensions.fields.username' | t }}</h4>
+            <p>{{ extension.credential?.username || extension.credential_username }}</p>
+          </section>
+        </div>
+
+        <section>
+          <h4>{{ 'extensions.fields.providerState' | t }}</h4>
+          <ul>
+            <li>{{ 'extensions.fields.provider' | t }}: {{ extension.provider_state?.provider || extension.provider_name }}</li>
+            <li>{{ 'extensions.fields.endpointStatus' | t }}: {{ extension.provider_state?.endpoint_status || extension.provisioning_status }}</li>
+            <li>{{ 'extensions.fields.address' | t }}: {{ extension.provider_state?.address || ('extensions.noAddress' | t) }}</li>
+          </ul>
+        </section>
+      </div>
+    </ui-card>
+  </div>
+
+  <app-extension-upsert-modal
+    [open]="isModalOpen"
+    [mode]="modalMode"
+    [extension]="modalExtension"
+    [users]="(users$ | async) ?? []"
+    [contacts]="(contacts$ | async) ?? []"
+    [saving]="(saving$ | async) ?? false"
+    (close)="closeModal()"
+    (save)="saveExtension($event)"
+  />
+</section>

@@ -72,8 +72,8 @@ The boundaries below are planning rules for new code. They do not require a whol
 ## Telephony
 
 - Responsibility: telephony domain behavior and provider-neutral call lifecycle.
-- Owned entities: call sessions, call legs, routing decisions, extension bindings.
-- Public application services: `TelephonyService`.
+- Owned entities: extensions, extension credentials, call sessions, call legs, routing decisions, extension bindings.
+- Public application services: `TelephonyService`, `ExtensionService`, `ExtensionProvisioningService`, `ExtensionCredentialService`, `ExtensionQueryService`.
 - Events emitted: call started, call answered, call ended, routing changed.
 - Contracts consumed: Integrations, Contacts, AccessControl, Tenancy.
 - Allowed dependencies: Shared, Integrations, Contacts, AccessControl.

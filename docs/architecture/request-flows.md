@@ -62,6 +62,17 @@ This document records the real request flows that exist in the repository today.
 
 The contacts state service also clears stale tenant-scoped state when the active tenant changes.
 
+### Example: extensions workspace
+
+`frontend/src/app/features/extensions/services/extensions-state.service.ts`
+-> `ExtensionsApiService`
+-> `ApiClientService`
+-> tenant/auth interceptors
+-> `HttpClient`
+-> Laravel API
+
+The extensions state service clears tenant-scoped list, detail, filters, and one-time credential state when the active tenant changes.
+
 ## Vue Administration Request
 
 ### Example: login
@@ -121,6 +132,18 @@ Channel authorization is enforced in `backend/routes/channels.php` through `Chat
 -> normalized shared DTO result
 
 The current implementation uses a deterministic fake provider. No real PBX transport, SIP signaling, or FreeSWITCH adapter is active in this phase.
+
+### Example: tenant-aware extension provisioning
+
+`TenantContext`
+-> `App\Http\Controllers\Api\V1\Extensions\ExtensionController`
+-> `App\Services\Extensions\ExtensionService`
+-> `App\Services\Extensions\ExtensionProvisioningService`
+-> `App\Services\Telephony\TelephonyService`
+-> configured `EndpointProvisioningProvider`
+-> normalized provider state stored on the extension
+
+Credential rotation is handled separately through `ExtensionCredentialService`, which returns plaintext once and stores only encrypted values.
 
 ## Contacts Lookup Flow
 
