@@ -759,22 +759,33 @@ The Laravel domain must not depend directly on FreeSWITCH-specific classes.
 
 ## 15.2 Phone Numbers and DIDs
 
-- [ ] Phone number model
-- [ ] Tenant ownership
-- [ ] E.164 normalization
-- [ ] Provider
-- [ ] External identifier
-- [ ] Status
-- [ ] Capabilities
+- [x] Phone number model
+- [x] Tenant ownership
+- [x] E.164 normalization
+- [x] Provider
+- [x] External identifier
+- [x] Status
+- [x] Capabilities
 - [ ] Cost metadata
 - [ ] Routing destination
-- [ ] CRUD
-- [ ] Policies
+- [x] CRUD
+- [x] Policies
 - [ ] Events
 - [ ] Activity logs
-- [ ] API documentation
-- [ ] Tests
-- [ ] Demo data
+- [x] API documentation
+- [x] Tests
+- [x] Demo data
+- [x] DID assignment to users
+- [x] Multiple DIDs per user
+- [x] One primary DID per user per tenant
+- [x] Tenant-scoped DID inventory
+- [x] DID permissions
+- [x] DID API
+- [x] Angular DID UI
+- [x] Tenant-aware DID seed data
+- [x] DID isolation tests
+- [x] Primary DID resolver
+- [x] Inbound DID ownership resolver foundation
 
 ---
 
@@ -1283,7 +1294,7 @@ Do not treat the existing billing page as a completed telephony billing implemen
 - [x] Fake PBX adapter
 - [x] Contacts
 - [x] Extensions
-- [ ] Phone numbers
+- [x] Phone numbers
 - [ ] Call logs
 
 ---
@@ -1351,7 +1362,7 @@ Milestone status: `PARTIAL`
 - [x] Fake PBX adapter works
 - [x] Contacts work
 - [x] Extensions work
-- [ ] Phone numbers and DIDs work
+- [x] Phone numbers and DIDs work
 - [ ] Call logs work
 - [ ] Demo telephony data exists
 - [ ] Initial telephony statistics are populated

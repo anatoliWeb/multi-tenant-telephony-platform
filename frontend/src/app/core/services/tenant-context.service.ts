@@ -7,6 +7,7 @@ import type { TenantContextPayload, TenantMembershipSummary, TenantSummary } fro
 import { ChatStateService } from '../../features/chat/services/chat-state.service';
 import { ContactsStateService } from '../../features/contacts/services/contacts-state.service';
 import { ExtensionsStateService } from '../../features/extensions/services/extensions-state.service';
+import { PhoneNumbersStateService } from '../../features/phone-numbers/services/phone-numbers-state.service';
 
 const ACTIVE_TENANT_KEY = 'admin_active_tenant_id';
 
@@ -27,6 +28,7 @@ export class TenantContextService {
     private readonly chatState: ChatStateService,
     private readonly contactsState: ContactsStateService,
     private readonly extensionsState: ExtensionsStateService,
+    private readonly phoneNumbersState: PhoneNumbersStateService,
   ) {}
 
   get activeTenantId(): string | null {
@@ -61,6 +63,7 @@ export class TenantContextService {
     this.chatState.resetForTenantChange();
     this.contactsState.resetForTenantChange();
     this.extensionsState.resetForTenantChange();
+    this.phoneNumbersState.resetForTenantChange();
     this.tenantsSubject.next([]);
     this.activeTenantSubject.next(null);
     this.setActiveTenantId(null);
@@ -92,6 +95,7 @@ export class TenantContextService {
     this.chatState.resetForTenantChange();
     this.contactsState.resetForTenantChange();
     this.extensionsState.resetForTenantChange();
+    this.phoneNumbersState.resetForTenantChange();
     const payload = await firstValueFrom(this.tenantApi.switchTenant(tenantId));
     this.activeTenantSubject.next(payload.tenant);
     this.setActiveTenantId(payload.current_tenant_id ?? payload.tenant?.id ?? tenantId);
@@ -151,6 +155,7 @@ export class TenantContextService {
       this.chatState.resetForTenantChange();
       this.contactsState.resetForTenantChange();
       this.extensionsState.resetForTenantChange();
+      this.phoneNumbersState.resetForTenantChange();
     }
     this.activeTenantSubject.next(candidate);
     this.setActiveTenantId(candidate?.id ?? null);

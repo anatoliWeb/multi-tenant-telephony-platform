@@ -11,6 +11,7 @@ use App\Models\TenantMembership;
 use App\Models\Contact;
 use App\Models\ContactPhone;
 use App\Models\ContactTag;
+use App\Models\PhoneNumber;
 use App\Models\User;
 use App\Services\Seeding\PerformanceSeedService;
 use Database\Seeders\CoreSeeder;
@@ -97,6 +98,10 @@ class SeederArchitectureTest extends TestCase
         $this->assertSame('custom_observer', $observerUser->roles()->firstOrFail()->name);
         $this->assertSame(1, ContactPhone::query()->where('tenant_id', $defaultTenant->id)->where('normalized_number', '+15550009999')->count());
         $this->assertSame(1, ContactPhone::query()->where('tenant_id', $secondaryTenant->id)->where('normalized_number', '+15550009999')->count());
+        $this->assertSame(1, PhoneNumber::query()->where('tenant_id', $defaultTenant->id)->where('normalized_number', '+15550001001')->count());
+        $this->assertSame(1, PhoneNumber::query()->where('tenant_id', $secondaryTenant->id)->where('normalized_number', '+15550001001')->count());
+        $this->assertGreaterThanOrEqual(4, PhoneNumber::query()->where('tenant_id', $defaultTenant->id)->count());
+        $this->assertGreaterThanOrEqual(2, PhoneNumber::query()->where('tenant_id', $defaultTenant->id)->where('is_primary', true)->count());
 
         $tenantOwnerRoles = Role::query()
             ->where('scope', 'tenant')

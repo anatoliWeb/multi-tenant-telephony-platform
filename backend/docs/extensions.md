@@ -182,3 +182,17 @@ Testing fixtures create a minimal duplicate-number-across-tenants scenario:
 - Tenant B: `2001`
 
 No plaintext secrets are stored in documentation or source-controlled fixtures.
+
+## Relationship to DIDs
+
+Extensions remain separate from DIDs.
+
+- an extension is assigned to a user;
+- a DID is assigned to a user;
+- the relationship between extension and DID is indirect through the shared user;
+- no `extension_id` is stored on `phone_numbers`.
+
+Future routing remains:
+
+- inbound: `DID -> assigned user -> active extension`
+- outbound: `user -> primary DID -> caller ID`

@@ -30,6 +30,10 @@ describe('TenantContextService', () => {
     resetForTenantChange: vi.fn(),
   };
 
+  const phoneNumbersState = {
+    resetForTenantChange: vi.fn(),
+  };
+
   beforeEach(() => {
     window.localStorage.clear();
     vi.clearAllMocks();
@@ -37,7 +41,7 @@ describe('TenantContextService', () => {
 
   it('clears tenant state when no token exists', async () => {
     tokenStorage.getToken.mockReturnValue(null);
-    const service = new TenantContextService(tenantApi as any, tokenStorage as any, authState as any, chatState as any, contactsState as any, extensionsState as any);
+    const service = new TenantContextService(tenantApi as any, tokenStorage as any, authState as any, chatState as any, contactsState as any, extensionsState as any, phoneNumbersState as any);
 
     service.setActiveTenantId('tenant-a');
     await service.hydrateTenantContext();
@@ -48,6 +52,7 @@ describe('TenantContextService', () => {
     expect(chatState.resetForTenantChange).toHaveBeenCalled();
     expect(contactsState.resetForTenantChange).toHaveBeenCalled();
     expect(extensionsState.resetForTenantChange).toHaveBeenCalled();
+    expect(phoneNumbersState.resetForTenantChange).toHaveBeenCalled();
   });
 
   it('hydrates the first available tenant when no selection is stored', async () => {
@@ -90,7 +95,7 @@ describe('TenantContextService', () => {
       }),
     );
 
-    const service = new TenantContextService(tenantApi as any, tokenStorage as any, authState as any, chatState as any, contactsState as any, extensionsState as any);
+    const service = new TenantContextService(tenantApi as any, tokenStorage as any, authState as any, chatState as any, contactsState as any, extensionsState as any, phoneNumbersState as any);
     await service.hydrateTenantContext();
 
     expect(service.activeTenantId).toBe('tenant-a');
@@ -162,7 +167,7 @@ describe('TenantContextService', () => {
       }),
     );
 
-    const service = new TenantContextService(tenantApi as any, tokenStorage as any, authState as any, chatState as any, contactsState as any, extensionsState as any);
+    const service = new TenantContextService(tenantApi as any, tokenStorage as any, authState as any, chatState as any, contactsState as any, extensionsState as any, phoneNumbersState as any);
     await service.switchTenant('tenant-b');
 
     expect(service.activeTenantId).toBe('tenant-b');
@@ -171,5 +176,6 @@ describe('TenantContextService', () => {
     expect(chatState.resetForTenantChange).toHaveBeenCalled();
     expect(contactsState.resetForTenantChange).toHaveBeenCalled();
     expect(extensionsState.resetForTenantChange).toHaveBeenCalled();
+    expect(phoneNumbersState.resetForTenantChange).toHaveBeenCalled();
   });
 });

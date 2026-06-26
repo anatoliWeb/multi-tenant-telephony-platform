@@ -3,6 +3,9 @@
 namespace Database\Seeders;
 
 use App\Enums\TenantMembershipStatus;
+use App\Enums\PhoneNumbers\PhoneNumberAssignmentStatus;
+use App\Enums\PhoneNumbers\PhoneNumberStatus;
+use App\Enums\PhoneNumbers\PhoneNumberType;
 use App\Models\Tenant;
 use App\Models\TenantMembership;
 use App\Models\Contact;
@@ -10,6 +13,7 @@ use App\Models\ContactPhone;
 use App\Models\ContactTag;
 use App\Models\Extension;
 use App\Models\ExtensionCredential;
+use App\Models\PhoneNumber;
 use App\Models\User;
 use App\Services\Seeding\RbacSeedService;
 use App\Services\Seeding\SeederEnvironmentService;
@@ -93,6 +97,8 @@ class TestSeeder extends Seeder
         $this->seedContacts($secondaryTenant, $tenantAdmin, '+15558880001');
         $this->seedExtension($defaultTenant, $tenantOwner, '2001');
         $this->seedExtension($secondaryTenant, $tenantAdmin, '2001');
+        $this->seedPhoneNumber($defaultTenant, $tenantOwner, '+15550001001', true, '+1 555 000 1001');
+        $this->seedPhoneNumber($secondaryTenant, $tenantAdmin, '+15550001001', true, '+1 555 000 1001');
     }
 
     protected function upsertUser(string $email, string $name): User
@@ -233,6 +239,42 @@ class TestSeeder extends Seeder
                 'version' => 1,
                 'rotated_by' => $owner->getKey(),
                 'rotated_at' => now(),
+            ]
+        );
+    }
+
+    protected function seedPhoneNumber(
+        Tenant $tenant,
+        User $owner,
+        string $number,
+        bool $isPrimary = true,
+        ?string $displayNumber = null
+    ): void {
+        PhoneNumber::updateOrCreate(
+            [
+                'tenant_id' => $tenant->getKey(),
+                'normalized_number' => $number,
+            ],
+            [
+                'uuid' => $this->stableUuid($tenant, 'phone-number-'.$number),
+                'number' => $number,
+                'display_number' => $displayNumber ?? $number,
+                'type' => PhoneNumberType::Did->value,
+                'status' => PhoneNumberStatus::Active->value,
+                'assignment_status' => PhoneNumberAssignmentStatus::Assigned->value,
+                'assigned_user_id' => $owner->getKey(),
+                'is_primary' => $isPrimary,
+                'primary_assignment_key' => $isPrimary ? $tenant->getKey().'#'.$owner->getKey() : null,
+                'provider_name' => 'manual',
+                'provider_reference' => 'fixture-'.substr($number, -4),
+                'country_code' => '1',
+                'capabilities' => ['voice'],
+                'metadata' => ['fixture' => true],
+                'purchased_at' => now()->subDays(2),
+                'activated_at' => now()->subDay(),
+                'released_at' => null,
+                'created_by' => $owner->getKey(),
+                'updated_by' => $owner->getKey(),
             ]
         );
     }

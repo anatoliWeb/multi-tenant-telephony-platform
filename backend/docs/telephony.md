@@ -152,3 +152,16 @@ Coverage includes:
 - tenant isolation;
 - idempotency;
 - application-service tenant enforcement.
+
+## Phone Numbers and DIDs
+
+The DID inventory slice is tenant-aware and provider-neutral.
+
+Current rules:
+
+- a DID belongs to a tenant and may be assigned to a user;
+- a user may have multiple DIDs per tenant;
+- a user may have one primary DID per tenant;
+- extensions stay separate and are linked only through the assigned user.
+
+Current implementation does not add FreeSWITCH, SIP.js, carrier adapters, or real call routing.

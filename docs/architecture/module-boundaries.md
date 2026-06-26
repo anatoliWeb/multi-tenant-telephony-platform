@@ -178,3 +178,13 @@ The boundaries below are planning rules for new code. They do not require a whol
 - Contracts consumed: all modules.
 - Allowed dependencies: standard framework primitives and pure utilities.
 - Forbidden dependencies: module-specific business logic, provider adapters, or UI concerns.
+
+## Phone Numbers
+
+- Responsibility: tenant DID inventory, user assignment, primary DID selection, inbound DID ownership resolution foundation.
+- Owned entities: `PhoneNumber`.
+- Public application services: `PhoneNumberService`, `PhoneNumberAssignmentService`, `PhoneNumberQueryService`, `UserPrimaryDidResolver`, `InboundDidResolver`.
+- Events emitted: none yet.
+- Contracts consumed: shared phone-number normalization and generic telephony abstractions only.
+- Allowed dependencies: Shared, Tenancy, RBAC, Telephony contracts.
+- Forbidden dependencies: direct FreeSWITCH persistence, SIP.js, real routing logic.

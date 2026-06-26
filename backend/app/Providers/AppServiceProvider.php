@@ -6,12 +6,14 @@ use App\Models\Conversation;
 use App\Models\Contact;
 use App\Models\ContactTag;
 use App\Models\Extension;
+use App\Models\PhoneNumber;
 use App\Models\ActivityLog;
 use App\Models\User;
 use App\Models\SystemTranslation;
 use App\Policies\ContactPolicy;
 use App\Policies\ContactTagPolicy;
 use App\Policies\ExtensionPolicy;
+use App\Policies\PhoneNumberPolicy;
 use App\Services\Rbac\PermissionCacheService;
 use App\Services\Tenancy\TenantContext;
 use App\Observers\PersonalAccessTokenObserver;
@@ -424,6 +426,23 @@ class AppServiceProvider extends ServiceProvider
                     ->addProperty('last_provisioned_at', new StringType)
                     ->setRequired(['id', 'uuid', 'tenant_id', 'number', 'status', 'provisioning_status', 'registration_status']);
 
+                $phoneNumberSchema = (new ObjectType)
+                    ->addProperty('id', new IntegerType)
+                    ->addProperty('uuid', new StringType)
+                    ->addProperty('number', new StringType)
+                    ->addProperty('normalized_number', new StringType)
+                    ->addProperty('display_number', new StringType)
+                    ->addProperty('type', new StringType)
+                    ->addProperty('status', new StringType)
+                    ->addProperty('assignment_status', new StringType)
+                    ->addProperty('is_primary', new BooleanType)
+                    ->addProperty('provider_name', new StringType)
+                    ->addProperty('provider_reference', new StringType)
+                    ->addProperty('country_code', new StringType)
+                    ->addProperty('capabilities', (new ArrayType)->setItems(new StringType))
+                    ->addProperty('activated_at', new StringType)
+                    ->setRequired(['id', 'uuid', 'number', 'normalized_number', 'display_number', 'type', 'status', 'assignment_status', 'is_primary']);
+
                 $openApi->components->addSchema('PaginationMeta', Schema::fromType($paginationMeta));
                 $openApi->components->addSchema('ApiSuccessResponse', Schema::fromType($apiSuccess));
                 $openApi->components->addSchema('ApiErrorResponse', Schema::fromType($apiError));
@@ -445,6 +464,7 @@ class AppServiceProvider extends ServiceProvider
                 $openApi->components->addSchema('MetaBootstrapResponse', Schema::fromType($metaBootstrapResponse));
                 $openApi->components->addSchema('MetaRbacResponse', Schema::fromType($metaRbacResponse));
                 $openApi->components->addSchema('Extension', Schema::fromType($extensionSchema));
+                $openApi->components->addSchema('PhoneNumber', Schema::fromType($phoneNumberSchema));
             });
 
             Scramble::configure()
@@ -514,6 +534,21 @@ class AppServiceProvider extends ServiceProvider
                         $addQueryParameter('search', 'Search by extension number, label, assignee, or contact.', '2001');
                         $addQueryParameter('status', 'Extension status filter.', 'active');
                         $addQueryParameter('assigned', 'Assignment filter (user, contact, unassigned).', 'user');
+                    }
+
+                    if ($uri === '/api/v1/phone-numbers' && strtolower($operation->method) === 'get') {
+                        $addQueryParameter('page', 'Pagination page number.', 1);
+                        $addQueryParameter('per_page', 'Items per page.', 15);
+                        $addQueryParameter('search', 'Search by DID, display number, normalized number, or assigned user.', '+15550001001');
+                        $addQueryParameter('number', 'Filter by DID or normalized number.', '+15550001001');
+                        $addQueryParameter('type', 'Filter by number type.', 'did');
+                        $addQueryParameter('status', 'Filter by lifecycle status.', 'active');
+                        $addQueryParameter('assigned', 'Filter assignment state.', 'assigned');
+                        $addQueryParameter('assigned_user', 'Filter by assigned user id.', 1);
+                        $addQueryParameter('primary', 'Filter primary DIDs only.', true);
+                        $addQueryParameter('provider', 'Filter by provider name.', 'manual');
+                        $addQueryParameter('sort', 'Sort field.', 'display_number');
+                        $addQueryParameter('direction', 'Sort direction.', 'asc');
                     }
                 });
         }
@@ -631,6 +666,7 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(Contact::class, ContactPolicy::class);
         Gate::policy(ContactTag::class, ContactTagPolicy::class);
         Gate::policy(Extension::class, ExtensionPolicy::class);
+        Gate::policy(PhoneNumber::class, PhoneNumberPolicy::class);
 
         /*
         |--------------------------------------------------------------------------

@@ -3,9 +3,13 @@
 namespace App\Services\Seeding;
 
 use App\Enums\Contacts\ContactStatus;
+use App\Enums\PhoneNumbers\PhoneNumberAssignmentStatus;
+use App\Enums\PhoneNumbers\PhoneNumberStatus;
+use App\Enums\PhoneNumbers\PhoneNumberType;
 use App\Enums\TenantMembershipStatus;
 use App\Models\Extension;
 use App\Models\ExtensionCredential;
+use App\Models\PhoneNumber;
 use App\Models\Tenant;
 use App\Models\TenantMembership;
 use App\Models\User;
@@ -51,6 +55,7 @@ class TenantDemoSeedService
             'role_assignments' => 0,
             'contacts' => 0,
             'extensions' => 0,
+            'phone_numbers' => 0,
         ];
 
         $platformAdmin = $this->upsertUser('platform-admin@test.local', 'Platform Admin');
@@ -116,6 +121,8 @@ class TenantDemoSeedService
         $counts['contacts'] += $this->contactDemoSeedService->seed($secondaryTenant, $this->contactRows('tenant-b'))['contacts'];
         $counts['extensions'] += $this->seedExtensions($defaultTenant, 'tenant-a');
         $counts['extensions'] += $this->seedExtensions($secondaryTenant, 'tenant-b');
+        $counts['phone_numbers'] += $this->seedPhoneNumbers($defaultTenant, 'tenant-a');
+        $counts['phone_numbers'] += $this->seedPhoneNumbers($secondaryTenant, 'tenant-b');
 
         return $counts;
     }
@@ -364,6 +371,82 @@ class TenantDemoSeedService
     private function stableExtensionUuid(Tenant $tenant, string $number): string
     {
         $hash = substr(sha1((string) $tenant->getKey().':extension:'.$number), 0, 32);
+
+        return sprintf(
+            '%s-%s-%s-%s-%s',
+            substr($hash, 0, 8),
+            substr($hash, 8, 4),
+            substr($hash, 12, 4),
+            substr($hash, 16, 4),
+            substr($hash, 20, 12),
+        );
+    }
+
+    private function seedPhoneNumbers(Tenant $tenant, string $tenantPrefix): int
+    {
+        $owner = User::query()->where('email', sprintf('%s-owner@test.local', $tenantPrefix))->first();
+        $agent = User::query()->where('email', sprintf('%s-agent@test.local', $tenantPrefix))->first();
+
+        if (! $owner instanceof User) {
+            return 0;
+        }
+
+        $rows = $tenantPrefix === 'tenant-a'
+            ? [
+                ['number' => '+15550001001', 'display' => '+1 555 000 1001', 'user' => $owner, 'is_primary' => true],
+                ['number' => '+15550001002', 'display' => '+1 555 000 1002', 'user' => $owner, 'is_primary' => false],
+                ['number' => '+15550001003', 'display' => '+1 555 000 1003', 'user' => $agent, 'is_primary' => true],
+                ['number' => '+15550001999', 'display' => '+1 555 000 1999', 'user' => null, 'is_primary' => false],
+            ]
+            : [
+                ['number' => '+15550001001', 'display' => '+1 555 000 1001', 'user' => $owner, 'is_primary' => true],
+            ];
+
+        foreach ($rows as $row) {
+            $assignedUser = $row['user'];
+            $isAssigned = $assignedUser instanceof User;
+
+            PhoneNumber::query()->updateOrCreate(
+                [
+                    'tenant_id' => $tenant->getKey(),
+                    'normalized_number' => $row['number'],
+                ],
+                [
+                    'uuid' => $this->stablePhoneNumberUuid($tenant, $row['number']),
+                    'number' => $row['number'],
+                    'display_number' => $row['display'],
+                    'type' => PhoneNumberType::Did->value,
+                    'status' => PhoneNumberStatus::Active->value,
+                    'assignment_status' => $isAssigned
+                        ? PhoneNumberAssignmentStatus::Assigned->value
+                        : PhoneNumberAssignmentStatus::Unassigned->value,
+                    'assigned_user_id' => $isAssigned ? $assignedUser->getKey() : null,
+                    'is_primary' => $isAssigned ? (bool) $row['is_primary'] : false,
+                    'primary_assignment_key' => $isAssigned && (bool) $row['is_primary']
+                        ? $tenant->getKey().'#'.$assignedUser->getKey()
+                        : null,
+                    'provider_name' => 'manual',
+                    'provider_reference' => sprintf('%s-%s', $tenantPrefix, substr($row['number'], -4)),
+                    'country_code' => '1',
+                    'capabilities' => ['voice'],
+                    'metadata' => [
+                        'inventory_source' => 'demo_seeder',
+                    ],
+                    'purchased_at' => Carbon::now()->subDays(14),
+                    'activated_at' => Carbon::now()->subDays(13),
+                    'released_at' => null,
+                    'created_by' => $owner->getKey(),
+                    'updated_by' => $owner->getKey(),
+                ]
+            );
+        }
+
+        return count($rows);
+    }
+
+    private function stablePhoneNumberUuid(Tenant $tenant, string $number): string
+    {
+        $hash = substr(sha1((string) $tenant->getKey().':phone-number:'.$number), 0, 32);
 
         return sprintf(
             '%s-%s-%s-%s-%s',

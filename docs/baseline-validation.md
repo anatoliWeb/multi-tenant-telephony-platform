@@ -272,3 +272,21 @@ Extensions-specific notes:
 - FreeSWITCH is not installed.
 - SIP.js is not integrated.
 - Real SIP registration is not implemented.
+
+## Stage 11 DID Addendum
+
+Follow-up validation on 2026-06-26 confirmed the tenant-aware DID baseline on the development and testing environments.
+
+Verified:
+
+- the additive development migration for `phone_numbers` preserved existing development data counts;
+- DID uniqueness is tenant-scoped and primary DID consistency is enforced transactionally;
+- user assignment stays inside the active tenant and does not bind DIDs directly to extensions;
+- Angular now exposes a tenant DID inventory screen with assignment, primary selection, and tenant-switch reset behavior.
+
+DID-specific notes:
+
+- DIDs are implemented.
+- FreeSWITCH is not installed.
+- SIP.js is not integrated.
+- Real routing and calls are not implemented.

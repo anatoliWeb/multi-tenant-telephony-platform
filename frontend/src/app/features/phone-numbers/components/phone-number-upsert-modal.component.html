@@ -1,0 +1,55 @@
+<app-modal-shell [open]="open" (close)="close.emit()">
+  <header class="panel__header">
+    <div>
+      <h3>{{ titleKey | t }}</h3>
+      <p>{{ 'phoneNumbers.modal.subtitle' | t }}</p>
+    </div>
+    <button type="button" class="close-button" (click)="close.emit()">&times;</button>
+  </header>
+
+  <div class="panel__body">
+    <div class="grid">
+      <label>
+        <span>{{ 'phoneNumbers.fields.number' | t }}</span>
+        <input [(ngModel)]="draft.number" data-testid="phone-number-number" />
+      </label>
+      <label>
+        <span>{{ 'phoneNumbers.fields.displayNumber' | t }}</span>
+        <input [(ngModel)]="draft.display_number" />
+      </label>
+      <label>
+        <span>{{ 'phoneNumbers.fields.status' | t }}</span>
+        <select [(ngModel)]="draft.status">
+          <option value="available">{{ 'phoneNumbers.status.available' | t }}</option>
+          <option value="active">{{ 'phoneNumbers.status.active' | t }}</option>
+          <option value="suspended">{{ 'phoneNumbers.status.suspended' | t }}</option>
+          <option value="released">{{ 'phoneNumbers.status.released' | t }}</option>
+        </select>
+      </label>
+      <label>
+        <span>{{ 'phoneNumbers.fields.assignedUser' | t }}</span>
+        <select [(ngModel)]="draft.assigned_user_id">
+          <option [ngValue]="null">{{ 'phoneNumbers.filters.allAssignments' | t }}</option>
+          <option *ngFor="let user of users" [ngValue]="user.id">
+            {{ user.name }}<ng-container *ngIf="user.extension"> · {{ user.extension.number }}</ng-container>
+          </option>
+        </select>
+      </label>
+      <label>
+        <span>{{ 'phoneNumbers.fields.provider' | t }}</span>
+        <input [(ngModel)]="draft.provider_name" />
+      </label>
+      <label class="checkbox">
+        <input type="checkbox" [(ngModel)]="draft.is_primary" [disabled]="draft.assigned_user_id === null" />
+        <span>{{ 'phoneNumbers.fields.primary' | t }}</span>
+      </label>
+    </div>
+  </div>
+
+  <footer class="panel__footer">
+    <app-button (click)="close.emit()">{{ 'common.actions.close' | t }}</app-button>
+    <app-button [disabled]="saving || !draft.number.trim()" (click)="emitSave()">
+      {{ saving ? ('common.states.saving' | t) : ('common.actions.save' | t) }}
+    </app-button>
+  </footer>
+</app-modal-shell>

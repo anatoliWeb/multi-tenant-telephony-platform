@@ -1,0 +1,175 @@
+<section class="phone-numbers-page">
+  <ui-card>
+    <div class="hero">
+      <div>
+        <h2>{{ 'phoneNumbers.title' | t }}</h2>
+        <p>{{ 'phoneNumbers.subtitle' | t }}</p>
+      </div>
+      <div class="hero-actions">
+        <app-button *ngIf="canCreate" (click)="openCreate()">{{ 'phoneNumbers.actions.create' | t }}</app-button>
+      </div>
+    </div>
+
+    <div class="filters" *ngIf="filters$ | async as filters">
+      <app-search-input
+        [value]="filters.search"
+        [placeholderKey]="'phoneNumbers.filters.searchPlaceholder'"
+        (valueChange)="onSearchChange($event)"
+      />
+      <app-select-filter
+        [labelKey]="'phoneNumbers.fields.status'"
+        [value]="filters.status"
+        [options]="[
+          { value: 'available', labelKey: 'phoneNumbers.status.available' },
+          { value: 'active', labelKey: 'phoneNumbers.status.active' },
+          { value: 'suspended', labelKey: 'phoneNumbers.status.suspended' },
+          { value: 'released', labelKey: 'phoneNumbers.status.released' }
+        ]"
+        (valueChange)="onStatusChange($event)"
+      />
+      <app-select-filter
+        [labelKey]="'phoneNumbers.fields.assignment'"
+        [value]="filters.assigned"
+        [options]="[
+          { value: 'assigned', labelKey: 'phoneNumbers.filters.assigned' },
+          { value: 'unassigned', labelKey: 'phoneNumbers.filters.unassigned' }
+        ]"
+        (valueChange)="onAssignedChange($event)"
+      />
+      <app-select-filter
+        [labelKey]="'phoneNumbers.fields.primary'"
+        [value]="filters.primary"
+        [options]="[
+          { value: 'true', labelKey: 'phoneNumbers.filters.primaryOnly' },
+          { value: 'false', labelKey: 'phoneNumbers.filters.secondaryOnly' }
+        ]"
+        (valueChange)="onPrimaryChange($event)"
+      />
+    </div>
+  </ui-card>
+
+  <div class="layout">
+    <ui-card>
+      <div *ngIf="loading$ | async" class="state">{{ 'phoneNumbers.loading' | t }}</div>
+      <div *ngIf="!(loading$ | async) && (error$ | async) as error" class="state error">{{ error }}</div>
+      <div *ngIf="!(loading$ | async) && !(error$ | async) && ((phoneNumbers$ | async)?.length ?? 0) === 0" class="state">
+        {{ 'phoneNumbers.empty' | t }}
+      </div>
+
+      <div class="phone-number-list" *ngIf="!(loading$ | async) && ((phoneNumbers$ | async)?.length ?? 0) > 0">
+        <button
+          type="button"
+          class="phone-number-row"
+          *ngFor="let phoneNumber of (phoneNumbers$ | async); trackBy: trackPhoneNumber"
+          [class.active]="(activePhoneNumber$ | async)?.id === phoneNumber.id"
+          (click)="selectPhoneNumber(phoneNumber)"
+          data-testid="phone-number-row"
+        >
+          <div>
+            <strong>{{ phoneNumber.display_number }}</strong>
+            <p>{{ phoneNumber.assigned_user?.name || ('phoneNumbers.unassigned' | t) }}</p>
+          </div>
+          <div class="meta">
+            <span class="badge" *ngIf="phoneNumber.is_primary">{{ 'phoneNumbers.primary' | t }}</span>
+            <small>{{ ('phoneNumbers.status.' + phoneNumber.status) | t }}</small>
+          </div>
+        </button>
+      </div>
+
+      <app-pagination
+        *ngIf="pagination$ | async as pagination"
+        [currentPage]="pagination.current_page ?? 1"
+        [lastPage]="pagination.last_page ?? 1"
+        [perPage]="pagination.per_page ?? 15"
+        [total]="pagination.total ?? 0"
+        (pageChange)="onPageChange($event)"
+      />
+    </ui-card>
+
+    <ui-card>
+      <div *ngIf="detailLoading$ | async" class="state">{{ 'phoneNumbers.detailLoading' | t }}</div>
+      <div *ngIf="!(detailLoading$ | async) && !(activePhoneNumber$ | async)" class="state">
+        {{ 'phoneNumbers.detailEmpty' | t }}
+      </div>
+
+      <div *ngIf="!(detailLoading$ | async) && (activePhoneNumber$ | async) as phoneNumber" class="detail" data-testid="phone-number-detail">
+        <div class="detail__header">
+          <div>
+            <h3>{{ phoneNumber.display_number }}</h3>
+            <p>{{ phoneNumber.normalized_number }}</p>
+          </div>
+          <div class="detail__actions">
+            <app-button *ngIf="canUpdate" (click)="openEdit(phoneNumber)">{{ 'common.actions.edit' | t }}</app-button>
+            <app-button *ngIf="canDelete && phoneNumber.status === 'released'" (click)="deletePhoneNumber(phoneNumber)">{{ 'common.actions.delete' | t }}</app-button>
+          </div>
+        </div>
+
+        <div class="detail-grid">
+          <section>
+            <h4>{{ 'phoneNumbers.fields.assignment' | t }}</h4>
+            <p>{{ phoneNumber.assigned_user?.name || ('phoneNumbers.unassigned' | t) }}</p>
+          </section>
+          <section>
+            <h4>{{ 'phoneNumbers.fields.status' | t }}</h4>
+            <p>{{ ('phoneNumbers.status.' + phoneNumber.status) | t }}</p>
+          </section>
+          <section>
+            <h4>{{ 'phoneNumbers.fields.type' | t }}</h4>
+            <p>{{ phoneNumber.type }}</p>
+          </section>
+          <section>
+            <h4>{{ 'phoneNumbers.fields.provider' | t }}</h4>
+            <p>{{ phoneNumber.provider_name || 'manual' }}</p>
+          </section>
+        </div>
+
+        <section *ngIf="phoneNumber.assigned_user">
+          <h4>{{ 'phoneNumbers.fields.assignedUser' | t }}</h4>
+          <p>{{ phoneNumber.assigned_user.name }}</p>
+          <p *ngIf="phoneNumber.assigned_user.extension">
+            {{ 'phoneNumbers.fields.relatedExtension' | t }}: {{ phoneNumber.assigned_user.extension.number }}
+          </p>
+        </section>
+
+        <section *ngIf="canAssign">
+          <h4>{{ 'phoneNumbers.actions.assign' | t }}</h4>
+          <div class="inline-actions">
+            <select #assignedUser>
+              <option value="">{{ 'phoneNumbers.filters.allAssignments' | t }}</option>
+              <option *ngFor="let user of (users$ | async) ?? []" [value]="user.id">
+                {{ user.name }}<ng-container *ngIf="user.extension"> · {{ user.extension.number }}</ng-container>
+              </option>
+            </select>
+            <app-button (click)="assignToUser(phoneNumber, assignedUser.value)">{{ 'phoneNumbers.actions.assign' | t }}</app-button>
+            <app-button *ngIf="phoneNumber.assigned_user" (click)="unassign(phoneNumber)">{{ 'phoneNumbers.actions.unassign' | t }}</app-button>
+          </div>
+        </section>
+
+        <section class="inline-actions">
+          <app-button *ngIf="canSetPrimary && phoneNumber.assigned_user && !phoneNumber.is_primary" (click)="setPrimary(phoneNumber)">
+            {{ 'phoneNumbers.actions.setPrimary' | t }}
+          </app-button>
+          <app-button *ngIf="canProvision && phoneNumber.status !== 'active'" (click)="activate(phoneNumber)">
+            {{ 'phoneNumbers.actions.activate' | t }}
+          </app-button>
+          <app-button *ngIf="canProvision && phoneNumber.status === 'active'" (click)="suspend(phoneNumber)">
+            {{ 'phoneNumbers.actions.suspend' | t }}
+          </app-button>
+          <app-button *ngIf="canRelease && phoneNumber.status !== 'released'" (click)="release(phoneNumber)">
+            {{ 'phoneNumbers.actions.release' | t }}
+          </app-button>
+        </section>
+      </div>
+    </ui-card>
+  </div>
+
+  <app-phone-number-upsert-modal
+    [open]="isModalOpen"
+    [mode]="modalMode"
+    [phoneNumber]="modalPhoneNumber"
+    [users]="(users$ | async) ?? []"
+    [saving]="(saving$ | async) ?? false"
+    (close)="closeModal()"
+    (save)="savePhoneNumber($event)"
+  />
+</section>

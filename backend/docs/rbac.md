@@ -120,3 +120,25 @@ Verified behavior:
 - assigned users and assigned contacts must belong to the active tenant;
 - credential rotation stays behind the dedicated credential-management permission;
 - cross-tenant extension identifiers fail closed.
+
+## Phone Numbers Permissions
+
+The DID module uses tenant-scoped permissions only.
+
+Implemented permissions:
+
+- `tenant.phone_numbers.view`
+- `tenant.phone_numbers.create`
+- `tenant.phone_numbers.update`
+- `tenant.phone_numbers.delete`
+- `tenant.phone_numbers.assign`
+- `tenant.phone_numbers.set_primary`
+- `tenant.phone_numbers.provision`
+- `tenant.phone_numbers.release`
+
+Verified behavior:
+
+- platform permissions alone do not grant tenant DID access;
+- suspended, invited, and removed memberships cannot receive a DID assignment;
+- cross-tenant user identifiers fail closed;
+- primary DID changes remain tenant-local.

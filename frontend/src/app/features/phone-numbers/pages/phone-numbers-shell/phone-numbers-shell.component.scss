@@ -1,0 +1,62 @@
+.phone-numbers-page,
+.layout {
+  display: grid;
+  gap: 1rem;
+}
+
+.layout {
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+}
+
+.hero,
+.detail__header,
+.inline-actions {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.filters,
+.phone-number-list,
+.detail,
+.detail-grid {
+  display: grid;
+  gap: 1rem;
+}
+
+.phone-number-row {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  text-align: left;
+  padding: 0.875rem 1rem;
+}
+
+.phone-number-row.active {
+  outline: 2px solid currentColor;
+}
+
+.meta {
+  display: grid;
+  gap: 0.25rem;
+  justify-items: end;
+}
+
+.badge {
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.detail-grid {
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+}
+
+.state.error {
+  color: #b42318;
+}
+
+select {
+  min-width: 12rem;
+}

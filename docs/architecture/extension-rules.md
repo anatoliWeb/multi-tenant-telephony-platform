@@ -77,3 +77,12 @@ For telephony endpoint modules such as Extensions:
 - audit trail;
 - correlation ID;
 - sensitive data redaction.
+
+## DID Rule
+
+When extending telephony modules:
+
+- assign DIDs to users, not extensions;
+- show an assigned user's extension only as informational context;
+- enforce one primary DID per `(tenant, user)`;
+- keep inbound routing and outbound caller-ID execution out of the inventory slice.

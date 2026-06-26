@@ -152,3 +152,13 @@ Rules:
 The next slice should continue applying tenant ownership to the remaining legacy modules and propagate tenant context through the rest of the runtime.
 
 Private per-user contacts remain deferred. The completed `Personal contacts` TODO item refers to tenant-owned contacts representing natural persons, not user-private contact books.
+
+## Phone Number Ownership
+
+Phone numbers use the same tenant boundary as contacts, chat, and extensions.
+
+- every DID row stores `tenant_id`;
+- writes derive ownership from `TenantContext`;
+- route binding is tenant-aware;
+- the same normalized DID may exist in different tenants for deterministic fixtures;
+- assigned users must be active members of the same tenant.

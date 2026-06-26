@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 
@@ -89,6 +90,21 @@ class User extends Authenticatable
     public function activeTenantMemberships(): HasMany
     {
         return $this->tenantMemberships()->where('status', 'active');
+    }
+
+    public function phoneNumbers(): HasMany
+    {
+        return $this->hasMany(PhoneNumber::class, 'assigned_user_id');
+    }
+
+    public function primaryPhoneNumber(): HasOne
+    {
+        return $this->hasOne(PhoneNumber::class, 'assigned_user_id')->where('is_primary', true);
+    }
+
+    public function assignedExtensions(): HasMany
+    {
+        return $this->hasMany(Extension::class, 'assigned_user_id');
     }
 
     /**

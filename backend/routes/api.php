@@ -30,6 +30,7 @@ use App\Http\Controllers\Api\V1\Contacts\ContactExportController;
 use App\Http\Controllers\Api\V1\Contacts\ContactImportController;
 use App\Http\Controllers\Api\V1\Contacts\ContactTagController;
 use App\Http\Controllers\Api\V1\Extensions\ExtensionController;
+use App\Http\Controllers\Api\V1\PhoneNumbers\PhoneNumberController;
 use Illuminate\Support\Facades\Route;
 
 
@@ -773,6 +774,76 @@ Route::prefix('v1')
                     Route::delete('/{extension}', [ExtensionController::class, 'destroy'])
                         ->name('destroy')
                         ->middleware('permission:tenant.extensions.delete');
+                });
+
+                Route::prefix('phone-numbers')
+                    ->as('phone-numbers.')
+                    ->middleware('resolve.tenant')
+                    ->group(function (): void {
+                    Route::get('/', [PhoneNumberController::class, 'index'])
+                        ->name('index')
+                        ->middleware('permission:tenant.phone_numbers.view');
+
+                    Route::get('/assignment-options', [PhoneNumberController::class, 'assignmentOptions'])
+                        ->name('assignment-options')
+                        ->middleware('permission:tenant.phone_numbers.view');
+
+                    Route::post('/', [PhoneNumberController::class, 'store'])
+                        ->name('store')
+                        ->middleware('permission:tenant.phone_numbers.create');
+
+                    Route::get('/{phoneNumber}', [PhoneNumberController::class, 'show'])
+                        ->name('show')
+                        ->middleware('permission:tenant.phone_numbers.view');
+
+                    Route::put('/{phoneNumber}', [PhoneNumberController::class, 'update'])
+                        ->name('update')
+                        ->middleware('permission:tenant.phone_numbers.update');
+
+                    Route::patch('/{phoneNumber}', [PhoneNumberController::class, 'update'])
+                        ->name('patch')
+                        ->middleware('permission:tenant.phone_numbers.update');
+
+                    Route::delete('/{phoneNumber}', [PhoneNumberController::class, 'destroy'])
+                        ->name('destroy')
+                        ->middleware('permission:tenant.phone_numbers.delete');
+
+                    Route::post('/{phoneNumber}/assign', [PhoneNumberController::class, 'assign'])
+                        ->name('assign')
+                        ->middleware('permission:tenant.phone_numbers.assign');
+
+                    Route::post('/{phoneNumber}/unassign', [PhoneNumberController::class, 'unassign'])
+                        ->name('unassign')
+                        ->middleware('permission:tenant.phone_numbers.assign');
+
+                    Route::post('/{phoneNumber}/set-primary', [PhoneNumberController::class, 'setPrimary'])
+                        ->name('set-primary')
+                        ->middleware('permission:tenant.phone_numbers.set_primary');
+
+                    Route::post('/{phoneNumber}/activate', [PhoneNumberController::class, 'activate'])
+                        ->name('activate')
+                        ->middleware('permission:tenant.phone_numbers.provision');
+
+                    Route::post('/{phoneNumber}/suspend', [PhoneNumberController::class, 'suspend'])
+                        ->name('suspend')
+                        ->middleware('permission:tenant.phone_numbers.provision');
+
+                    Route::post('/{phoneNumber}/release', [PhoneNumberController::class, 'release'])
+                        ->name('release')
+                        ->middleware('permission:tenant.phone_numbers.release');
+                });
+
+                Route::prefix('users')
+                    ->as('tenant-users.')
+                    ->middleware('resolve.tenant')
+                    ->group(function (): void {
+                    Route::get('/{user}/phone-numbers', [PhoneNumberController::class, 'userPhoneNumbers'])
+                        ->name('phone-numbers')
+                        ->middleware('permission:tenant.phone_numbers.view');
+
+                    Route::get('/{user}/primary-did', [PhoneNumberController::class, 'userPrimaryDid'])
+                        ->name('primary-did')
+                        ->middleware('permission:tenant.phone_numbers.view');
                 });
 
 

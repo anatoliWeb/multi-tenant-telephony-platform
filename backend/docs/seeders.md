@@ -83,6 +83,7 @@ Seeds the test-only baseline used by feature tests:
 - multi-tenant coverage for isolation tests;
 - minimal deterministic contact fixtures.
 - minimal deterministic extension fixtures.
+- minimal deterministic phone-number fixtures.
 
 ### PerformanceSeeder
 
@@ -108,3 +109,13 @@ Seeds high-volume data in batches:
 - `backend/docs/docker.md`
 - `backend/docs/multi-tenancy.md`
 - `backend/docs/rbac.md`
+- `backend/docs/phone-numbers.md`
+
+## DID Demo Fixtures
+
+`DemoSeeder` now creates deterministic tenant-aware DID inventory:
+
+- Tenant A: `+15550001001` primary for owner, `+15550001002` secondary for owner, `+15550001003` primary for agent, `+15550001999` unassigned.
+- Tenant B: `+15550001001` primary for the tenant owner.
+
+`TestSeeder` creates a duplicate-number-across-tenants fixture for isolation tests.

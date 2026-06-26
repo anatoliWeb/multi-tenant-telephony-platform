@@ -77,4 +77,9 @@ class Tenant extends Model
     {
         return $this->hasMany(Contact::class);
     }
+
+    public function phoneNumbers(): HasMany
+    {
+        return $this->hasMany(PhoneNumber::class);
+    }
 }

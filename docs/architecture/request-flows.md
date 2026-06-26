@@ -162,3 +162,24 @@ This flow is intentionally lookup-only in the current slice and does not place o
 
 - Current flows are still modular-monolith flows.
 - The request/queue/realtime chain is documented here as it exists today, not as a future extraction target.
+
+## Phone Numbers Flow
+
+### Example: tenant-aware DID assignment
+
+`TenantContext`
+-> `App\Http\Controllers\Api\V1\PhoneNumbers\PhoneNumberController`
+-> `App\Services\PhoneNumbers\PhoneNumberService`
+-> `App\Services\PhoneNumbers\PhoneNumberAssignmentService`
+-> tenant-scoped `PhoneNumber` write
+-> `PhoneNumberResource`
+
+### Example: inbound DID ownership lookup
+
+`normalized incoming number`
+-> `App\Services\Contacts\PhoneNumberNormalizer`
+-> `App\Services\PhoneNumbers\InboundDidResolver`
+-> tenant-owned `PhoneNumber`
+-> assigned `User` if present
+
+This flow does not resolve directly to an extension and does not place real calls yet.
