@@ -11,6 +11,14 @@
 
 ---
 
+## Current Access Baseline
+
+- [x] Demo and test data creation live in seeders and seed services.
+- [x] `TenantBootstrapService` is read-only.
+- [x] Platform Admin tenant access is centralized through tenant permission resolution.
+- [x] Tenant route middleware uses canonical unprefixed tenant permissions against the active tenant scope.
+- PARTIAL Live browser verification still depends on a working local browser-control path, and backend testing reruns must stay sequential against `saas_testing`.
+
 # 1. Project Strategy
 
 The existing application is the foundation of `multi-tenant-telephony-platform`.
@@ -559,28 +567,28 @@ Do not discard the existing seeders.
 
 ## 10.2 CoreSeeder
 
-- [ ] System permissions
-- [ ] Platform roles
-- [ ] Tenant default roles
-- [ ] Role-permission assignments
+- [x] System permissions
+- [x] Platform roles
+- [x] Tenant default roles
+- [x] Role-permission assignments
 - [ ] Default system settings
 - [ ] Status dictionaries
 
 ## 10.3 DemoSeeder
 
-- [ ] Platform Super Admin
-- [ ] Platform Support user
-- [ ] Main active tenant
-- [ ] Second active tenant
-- [ ] Suspended tenant
-- [ ] Tenant owners
-- [ ] Tenant administrators
-- [ ] Telephony managers
-- [ ] Team managers
-- [ ] Billing managers
-- [ ] Analysts
-- [ ] Agents
-- [ ] Read-only users
+- [x] Platform Super Admin
+- [x] Platform Support user
+- [x] Main active tenant
+- [x] Second active tenant
+- [x] Suspended tenant
+- [x] Tenant owners
+- [x] Tenant administrators
+- [x] Telephony managers
+- [x] Team managers
+- [x] Billing managers
+- [x] Analysts
+- [x] Agents
+- [x] Read-only users
 - [x] Existing chat demo data adapted to tenants
 - [ ] Activity logs
 - [ ] Notifications
@@ -791,34 +799,34 @@ The Laravel domain must not depend directly on FreeSWITCH-specific classes.
 
 # 16. Stage 12: Call Logs and Statistics
 
-- [ ] Call log model
-- [ ] External call identifier
-- [ ] Direction
-- [ ] Status
-- [ ] Disposition
-- [ ] Source
-- [ ] Destination
-- [ ] Normalized numbers
-- [ ] Extension relation
-- [ ] DID relation
-- [ ] Start time
-- [ ] Ringing time
-- [ ] Answer time
-- [ ] End time
-- [ ] Duration
-- [ ] Billable duration
-- [ ] Hangup cause
-- [ ] Provider metadata
-- [ ] Correlation ID
-- [ ] Duplicate-event protection
-- [ ] Out-of-order event handling
-- [ ] Filters
-- [ ] Search
-- [ ] Pagination
+- [x] Call log model
+- [x] External call identifier
+- [x] Direction
+- [x] Status
+- [x] Disposition
+- [x] Source
+- [x] Destination
+- [x] Normalized numbers
+- [x] Extension relation
+- [x] DID relation
+- [x] Start time
+- [x] Ringing time
+- [x] Answer time
+- [x] End time
+- [x] Duration
+- [x] Billable duration
+- [x] Hangup cause
+- [x] Provider metadata
+- [x] Correlation ID
+- [x] Duplicate-event protection
+- [x] Out-of-order event handling
+- [x] Filters
+- [x] Search
+- [x] Pagination
 - [ ] Export
-- [ ] Own/team/tenant visibility
-- [ ] API documentation
-- [ ] Tests
+- [x] Own/team/tenant visibility
+- [x] API documentation
+- [x] Tests
 
 ## 16.1 Demo Call Data
 
@@ -1295,7 +1303,7 @@ Do not treat the existing billing page as a completed telephony billing implemen
 - [x] Contacts
 - [x] Extensions
 - [x] Phone numbers
-- [ ] Call logs
+- [x] Call logs
 
 ---
 
@@ -1363,8 +1371,8 @@ Milestone status: `PARTIAL`
 - [x] Contacts work
 - [x] Extensions work
 - [x] Phone numbers and DIDs work
-- [ ] Call logs work
-- [ ] Demo telephony data exists
-- [ ] Initial telephony statistics are populated
+- [x] Call logs work
+- [x] Demo telephony data exists
+- [x] Initial telephony statistics are populated
 - [x] Telephony permissions work
 - [x] Telephony APIs are documented

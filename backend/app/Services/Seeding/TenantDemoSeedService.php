@@ -2,11 +2,19 @@
 
 namespace App\Services\Seeding;
 
+use App\Enums\CallLogs\CallBillingStatus;
+use App\Enums\CallLogs\CallDisposition;
+use App\Enums\CallLogs\CallEventType;
 use App\Enums\Contacts\ContactStatus;
 use App\Enums\PhoneNumbers\PhoneNumberAssignmentStatus;
 use App\Enums\PhoneNumbers\PhoneNumberStatus;
 use App\Enums\PhoneNumbers\PhoneNumberType;
 use App\Enums\TenantMembershipStatus;
+use App\Enums\Telephony\TelephonyCallDirection;
+use App\Enums\Telephony\TelephonyCallStatus;
+use App\Models\CallEvent;
+use App\Models\CallLog;
+use App\Models\Contact;
 use App\Models\Extension;
 use App\Models\ExtensionCredential;
 use App\Models\PhoneNumber;
@@ -14,8 +22,8 @@ use App\Models\Tenant;
 use App\Models\TenantMembership;
 use App\Models\User;
 use App\Services\Extensions\ExtensionService;
+use App\Services\Seeding\TenantSeedService;
 use App\Services\Tenancy\TenantContext;
-use App\Services\Tenancy\TenantBootstrapService;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
@@ -24,7 +32,7 @@ class TenantDemoSeedService
 {
     public function __construct(
         protected RbacSeedService $rbacSeedService,
-        protected TenantBootstrapService $tenantBootstrapService,
+        protected TenantSeedService $tenantSeedService,
         protected ContactDemoSeedService $contactDemoSeedService,
         protected TenantContext $tenantContext,
         protected ExtensionService $extensionService,
@@ -38,15 +46,19 @@ class TenantDemoSeedService
      */
     public function seed(): array
     {
-        $tenants = $this->tenantBootstrapService->ensureBaseTenants();
+        $tenants = $this->tenantSeedService->ensureBaseTenants();
+        $permissions = $this->rbacSeedService->seedPermissionCatalog();
         $platformRoles = $this->rbacSeedService->seedPlatformRoles();
         $tenantRoles = [];
 
         foreach ($tenants as $tenant) {
             if ($tenant instanceof Tenant) {
                 $tenantRoles[$tenant->id] = $this->rbacSeedService->seedTenantRoles($tenant);
+                $this->rbacSeedService->syncTenantRolePermissions($tenant, $tenantRoles[$tenant->id], $permissions);
             }
         }
+
+        $this->rbacSeedService->invalidateRbacCaches();
 
         $counts = [
             'tenants' => count($tenants),
@@ -56,6 +68,7 @@ class TenantDemoSeedService
             'contacts' => 0,
             'extensions' => 0,
             'phone_numbers' => 0,
+            'call_logs' => 0,
         ];
 
         $platformAdmin = $this->upsertUser('platform-admin@test.local', 'Platform Admin');
@@ -123,6 +136,8 @@ class TenantDemoSeedService
         $counts['extensions'] += $this->seedExtensions($secondaryTenant, 'tenant-b');
         $counts['phone_numbers'] += $this->seedPhoneNumbers($defaultTenant, 'tenant-a');
         $counts['phone_numbers'] += $this->seedPhoneNumbers($secondaryTenant, 'tenant-b');
+        $counts['call_logs'] += $this->seedCallLogs($defaultTenant, 'tenant-a');
+        $counts['call_logs'] += $this->seedCallLogs($secondaryTenant, 'tenant-b');
 
         return $counts;
     }
@@ -447,6 +462,257 @@ class TenantDemoSeedService
     private function stablePhoneNumberUuid(Tenant $tenant, string $number): string
     {
         $hash = substr(sha1((string) $tenant->getKey().':phone-number:'.$number), 0, 32);
+
+        return sprintf(
+            '%s-%s-%s-%s-%s',
+            substr($hash, 0, 8),
+            substr($hash, 8, 4),
+            substr($hash, 12, 4),
+            substr($hash, 16, 4),
+            substr($hash, 20, 12),
+        );
+    }
+
+    private function seedCallLogs(Tenant $tenant, string $tenantPrefix): int
+    {
+        $owner = User::query()->where('email', sprintf('%s-owner@test.local', $tenantPrefix))->first();
+        $agent = User::query()->where('email', sprintf('%s-agent@test.local', $tenantPrefix))->first();
+
+        if (! $owner instanceof User) {
+            return 0;
+        }
+
+        $ownerExtension = Extension::query()->where('tenant_id', $tenant->getKey())->where('number', '2001')->first();
+        $agentExtension = Extension::query()->where('tenant_id', $tenant->getKey())->where('number', '2002')->first();
+        $ownerDid = PhoneNumber::query()->where('tenant_id', $tenant->getKey())->where('normalized_number', '+15550001001')->first();
+        $agentDid = PhoneNumber::query()->where('tenant_id', $tenant->getKey())->where('normalized_number', $tenantPrefix === 'tenant-a' ? '+15550001003' : '+15550001001')->first();
+        $unassignedDid = PhoneNumber::query()->where('tenant_id', $tenant->getKey())->where('normalized_number', '+15550001999')->first();
+        $contact = Contact::query()->where('tenant_id', $tenant->getKey())->where('display_name', Str::title($tenantPrefix).' Support Contact')->first();
+        $archivedVendor = Contact::query()->where('tenant_id', $tenant->getKey())->where('display_name', Str::title($tenantPrefix).' Archived Vendor')->first();
+
+        $rows = $tenantPrefix === 'tenant-a'
+            ? [
+                [
+                    'key' => 'shared-provider-call',
+                    'direction' => TelephonyCallDirection::Inbound,
+                    'status' => TelephonyCallStatus::Completed,
+                    'disposition' => CallDisposition::Answered,
+                    'from' => '+15550009999',
+                    'to' => '+15550001001',
+                    'caller_contact_id' => $contact?->getKey(),
+                    'callee_user_id' => $owner->getKey(),
+                    'callee_extension_id' => $ownerExtension?->getKey(),
+                    'callee_phone_number_id' => $ownerDid?->getKey(),
+                    'started_offset' => 6,
+                    'ringing' => 8,
+                    'talk' => 90,
+                    'events' => [CallEventType::CallCreated, CallEventType::CallRinging, CallEventType::CallAnswered, CallEventType::CallCompleted],
+                ],
+                [
+                    'key' => 'tenant-a-missed',
+                    'direction' => TelephonyCallDirection::Inbound,
+                    'status' => TelephonyCallStatus::Completed,
+                    'disposition' => CallDisposition::NoAnswer,
+                    'from' => '+15550007777',
+                    'to' => '+15550001999',
+                    'callee_phone_number_id' => $unassignedDid?->getKey(),
+                    'started_offset' => 5,
+                    'ringing' => 25,
+                    'talk' => 0,
+                    'events' => [CallEventType::CallCreated, CallEventType::CallRinging, CallEventType::CallCompleted],
+                ],
+                [
+                    'key' => 'tenant-a-outbound-answered',
+                    'direction' => TelephonyCallDirection::Outbound,
+                    'status' => TelephonyCallStatus::Completed,
+                    'disposition' => CallDisposition::Answered,
+                    'from' => '+15550001001',
+                    'to' => '+15550003333',
+                    'caller_user_id' => $owner->getKey(),
+                    'caller_extension_id' => $ownerExtension?->getKey(),
+                    'caller_phone_number_id' => $ownerDid?->getKey(),
+                    'callee_contact_id' => $archivedVendor?->getKey(),
+                    'started_offset' => 4,
+                    'ringing' => 10,
+                    'talk' => 180,
+                    'events' => [CallEventType::CallCreated, CallEventType::CallRinging, CallEventType::CallAnswered, CallEventType::CallCompleted],
+                ],
+                [
+                    'key' => 'tenant-a-outbound-failed',
+                    'direction' => TelephonyCallDirection::Outbound,
+                    'status' => TelephonyCallStatus::Failed,
+                    'disposition' => CallDisposition::Failed,
+                    'from' => '+15550001003',
+                    'to' => '+15550008888',
+                    'caller_user_id' => $agent?->getKey(),
+                    'caller_extension_id' => $agentExtension?->getKey(),
+                    'caller_phone_number_id' => $agentDid?->getKey(),
+                    'started_offset' => 3,
+                    'ringing' => 0,
+                    'talk' => 0,
+                    'failure_code' => 'FAKE_DOWN',
+                    'failure_message' => 'Synthetic provider failure.',
+                    'events' => [CallEventType::CallCreated, CallEventType::CallFailed],
+                ],
+                [
+                    'key' => 'tenant-a-internal',
+                    'direction' => TelephonyCallDirection::Internal,
+                    'status' => TelephonyCallStatus::Completed,
+                    'disposition' => CallDisposition::Answered,
+                    'from' => '2001',
+                    'to' => '2002',
+                    'caller_user_id' => $owner->getKey(),
+                    'callee_user_id' => $agent?->getKey(),
+                    'caller_extension_id' => $ownerExtension?->getKey(),
+                    'callee_extension_id' => $agentExtension?->getKey(),
+                    'started_offset' => 2,
+                    'ringing' => 2,
+                    'talk' => 60,
+                    'events' => [CallEventType::CallCreated, CallEventType::CallRinging, CallEventType::CallAnswered, CallEventType::CallCompleted],
+                ],
+            ]
+            : [
+                [
+                    'key' => 'shared-provider-call',
+                    'direction' => TelephonyCallDirection::Inbound,
+                    'status' => TelephonyCallStatus::Completed,
+                    'disposition' => CallDisposition::Answered,
+                    'from' => '+15550009999',
+                    'to' => '+15550001001',
+                    'caller_contact_id' => $contact?->getKey(),
+                    'callee_user_id' => $owner->getKey(),
+                    'callee_extension_id' => $ownerExtension?->getKey(),
+                    'callee_phone_number_id' => $ownerDid?->getKey(),
+                    'started_offset' => 2,
+                    'ringing' => 4,
+                    'talk' => 45,
+                    'events' => [CallEventType::CallCreated, CallEventType::CallRinging, CallEventType::CallAnswered, CallEventType::CallCompleted],
+                ],
+                [
+                    'key' => 'tenant-b-outbound-failed',
+                    'direction' => TelephonyCallDirection::Outbound,
+                    'status' => TelephonyCallStatus::Failed,
+                    'disposition' => CallDisposition::Busy,
+                    'from' => '+15550001001',
+                    'to' => '+15550006666',
+                    'caller_user_id' => $owner->getKey(),
+                    'caller_extension_id' => $ownerExtension?->getKey(),
+                    'caller_phone_number_id' => $ownerDid?->getKey(),
+                    'started_offset' => 1,
+                    'ringing' => 0,
+                    'talk' => 0,
+                    'hangup_cause' => 'busy',
+                    'events' => [CallEventType::CallCreated, CallEventType::CallFailed],
+                ],
+            ];
+
+        foreach ($rows as $index => $row) {
+            $startedAt = Carbon::now()->subDays((int) $row['started_offset'])->setTime(10 + $index, 0);
+            $ringingAt = $startedAt->copy();
+            $answeredAt = $row['talk'] > 0 ? $ringingAt->copy()->addSeconds((int) $row['ringing']) : null;
+            $endedAt = $row['talk'] > 0
+                ? $answeredAt?->copy()->addSeconds((int) $row['talk'])
+                : $ringingAt->copy()->addSeconds(max(5, (int) $row['ringing']));
+            $billingStatus = $row['direction'] === TelephonyCallDirection::Internal
+                ? CallBillingStatus::NonBillable
+                : ($row['status'] === TelephonyCallStatus::Failed ? CallBillingStatus::Failed : CallBillingStatus::Unrated);
+
+            $callLog = CallLog::query()->updateOrCreate(
+                [
+                    'tenant_id' => $tenant->getKey(),
+                    'provider_id' => 'fake',
+                    'provider_call_id' => (string) $row['key'],
+                ],
+                [
+                    'uuid' => $this->stableCallLogUuid($tenant, (string) $row['key']),
+                    'correlation_id' => 'seed-'.$tenantPrefix.'-'.$index,
+                    'direction' => $row['direction']->value,
+                    'status' => $row['status']->value,
+                    'disposition' => $row['disposition']->value,
+                    'from_number' => $row['from'],
+                    'from_normalized_number' => preg_replace('/\D+/', '', $row['from']) === $row['from'] && ! str_starts_with((string) $row['from'], '+')
+                        ? $row['from']
+                        : preg_replace('/\s+/', '', $row['from']),
+                    'to_number' => $row['to'],
+                    'to_normalized_number' => preg_replace('/\D+/', '', $row['to']) === $row['to'] && ! str_starts_with((string) $row['to'], '+')
+                        ? $row['to']
+                        : preg_replace('/\s+/', '', $row['to']),
+                    'caller_user_id' => $row['caller_user_id'] ?? null,
+                    'callee_user_id' => $row['callee_user_id'] ?? null,
+                    'caller_extension_id' => $row['caller_extension_id'] ?? null,
+                    'callee_extension_id' => $row['callee_extension_id'] ?? null,
+                    'caller_phone_number_id' => $row['caller_phone_number_id'] ?? null,
+                    'callee_phone_number_id' => $row['callee_phone_number_id'] ?? null,
+                    'caller_contact_id' => $row['caller_contact_id'] ?? null,
+                    'callee_contact_id' => $row['callee_contact_id'] ?? null,
+                    'started_at' => $startedAt,
+                    'ringing_at' => $ringingAt,
+                    'answered_at' => $answeredAt,
+                    'ended_at' => $endedAt,
+                    'ringing_seconds' => $answeredAt ? max(0, $answeredAt->diffInSeconds($ringingAt)) : 0,
+                    'talk_seconds' => $answeredAt ? max(0, $endedAt->diffInSeconds($answeredAt)) : 0,
+                    'billable_seconds' => $answeredAt ? max(0, $endedAt->diffInSeconds($answeredAt)) : 0,
+                    'total_seconds' => max(0, $endedAt->diffInSeconds($startedAt)),
+                    'hangup_cause' => $row['hangup_cause'] ?? null,
+                    'failure_code' => $row['failure_code'] ?? null,
+                    'failure_message' => $row['failure_message'] ?? null,
+                    'billing_status' => $billingStatus->value,
+                    'recording_available' => false,
+                    'metadata' => ['seeded' => true, 'scenario' => $row['key']],
+                ]
+            );
+
+            foreach ($row['events'] as $sequence => $eventType) {
+                $occurredAt = match ($eventType) {
+                    CallEventType::CallCreated => $startedAt,
+                    CallEventType::CallRinging => $ringingAt,
+                    CallEventType::CallAnswered => $answeredAt ?? $ringingAt,
+                    default => $endedAt,
+                };
+
+                CallEvent::query()->updateOrCreate(
+                    [
+                        'tenant_id' => $tenant->getKey(),
+                        'provider_id' => 'fake',
+                        'provider_event_id' => sprintf('%s:%s', $row['key'], $eventType->value),
+                    ],
+                    [
+                        'uuid' => $this->stableCallEventUuid($tenant, sprintf('%s:%s', $row['key'], $eventType->value)),
+                        'call_log_id' => $callLog->getKey(),
+                        'type' => $eventType->value,
+                        'occurred_at' => $occurredAt,
+                        'sequence' => $sequence + 1,
+                        'payload' => [
+                            'seeded' => true,
+                            'status' => $callLog->status?->value ?? $callLog->status,
+                            'disposition' => $callLog->disposition?->value ?? $callLog->disposition,
+                        ],
+                        'created_at' => $occurredAt,
+                    ]
+                );
+            }
+        }
+
+        return count($rows);
+    }
+
+    private function stableCallLogUuid(Tenant $tenant, string $key): string
+    {
+        $hash = substr(sha1((string) $tenant->getKey().':call-log:'.$key), 0, 32);
+
+        return sprintf(
+            '%s-%s-%s-%s-%s',
+            substr($hash, 0, 8),
+            substr($hash, 8, 4),
+            substr($hash, 12, 4),
+            substr($hash, 16, 4),
+            substr($hash, 20, 12),
+        );
+    }
+
+    private function stableCallEventUuid(Tenant $tenant, string $key): string
+    {
+        $hash = substr(sha1((string) $tenant->getKey().':call-event:'.$key), 0, 32);
 
         return sprintf(
             '%s-%s-%s-%s-%s',

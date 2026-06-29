@@ -25,6 +25,19 @@ Still open:
 - The `pusher-js` Angular CommonJS warning remains as accepted technical debt.
 - The Vue Dart Sass legacy JS API warning remains as accepted technical debt.
 
+## Current Access Validation Focus
+
+Current tenant-access validation should confirm:
+
+- `platform-admin@test.local` can open Vue Admin with platform permissions;
+- Platform Admin sees all active tenants but receives tenant permissions only after explicit tenant selection;
+- Angular tenant navigation remains hidden until a tenant is selected;
+- Angular public settings preload returns `200` before login and does not expose private settings;
+- tenant users receive only role-based tenant permissions;
+- tenant APIs stay scoped to the selected tenant;
+- Vue Admin exposes platform support navigation for tenants, contacts,
+  extensions, phone numbers, and call logs.
+
 ## Docker Service Matrix
 
 | Service | Status | Notes |
@@ -142,6 +155,8 @@ Verified:
 - Browser authentication still needs real UI verification.
 - Browser chat and realtime still need real UI verification.
 - The two frontend warnings above remain accepted technical debt.
+- Some local backend verification runs can still enter a broken `saas_testing`
+  migration state if resets or suites overlap; use sequential reruns only.
 
 ## Final Verdict
 
@@ -290,3 +305,63 @@ DID-specific notes:
 - FreeSWITCH is not installed.
 - SIP.js is not integrated.
 - Real routing and calls are not implemented.
+
+## Stage 12 Addendum
+
+Follow-up validation on 2026-06-26 confirmed the tenant-aware Call Logs and Statistics baseline on the development and testing environments.
+
+Verified:
+
+- the additive development migration for `call_logs` and `call_events` applied without changing existing development data counts;
+- existing development counts remained stable before and after migration:
+  - users `22` -> `22`
+  - tenants `3` -> `3`
+  - contacts `0` -> `0`
+  - extensions `0` -> `0`
+  - phone_numbers `0` -> `0`
+  - conversations `6` -> `6`
+  - messages `324` -> `324`
+- targeted call-log verification:
+  - `4` passed
+  - `0` failed
+  - `0` skipped
+  - `23` assertions
+  - `10.82s`
+- targeted telephony, seeder, and call-log regression rerun:
+  - `12` passed
+  - `0` failed
+  - `0` skipped
+  - `82` assertions
+  - `530.91s`
+- Angular tenant call-log validation:
+  - build passed with the lazy-loaded call-logs feature module;
+  - tests passed with `22` files and `142` tests;
+  - the existing Angular initial bundle budget warning remains;
+  - the existing `pusher-js` CommonJS warning remains.
+- full backend verification after the call-log slice:
+  - `562` passed
+  - `0` failed
+  - `21` skipped
+  - `17682` assertions
+  - `952.50s`
+
+Call-log-specific notes:
+
+- Call logs and statistics are implemented.
+- Call data is currently produced by tests, seeders, and fake-provider flows.
+- No FreeSWITCH service was added.
+- No SIP.js behavior was added.
+- No real calls were implemented.
+- No billing or balance deduction was implemented.
+
+## Stage 12 Navigation and Permissions Follow-up
+
+Follow-up validation on 2026-06-26 audited the tenant navigation chain from RBAC seeding to Angular sidebar visibility.
+
+Verified:
+
+- canonical tenant feature permissions remain unprefixed in the RBAC catalog, backend policies, API payloads, and Angular sidebar checks;
+- tenant role-permission pivots are refreshed by the safe demo seeder command without destructive reseeding;
+- tenant context payloads return tenant feature permissions for authorized users and limited subsets for restricted roles;
+- Angular sidebar translations now resolve `layout.nav.chat` instead of rendering the raw key;
+- Vue administration navigation remains unchanged because tenant telephony navigation belongs to Angular.

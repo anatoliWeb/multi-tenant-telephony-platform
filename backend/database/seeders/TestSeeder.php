@@ -2,10 +2,17 @@
 
 namespace Database\Seeders;
 
+use App\Enums\CallLogs\CallBillingStatus;
+use App\Enums\CallLogs\CallDisposition;
+use App\Enums\CallLogs\CallEventType;
 use App\Enums\TenantMembershipStatus;
 use App\Enums\PhoneNumbers\PhoneNumberAssignmentStatus;
 use App\Enums\PhoneNumbers\PhoneNumberStatus;
 use App\Enums\PhoneNumbers\PhoneNumberType;
+use App\Enums\Telephony\TelephonyCallDirection;
+use App\Enums\Telephony\TelephonyCallStatus;
+use App\Models\CallEvent;
+use App\Models\CallLog;
 use App\Models\Tenant;
 use App\Models\TenantMembership;
 use App\Models\Contact;
@@ -17,7 +24,7 @@ use App\Models\PhoneNumber;
 use App\Models\User;
 use App\Services\Seeding\RbacSeedService;
 use App\Services\Seeding\SeederEnvironmentService;
-use App\Services\Tenancy\TenantBootstrapService;
+use App\Services\Seeding\TenantSeedService;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
@@ -41,11 +48,12 @@ class TestSeeder extends Seeder
         $rbacSeed = app(RbacSeedService::class);
         $permissions = $rbacSeed->seedPermissionCatalog();
         $platformRoles = $rbacSeed->seedPlatformRoles();
-        $tenants = app(TenantBootstrapService::class)->ensureBaseTenants();
+        $tenants = app(TenantSeedService::class)->ensureBaseTenants();
         $tenantRoles = [];
 
         foreach ($tenants as $tenant) {
             $tenantRoles[$tenant->id] = $rbacSeed->seedTenantRoles($tenant);
+            $rbacSeed->syncTenantRolePermissions($tenant, $tenantRoles[$tenant->id], $permissions);
         }
 
         $rbacSeed->syncPermissions($platformRoles['platform_super_admin'], $permissions['platform']);
@@ -53,6 +61,7 @@ class TestSeeder extends Seeder
         $rbacSeed->syncPermissions($platformRoles['admin'], $permissions['platform_admin']);
         $rbacSeed->syncPermissions($platformRoles['manager'], ['users.view', 'users.edit']);
         $rbacSeed->syncPermissions($platformRoles['user'], ['users.view']);
+        $rbacSeed->invalidateRbacCaches();
 
         $defaultTenant = $tenants['default'];
         $secondaryTenant = $tenants['secondary'];
@@ -67,7 +76,10 @@ class TestSeeder extends Seeder
         $tenantBOnlyUser = $this->upsertUser('test-tenant-b-only@test.local', 'Test Tenant B Only');
         $suspendedMembershipUser = $this->upsertUser('test-suspended-membership@test.local', 'Test Suspended Membership');
 
-        $rbacSeed->assignPlatformRoles($platformAdmin, [$platformRoles['platform_super_admin']]);
+        $rbacSeed->assignPlatformRoles($platformAdmin, [
+            $platformRoles['platform_super_admin'],
+            $platformRoles['admin'],
+        ]);
 
         $this->assignMembership($defaultTenant, $tenantOwner, TenantMembershipStatus::Active);
         $rbacSeed->assignTenantRole($tenantOwner, $tenantRoles[$defaultTenant->id]['owner'], $defaultTenant);
@@ -99,6 +111,20 @@ class TestSeeder extends Seeder
         $this->seedExtension($secondaryTenant, $tenantAdmin, '2001');
         $this->seedPhoneNumber($defaultTenant, $tenantOwner, '+15550001001', true, '+1 555 000 1001');
         $this->seedPhoneNumber($secondaryTenant, $tenantAdmin, '+15550001001', true, '+1 555 000 1001');
+        $this->seedCallLog($defaultTenant, $tenantOwner, 'fixture-call-a', [
+            'direction' => TelephonyCallDirection::Inbound,
+            'status' => TelephonyCallStatus::Completed,
+            'disposition' => CallDisposition::Answered,
+            'from_number' => '+15558880001',
+            'to_number' => '+15550001001',
+        ]);
+        $this->seedCallLog($secondaryTenant, $tenantAdmin, 'fixture-call-a', [
+            'direction' => TelephonyCallDirection::Outbound,
+            'status' => TelephonyCallStatus::Failed,
+            'disposition' => CallDisposition::Busy,
+            'from_number' => '+15550001001',
+            'to_number' => '+15558880001',
+        ]);
     }
 
     protected function upsertUser(string $email, string $name): User
@@ -277,5 +303,82 @@ class TestSeeder extends Seeder
                 'updated_by' => $owner->getKey(),
             ]
         );
+    }
+
+    /**
+     * @param array<string, mixed> $overrides
+     */
+    protected function seedCallLog(Tenant $tenant, User $owner, string $providerCallId, array $overrides = []): void
+    {
+        $startedAt = now()->subHours(2);
+        $answeredAt = ($overrides['status'] ?? TelephonyCallStatus::Completed) === TelephonyCallStatus::Completed
+            ? $startedAt->copy()->addSeconds(5)
+            : null;
+        $endedAt = $answeredAt?->copy()->addSeconds(65) ?? $startedAt->copy()->addSeconds(10);
+        $direction = $overrides['direction'] ?? TelephonyCallDirection::Inbound;
+        $status = $overrides['status'] ?? TelephonyCallStatus::Completed;
+        $disposition = $overrides['disposition'] ?? CallDisposition::Answered;
+
+        $callLog = CallLog::updateOrCreate(
+            [
+                'tenant_id' => $tenant->getKey(),
+                'provider_id' => 'fake',
+                'provider_call_id' => $providerCallId,
+            ],
+            [
+                'uuid' => $this->stableUuid($tenant, 'call-log-'.$providerCallId),
+                'correlation_id' => 'fixture-'.$providerCallId,
+                'direction' => $direction->value,
+                'status' => $status->value,
+                'disposition' => $disposition->value,
+                'from_number' => $overrides['from_number'] ?? '+15558880001',
+                'from_normalized_number' => $overrides['from_number'] ?? '+15558880001',
+                'to_number' => $overrides['to_number'] ?? '+15550001001',
+                'to_normalized_number' => $overrides['to_number'] ?? '+15550001001',
+                'caller_user_id' => $direction === TelephonyCallDirection::Outbound ? $owner->getKey() : null,
+                'callee_user_id' => $direction === TelephonyCallDirection::Inbound ? $owner->getKey() : null,
+                'started_at' => $startedAt,
+                'ringing_at' => $startedAt,
+                'answered_at' => $answeredAt,
+                'ended_at' => $endedAt,
+                'ringing_seconds' => $answeredAt ? 5 : 0,
+                'talk_seconds' => $answeredAt ? 65 : 0,
+                'billable_seconds' => $answeredAt ? 65 : 0,
+                'total_seconds' => max(0, $endedAt->diffInSeconds($startedAt)),
+                'billing_status' => $direction === TelephonyCallDirection::Internal
+                    ? CallBillingStatus::NonBillable->value
+                    : ($status === TelephonyCallStatus::Failed ? CallBillingStatus::Failed->value : CallBillingStatus::Unrated->value),
+                'recording_available' => false,
+                'metadata' => ['fixture' => true],
+            ]
+        );
+
+        $events = $status === TelephonyCallStatus::Failed
+            ? [CallEventType::CallCreated, CallEventType::CallFailed]
+            : [CallEventType::CallCreated, CallEventType::CallRinging, CallEventType::CallAnswered, CallEventType::CallCompleted];
+
+        foreach ($events as $sequence => $eventType) {
+            CallEvent::updateOrCreate(
+                [
+                    'tenant_id' => $tenant->getKey(),
+                    'provider_id' => 'fake',
+                    'provider_event_id' => $providerCallId.':'.$eventType->value,
+                ],
+                [
+                    'uuid' => $this->stableUuid($tenant, 'call-event-'.$providerCallId.'-'.$eventType->value),
+                    'call_log_id' => $callLog->getKey(),
+                    'type' => $eventType->value,
+                    'occurred_at' => match ($eventType) {
+                        CallEventType::CallCreated => $startedAt,
+                        CallEventType::CallRinging => $startedAt,
+                        CallEventType::CallAnswered => $answeredAt ?? $startedAt,
+                        default => $endedAt,
+                    },
+                    'sequence' => $sequence + 1,
+                    'payload' => ['fixture' => true],
+                    'created_at' => now(),
+                ]
+            );
+        }
     }
 }

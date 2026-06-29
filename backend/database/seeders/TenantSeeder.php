@@ -2,13 +2,13 @@
 
 namespace Database\Seeders;
 
-use App\Services\Tenancy\TenantBootstrapService;
+use App\Services\Seeding\TenantSeedService;
 use Illuminate\Database\Seeder;
 
 class TenantSeeder extends Seeder
 {
     public function run(): void
     {
-        app(TenantBootstrapService::class)->seedDemoMemberships();
+        app(TenantSeedService::class)->seedLegacyDemoMemberships();
     }
 }

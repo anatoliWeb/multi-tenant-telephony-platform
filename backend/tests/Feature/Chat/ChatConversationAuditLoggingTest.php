@@ -11,22 +11,17 @@ use App\Services\Chat\ChatModerationService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 use Laravel\Sanctum\Sanctum;
+use Tests\Feature\Chat\Concerns\InteractsWithTenantScopedChat;
 use Tests\TestCase;
 
 class ChatConversationAuditLoggingTest extends TestCase
 {
+    use InteractsWithTenantScopedChat;
     use RefreshDatabase;
 
     private function actingAsWithPermissions(array $permissions): User
     {
-        $user = User::factory()->create();
-        $permissionIds = collect($permissions)
-            ->map(fn (string $name) => Permission::firstOrCreate(['name' => $name])->id)
-            ->all();
-        $user->permissions()->sync($permissionIds);
-        Sanctum::actingAs($user);
-
-        return $user;
+        return $this->actingAsTenantChatUser($permissions);
     }
 
     private function makeConversation(array $overrides = []): Conversation
@@ -190,4 +185,5 @@ class ChatConversationAuditLoggingTest extends TestCase
         $this->assertArrayNotHasKey('ip_address', $sanitized['nested']['children'] ?? []);
     }
 }
+
 

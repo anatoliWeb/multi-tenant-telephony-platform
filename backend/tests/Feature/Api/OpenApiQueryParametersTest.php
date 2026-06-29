@@ -6,10 +6,12 @@ use App\Models\Permission;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
+use Tests\Feature\Chat\Concerns\InteractsWithTenantScopedChat;
 use Tests\TestCase;
 
 class OpenApiQueryParametersTest extends TestCase
 {
+    use InteractsWithTenantScopedChat;
     use RefreshDatabase;
 
     public function test_docs_contains_pagination_filtering_sorting_and_search_section(): void
@@ -61,8 +63,7 @@ class OpenApiQueryParametersTest extends TestCase
     public function test_chat_conversation_runtime_accepts_page_and_per_page_with_paginated_meta(): void
     {
         $user = User::factory()->create();
-        $permission = Permission::firstOrCreate(['name' => 'chat.conversations.view']);
-        $user->permissions()->syncWithoutDetaching([$permission->id]);
+        $this->prepareTenantChatUser($user, ['chat.conversations.view']);
         Sanctum::actingAs($user);
 
         $this->getJson('/api/v1/chat/conversations?page=1&per_page=5')
@@ -80,8 +81,7 @@ class OpenApiQueryParametersTest extends TestCase
     public function test_chat_conversation_runtime_accepts_search_and_type_filters_without_server_error(): void
     {
         $user = User::factory()->create();
-        $permission = Permission::firstOrCreate(['name' => 'chat.conversations.view']);
-        $user->permissions()->syncWithoutDetaching([$permission->id]);
+        $this->prepareTenantChatUser($user, ['chat.conversations.view']);
         Sanctum::actingAs($user);
 
         $this->getJson('/api/v1/chat/conversations?search=test&type=group&visibility=private&unread=true')
@@ -101,4 +101,3 @@ class OpenApiQueryParametersTest extends TestCase
         return null;
     }
 }
-

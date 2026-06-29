@@ -38,7 +38,7 @@ class ResolveTenantContext
             throw new TenantAccessDeniedException('Tenant access denied');
         }
 
-        if (! $this->tenantBootstrapService->userHasActiveMembership($user, $tenant)) {
+        if (! $this->tenantBootstrapService->canAccessTenant($user, $tenant)) {
             throw new TenantAccessDeniedException('Tenant access denied');
         }
 

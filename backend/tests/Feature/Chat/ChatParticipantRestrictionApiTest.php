@@ -11,22 +11,17 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 use Laravel\Sanctum\Sanctum;
+use Tests\Feature\Chat\Concerns\InteractsWithTenantScopedChat;
 use Tests\TestCase;
 
 class ChatParticipantRestrictionApiTest extends TestCase
 {
+    use InteractsWithTenantScopedChat;
     use RefreshDatabase;
 
     private function actingAsWithPermissions(array $permissions): User
     {
-        $user = User::factory()->create();
-        $permissionIds = collect($permissions)
-            ->map(fn (string $name) => Permission::firstOrCreate(['name' => $name])->id)
-            ->all();
-        $user->permissions()->sync($permissionIds);
-        Sanctum::actingAs($user);
-
-        return $user;
+        return $this->actingAsTenantChatUser($permissions);
     }
 
     private function makeConversation(array $overrides = []): Conversation
@@ -147,10 +142,7 @@ class ChatParticipantRestrictionApiTest extends TestCase
         $this->assertFalse((bool) $blockedParticipant->can_moderate);
 
         Sanctum::actingAs($member);
-        $member->permissions()->sync([
-            Permission::firstOrCreate(['name' => 'chat.view'])->id,
-            Permission::firstOrCreate(['name' => 'chat.conversations.view'])->id,
-        ]);
+        $this->prepareTenantChatUser($member, ['chat.view', 'chat.conversations.view']);
         $this->getJson("/api/v1/chat/conversations/{$conversation->id}/messages")
             ->assertOk()
             ->assertJsonCount(0, 'data');
@@ -221,11 +213,11 @@ class ChatParticipantRestrictionApiTest extends TestCase
         $managerPeer = User::factory()->create();
         $this->addParticipant($lastOwnerConversation, $managerPeer, ['role' => 'admin', 'can_manage' => true, 'can_moderate' => true]);
         Sanctum::actingAs($managerPeer);
-        $managerPeer->permissions()->sync([
-            Permission::firstOrCreate(['name' => 'chat.view'])->id,
-            Permission::firstOrCreate(['name' => 'chat.conversations.view'])->id,
-            Permission::firstOrCreate(['name' => 'chat.participants.manage'])->id,
-            Permission::firstOrCreate(['name' => 'chat.admin.moderate'])->id,
+        $this->prepareTenantChatUser($managerPeer, [
+            'chat.view',
+            'chat.conversations.view',
+            'chat.participants.manage',
+            'chat.admin.moderate',
         ]);
         $this->patchJson("/api/v1/chat/conversations/{$lastOwnerConversation->id}/participants/{$manager->id}/block", [
             'block_display_mode' => 'hide_chat',
@@ -267,3 +259,4 @@ class ChatParticipantRestrictionApiTest extends TestCase
         $this->assertSame($conversation->id, $message->conversation_id);
     }
 }
+

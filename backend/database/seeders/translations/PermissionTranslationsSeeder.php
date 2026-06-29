@@ -190,6 +190,11 @@ class PermissionTranslationsSeeder extends BaseTranslationsSeeder
                 'uk' => 'Видалення сповіщень',
                 'de' => 'Benachrichtigungen löschen',
             ],
+            'tenants.view' => [
+                'en' => 'View tenants',
+                'uk' => 'РџРµСЂРµРіР»СЏРґ С‚РµРЅР°РЅС‚С–РІ',
+                'de' => 'Mandanten anzeigen',
+            ],
             'api.docs.view' => [
                 'en' => 'View API documentation',
                 'uk' => 'Перегляд API документації',
@@ -361,6 +366,11 @@ class PermissionTranslationsSeeder extends BaseTranslationsSeeder
                 'en' => 'Allows deleting user and system notifications.',
                 'uk' => 'Дозволяє видаляти користувацькі та системні сповіщення.',
                 'de' => 'Erlaubt das Löschen von Benutzer- und Systembenachrichtigungen.',
+            ],
+            'tenants.view' => [
+                'en' => 'Allows viewing the active tenant catalog for support context selection.',
+                'uk' => 'Р”РѕР·РІРѕР»СЏС” РїРµСЂРµРіР»СЏРґР°С‚Рё РєР°С‚Р°Р»РѕРі Р°РєС‚РёРІРЅРёС… С‚РµРЅР°РЅС‚С–РІ РґР»СЏ РІРёР±РѕСЂСѓ support-РєРѕРЅС‚РµРєСЃС‚Сѓ.',
+                'de' => 'Erlaubt das Anzeigen des aktiven Mandantenkatalogs fГјr die Auswahl des Supportkontexts.',
             ],
             'api.docs.view' => [
                 'en' => 'Allows access to protected OpenAPI and Swagger documentation.',

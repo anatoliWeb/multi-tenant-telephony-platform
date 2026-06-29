@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\BaseController;
 use App\Http\Requests\Api\SwitchTenantRequest;
 use App\Http\Resources\TenantContextResource;
 use App\Http\Resources\TenantMembershipResource;
+use App\Http\Resources\TenantSummaryResource;
 use App\Models\User;
 use App\Services\Rbac\PermissionCacheService;
 use App\Services\Tenancy\TenantBootstrapService;
@@ -25,13 +26,16 @@ class TenantController extends BaseController
     {
         $user = $request->user();
 
-        $memberships = $user?->activeTenantMemberships()
-            ->with('tenant')
-            ->orderBy('created_at')
-            ->get() ?? collect();
+        $tenants = $user instanceof User
+            ? $this->tenantBootstrapService->accessibleTenantsForUser($user)
+            : collect();
+
+        $tenantPayload = $user instanceof User && $this->tenantBootstrapService->isPlatformAdmin($user)
+            ? TenantSummaryResource::collection($tenants)->resolve()
+            : TenantMembershipResource::collection($tenants)->resolve();
 
         return $this->successResponse([
-            'tenants' => TenantMembershipResource::collection($memberships)->resolve(),
+            'tenants' => $tenantPayload,
             'current_tenant_id' => $this->tenantContext->tenantId(),
             'platform_permissions' => $user instanceof User ? $this->permissionCacheService->getPlatformPermissionsForUser($user) : [],
             'tenant_permissions' => $user instanceof User && $this->tenantContext->hasTenant()
@@ -67,12 +71,12 @@ class TenantController extends BaseController
         $identifier = (string) $request->validated('tenant_uuid');
         $tenant = $this->tenantBootstrapService->resolveTenantByIdentifier($identifier);
 
-        if ($tenant === null) {
+        if ($tenant === null || ! $this->tenantBootstrapService->tenantIsActive($tenant)) {
             abort(403, 'Tenant access denied');
         }
 
         $user = $request->user();
-        if ($user instanceof User && ! $this->tenantBootstrapService->userHasActiveMembership($user, $tenant)) {
+        if ($user instanceof User && ! $this->tenantBootstrapService->canAccessTenant($user, $tenant)) {
             abort(403, 'Tenant access denied');
         }
 

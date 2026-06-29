@@ -34,7 +34,7 @@ class PermissionMiddleware
             $required = explode(',', $permissions);
 
             foreach ($required as $permission) {
-                if (!$this->canForScope($user, trim($permission), $cache, $tenantContext)) {
+                if (!$this->canForScope($request, $user, trim($permission), $cache, $tenantContext)) {
                     abort(403);
                 }
             }
@@ -46,7 +46,7 @@ class PermissionMiddleware
             $required = explode('|', $permissions);
 
             foreach ($required as $permission) {
-                if ($this->canForScope($user, trim($permission), $cache, $tenantContext)) {
+                if ($this->canForScope($request, $user, trim($permission), $cache, $tenantContext)) {
                     return $next($request);
                 }
             }
@@ -54,14 +54,20 @@ class PermissionMiddleware
             abort(403);
         }
 
-        if (!$this->canForScope($user, trim($permissions), $cache, $tenantContext)) {
+        if (!$this->canForScope($request, $user, trim($permissions), $cache, $tenantContext)) {
             abort(403);
         }
 
         return $next($request);
     }
 
-    protected function canForScope(User $user, string $permission, PermissionCacheService $cache, TenantContext $tenantContext): bool
+    protected function canForScope(
+        Request $request,
+        User $user,
+        string $permission,
+        PermissionCacheService $cache,
+        TenantContext $tenantContext
+    ): bool
     {
         [$scope, $name] = $this->splitScopedPermission($permission);
 
@@ -69,7 +75,7 @@ class PermissionMiddleware
             'tenant' => $tenantContext->hasTenant()
                 && in_array($name, $cache->getTenantPermissionsForUser($user, $tenantContext->requireTenant()), true),
             'platform' => in_array($name, $cache->getPlatformPermissionsForUser($user), true),
-            default => in_array($name, $cache->getPlatformPermissionsForUser($user), true),
+            default => $this->resolveAutoScopedPermission($request, $user, $name, $cache, $tenantContext),
         };
     }
 
@@ -84,7 +90,27 @@ class PermissionMiddleware
             }
         }
 
-        return ['platform', $permission];
+        return ['auto', $permission];
+    }
+
+    protected function resolveAutoScopedPermission(
+        Request $request,
+        User $user,
+        string $permission,
+        PermissionCacheService $cache,
+        TenantContext $tenantContext
+    ): bool {
+        $route = $request->route();
+        $routeMiddleware = $route && method_exists($route, 'gatherMiddleware')
+            ? $route->gatherMiddleware()
+            : [];
+        $expectsTenantContext = in_array('resolve.tenant', $routeMiddleware, true);
+
+        if ($expectsTenantContext) {
+            return $tenantContext->hasTenant()
+                && in_array($permission, $cache->getTenantPermissionsForUser($user, $tenantContext->requireTenant()), true);
+        }
+
+        return in_array($permission, $cache->getPlatformPermissionsForUser($user), true);
     }
 }
-

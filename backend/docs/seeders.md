@@ -27,6 +27,31 @@ php artisan app:seed-performance --tenants=3 --users=150
 Use `--force` to skip interactive confirmation on the seeder commands.
 Use `--allow-production` only when performance seeding must run in production-like conditions.
 
+Canonical safe RBAC refresh for the running development stack:
+
+```bash
+docker compose exec -T backend php artisan app:seed-demo --force
+```
+
+This command is idempotent for the demo baseline, refreshes tenant role-permission pivots, and avoids destructive resets such as `migrate:fresh`.
+
+Canonical clean development reset:
+
+```bash
+docker compose exec -T backend php artisan migrate:fresh --force
+docker compose exec -T backend php artisan app:seed-core --force
+docker compose exec -T backend php artisan app:seed-demo --force
+docker compose exec -T backend php artisan optimize:clear
+```
+
+Testing reset note:
+
+- run test-database resets and Laravel test suites sequentially, not in parallel;
+- the shared `saas_testing` database is guarded for safety but still assumes one
+  migration lifecycle at a time;
+- if a test run aborts mid-migration, rerun `composer test:preflight` before the
+  next targeted or full suite.
+
 ## Seeder Responsibilities
 
 ### CoreSeeder
@@ -49,6 +74,8 @@ Seeds a deterministic demo baseline for local development:
 - multi-tenant membership scenarios;
 - suspended membership and suspended tenant examples;
 - custom tenant role coverage.
+- tenant role-permission pivots for every seeded system role.
+- RBAC cache invalidation after catalog and pivot refresh.
 
 Chat demo data is tenant-specific, deterministic, and idempotent. Demo conversations, participants, messages, webhook endpoints, and webhook deliveries are created under the target tenant so the same demo users can have separate chat histories in different tenants.
 
@@ -73,6 +100,15 @@ It includes:
 - fake-provider-backed provisioned metadata;
 - encrypted credential fixtures without stored plaintext secrets.
 
+Call log demo data is tenant-specific, deterministic, and idempotent.
+
+It includes:
+
+- inbound answered, inbound missed, outbound answered, outbound failed, and internal completed calls;
+- contact-linked and unknown external-party scenarios;
+- append-only lifecycle events for seeded calls;
+- the same provider call id reused safely across two tenants for isolation coverage.
+
 ### TestSeeder
 
 Seeds the test-only baseline used by feature tests:
@@ -81,9 +117,19 @@ Seeds the test-only baseline used by feature tests:
 - active and suspended memberships;
 - platform and tenant role assignments;
 - multi-tenant coverage for isolation tests;
+- tenant role-permission pivots for seeded tenant roles;
 - minimal deterministic contact fixtures.
 - minimal deterministic extension fixtures.
 - minimal deterministic phone-number fixtures.
+- minimal deterministic call-log fixtures.
+
+## Boundary Rule
+
+Seeders and seed services own deterministic data creation and repair.
+
+- `TenantSeedService` owns base tenants and legacy membership backfill used during schema setup.
+- `TenantDemoSeedService` owns demo personas, memberships, role assignments, and tenant demo fixtures.
+- `TenantBootstrapService` is read-only and must not create or repair data.
 
 ### PerformanceSeeder
 
@@ -100,6 +146,7 @@ Seeds high-volume data in batches:
 - Rerunning `CoreSeeder` should not change the catalog shape.
 - Rerunning `DemoSeeder` should not duplicate demo tenants or users.
 - Rerunning `DemoSeeder` should not duplicate chat conversations or messages.
+- Rerunning `DemoSeeder` and `TestSeeder` should resync canonical tenant role grants if the catalog changes.
 - Rerunning `TestSeeder` should not leak fixtures into production.
 - Rerunning `PerformanceSeeder` should reuse the same tenant and user identity keys.
 

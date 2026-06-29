@@ -8,6 +8,7 @@ use App\Models\Permission;
 use App\Models\Role;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Services\Seeding\TenantSeedService;
 use App\Services\Tenancy\TenantBootstrapService;
 use Faker\Factory as Faker;
 use Illuminate\Database\Seeder;
@@ -29,7 +30,7 @@ class UserSeeder extends Seeder
         $managerRole = $this->upsertRole('manager', RoleScope::Platform, true, false, 'Manager');
         $userRole = $this->upsertRole('user', RoleScope::Platform, true, false, 'User');
 
-        $tenants = app(TenantBootstrapService::class)->ensureBaseTenants();
+        $tenants = app(TenantSeedService::class)->ensureBaseTenants();
         $tenantRoles = [];
 
         foreach ($tenants as $tenantKey => $tenant) {
@@ -186,6 +187,7 @@ class UserSeeder extends Seeder
             'notifications.create',
             'notifications.delete',
             'notifications.preferences',
+            'tenants.view',
             'chat.view',
             'chat.create',
             'chat.send',
@@ -245,6 +247,7 @@ class UserSeeder extends Seeder
                 'api.docs.view',
                 'activity.view',
                 'system.monitoring',
+                'tenants.view',
             ],
             'platform_admin' => $all,
             'tenant' => array_values(array_diff($all, [
@@ -458,4 +461,3 @@ class UserSeeder extends Seeder
         ]);
     }
 }
-

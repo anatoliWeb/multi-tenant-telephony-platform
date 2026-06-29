@@ -6,6 +6,29 @@ This document records the real request flows that exist in the repository today.
 
 ## Laravel API Request
 
+### Example: tenant context bootstrap
+
+`backend/routes/api.php`
+-> `auth:sanctum`
+-> `resolve.tenant`
+-> `App\Http\Controllers\Api\User\TenantController`
+-> `App\Services\Tenancy\TenantBootstrapService`
+-> `App\Services\Rbac\PermissionCacheService`
+-> tenant context payload with `platform_permissions`, `tenant_permissions`, and `current_tenant_id`
+
+This flow is read-only. Tenant/demo creation is intentionally excluded from runtime bootstrap.
+
+### Example: public frontend settings preload
+
+`backend/routes/api.php`
+-> public `/api/v1/settings/preload`
+-> `App\Http\Controllers\Api\SettingsController::preload()`
+-> `App\Services\Settings\SettingsService::preloadPublicFrontend()`
+-> standardized JSON success response with public frontend-only settings
+
+This flow is intentionally unauthenticated because Angular requests it before
+session restoration completes. Only safe public settings may be returned.
+
 ### Example: chat message send
 
 `backend/routes/api.php`
@@ -62,6 +85,8 @@ This document records the real request flows that exist in the repository today.
 
 The contacts state service also clears stale tenant-scoped state when the active tenant changes.
 
+If no tenant is active, Angular must stop before tenant feature requests and surface tenant-selection state instead.
+
 ### Example: extensions workspace
 
 `frontend/src/app/features/extensions/services/extensions-state.service.ts`
@@ -72,6 +97,17 @@ The contacts state service also clears stale tenant-scoped state when the active
 -> Laravel API
 
 The extensions state service clears tenant-scoped list, detail, filters, and one-time credential state when the active tenant changes.
+
+### Example: tenant selector bootstrap
+
+`frontend/src/app/layout/components/topbar/topbar.component.ts`
+-> `TenantContextService`
+-> `/api/v1/user/tenants`
+-> `/api/v1/user/tenant`
+-> tenant selector render state
+
+The topbar may render Platform Admin tenant summaries before tenant selection,
+but tenant feature modules must stay dormant until `current_tenant_id` exists.
 
 ## Vue Administration Request
 
@@ -92,6 +128,20 @@ The extensions state service clears tenant-scoped list, detail, filters, and one
 -> `backend/resources/js/services/api/client.ts`
 -> `backend/resources/js/services/api/http.ts`
 -> Laravel API
+
+Vue admin navigation stays platform-scoped. It may hydrate tenant selection state for support flows, but it must not use tenant permissions to decide platform navigation visibility.
+
+### Example: platform support telephony page
+
+`backend/resources/js/modules/tenant-support/pages/ContactsSupportPage.vue`
+-> `tenant-support.service.ts`
+-> `backend/resources/js/services/api/http.ts`
+-> `/api/v1/contacts` with selected `X-Tenant-ID`
+-> Laravel tenant-scoped API response
+
+The same pattern is used for support views for extensions, phone numbers, and
+call logs. Vue Admin must require explicit tenant selection before these
+requests.
 
 ## Realtime Flow
 
@@ -144,6 +194,26 @@ The current implementation uses a deterministic fake provider. No real PBX trans
 -> normalized provider state stored on the extension
 
 Credential rotation is handled separately through `ExtensionCredentialService`, which returns plaintext once and stores only encrypted values.
+
+### Example: fake telephony call log recording
+
+`TenantContext`
+-> `App\Services\Telephony\TelephonyService::originateCall()`
+-> fake `CallControlProvider`
+-> `App\Services\CallLogs\CallRecordingService::recordOriginatedCall()`
+-> `App\Services\CallLogs\CallLogService`
+-> `App\Services\CallLogs\CallEventService`
+-> tenant-owned `CallLog` and `CallEvent` rows
+
+Follow-up state changes use:
+
+`TelephonyService::{answerCall|holdCall|resumeCall|hangupCall}()`
+-> fake provider state transition
+-> `CallRecordingService::recordStateTransition()`
+-> `CallLifecycleService`
+-> recomputed durations and final disposition
+
+This flow is simulated only. No real SIP signaling, RTP, or FreeSWITCH event stream is active.
 
 ## Contacts Lookup Flow
 

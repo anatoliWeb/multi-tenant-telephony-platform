@@ -6,10 +6,12 @@ use App\Models\Permission;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
+use Tests\Feature\Chat\Concerns\InteractsWithTenantScopedChat;
 use Tests\TestCase;
 
 class OpenApiChatEndpointsTest extends TestCase
 {
+    use InteractsWithTenantScopedChat;
     use RefreshDatabase;
 
     protected function setUp(): void
@@ -95,8 +97,7 @@ class OpenApiChatEndpointsTest extends TestCase
             ->assertStatus(403);
 
         $user = User::factory()->create();
-        $permission = Permission::firstOrCreate(['name' => 'chat.conversations.view']);
-        $user->permissions()->syncWithoutDetaching([$permission->id]);
+        $this->prepareTenantChatUser($user, ['chat.conversations.view']);
         Sanctum::actingAs($user);
 
         $this->getJson('/api/v1/chat/conversations')

@@ -16,6 +16,7 @@ use App\DTO\Telephony\TelephonyProviderHealth;
 use App\DTO\Telephony\TelephonyTransferRequest;
 use App\Enums\Telephony\TelephonyCapability;
 use App\Exceptions\Telephony\TelephonyProviderUnavailableException;
+use App\Services\CallLogs\CallRecordingService;
 use App\Services\Monitoring\StructuredLogContextService;
 use App\Services\Tenancy\TenantContext;
 use Illuminate\Support\Facades\Log;
@@ -27,6 +28,7 @@ class TelephonyService
         private readonly TelephonyProviderRegistry $registry,
         private readonly TenantContext $tenantContext,
         private readonly StructuredLogContextService $structuredLogs,
+        private readonly CallRecordingService $callRecordingService,
     ) {
     }
 
@@ -118,11 +120,18 @@ class TelephonyService
         TelephonyCallOptions $options
     ): TelephonyCallResult {
         return $this->record('originate_call', $options->correlationId, function () use ($from, $to, $options): TelephonyCallResult {
-            return $this->registry->callControlProvider()->originateCall(
+            $result = $this->registry->callControlProvider()->originateCall(
                 $from,
                 $to,
                 $this->normalizeCallOptions($options)
             );
+
+            $this->callRecordingService->recordOriginatedCall(
+                $result,
+                $this->registry->defaultProvider()->providerId(),
+            );
+
+            return $result;
         });
     }
 
@@ -131,7 +140,10 @@ class TelephonyService
         $tenantId = $this->requireTenantId();
 
         return $this->record('answer_call', $correlationId, function () use ($tenantId, $callId, $correlationId): TelephonyCallState {
-            return $this->registry->callControlProvider()->answerCall($tenantId, $callId, $correlationId);
+            $state = $this->registry->callControlProvider()->answerCall($tenantId, $callId, $correlationId);
+            $this->callRecordingService->recordStateTransition($state, $this->registry->defaultProvider()->providerId(), \App\Enums\CallLogs\CallEventType::CallAnswered);
+
+            return $state;
         });
     }
 
@@ -140,7 +152,10 @@ class TelephonyService
         $tenantId = $this->requireTenantId();
 
         return $this->record('hold_call', $correlationId, function () use ($tenantId, $callId, $correlationId): TelephonyCallState {
-            return $this->registry->callControlProvider()->holdCall($tenantId, $callId, $correlationId);
+            $state = $this->registry->callControlProvider()->holdCall($tenantId, $callId, $correlationId);
+            $this->callRecordingService->recordStateTransition($state, $this->registry->defaultProvider()->providerId(), \App\Enums\CallLogs\CallEventType::CallHeld);
+
+            return $state;
         });
     }
 
@@ -149,7 +164,10 @@ class TelephonyService
         $tenantId = $this->requireTenantId();
 
         return $this->record('resume_call', $correlationId, function () use ($tenantId, $callId, $correlationId): TelephonyCallState {
-            return $this->registry->callControlProvider()->resumeCall($tenantId, $callId, $correlationId);
+            $state = $this->registry->callControlProvider()->resumeCall($tenantId, $callId, $correlationId);
+            $this->callRecordingService->recordStateTransition($state, $this->registry->defaultProvider()->providerId(), \App\Enums\CallLogs\CallEventType::CallResumed);
+
+            return $state;
         });
     }
 
@@ -158,7 +176,15 @@ class TelephonyService
         $tenantId = $this->requireTenantId();
 
         return $this->record('hangup_call', $correlationId, function () use ($tenantId, $callId, $correlationId): TelephonyCallState {
-            return $this->registry->callControlProvider()->hangupCall($tenantId, $callId, $correlationId);
+            $state = $this->registry->callControlProvider()->hangupCall($tenantId, $callId, $correlationId);
+            $this->callRecordingService->recordStateTransition(
+                $state,
+                $this->registry->defaultProvider()->providerId(),
+                \App\Enums\CallLogs\CallEventType::CallCompleted,
+                ['disposition' => 'answered']
+            );
+
+            return $state;
         });
     }
 

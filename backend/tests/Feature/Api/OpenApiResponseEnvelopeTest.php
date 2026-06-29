@@ -6,10 +6,12 @@ use App\Models\Permission;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
+use Tests\Feature\Chat\Concerns\InteractsWithTenantScopedChat;
 use Tests\TestCase;
 
 class OpenApiResponseEnvelopeTest extends TestCase
 {
+    use InteractsWithTenantScopedChat;
     use RefreshDatabase;
 
     public function test_success_endpoint_returns_standardized_success_envelope(): void
@@ -43,8 +45,7 @@ class OpenApiResponseEnvelopeTest extends TestCase
     public function test_validation_error_returns_standardized_envelope(): void
     {
         $user = User::factory()->create();
-        $permission = Permission::firstOrCreate(['name' => 'chat.conversations.create']);
-        $user->permissions()->syncWithoutDetaching([$permission->id]);
+        $this->prepareTenantChatUser($user, ['chat.conversations.create']);
         Sanctum::actingAs($user);
 
         $this->postJson('/api/v1/chat/conversations/group', [])
@@ -96,4 +97,3 @@ class OpenApiResponseEnvelopeTest extends TestCase
         $this->assertStringContainsString('## Common Response Envelope', $contents);
     }
 }
-

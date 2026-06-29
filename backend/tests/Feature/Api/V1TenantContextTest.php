@@ -4,6 +4,9 @@ namespace Tests\Feature\Api;
 
 use App\Enums\TenantMembershipStatus;
 use App\Enums\TenantStatus;
+use App\Enums\Rbac\PermissionScope;
+use App\Enums\Rbac\RoleScope;
+use App\Models\Permission;
 use App\Models\Role;
 use App\Models\Tenant;
 use App\Models\TenantMembership;
@@ -81,15 +84,91 @@ class V1TenantContextTest extends TestCase
             ->assertJsonPath('message', 'Tenant context is required');
     }
 
-    public function test_platform_only_admin_cannot_use_tenant_context_without_membership(): void
+    public function test_platform_admin_can_list_active_tenants_and_switch_into_them(): void
     {
-        $tenant = $this->createTenant('tenant-platform-isolation');
-        $adminRole = Role::firstOrCreate(['name' => 'admin'], ['description' => 'Administrator']);
+        $activeTenant = $this->createTenant('tenant-platform-active');
+        $otherActiveTenant = $this->createTenant('tenant-platform-secondary');
+        $suspendedTenant = Tenant::create([
+            'id' => (string) \Illuminate\Support\Str::uuid(),
+            'name' => 'Suspended Tenant',
+            'slug' => 'tenant-platform-suspended',
+            'status' => TenantStatus::Suspended,
+            'timezone' => 'UTC',
+            'locale' => 'en',
+            'currency' => 'USD',
+            'settings' => [],
+            'activated_at' => now(),
+            'suspended_at' => now(),
+        ]);
+
+        $adminRole = Role::firstOrCreate([
+            'name' => 'admin',
+            'scope' => RoleScope::Platform->value,
+        ], [
+            'scope_reference' => RoleScope::Platform->value,
+            'description' => 'Administrator',
+            'is_system' => false,
+            'is_protected' => true,
+        ]);
+
+        Permission::create([
+            'name' => 'tenant.audit.view',
+            'scope' => PermissionScope::Tenant->value,
+            'scope_reference' => PermissionScope::Tenant->value,
+            'description' => 'Audit tenant view',
+        ]);
 
         $admin = User::factory()->create();
         $admin->roles()->sync([$adminRole->id]);
 
         Sanctum::actingAs($admin);
+
+        $listResponse = $this->getJson('/api/v1/user/tenants');
+        $listResponse->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonCount(4, 'data.tenants')
+            ->assertJsonFragment(['id' => $activeTenant->id])
+            ->assertJsonFragment(['id' => $otherActiveTenant->id])
+            ->assertJsonMissing(['id' => $suspendedTenant->id]);
+
+        $switchResponse = $this
+            ->actingAs($admin, 'sanctum')
+            ->postJson('/api/v1/user/tenant/switch', [
+                'tenant_uuid' => $otherActiveTenant->id,
+            ]);
+
+        $switchResponse->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.current_tenant_id', $otherActiveTenant->id)
+            ->assertJsonPath('data.tenant.id', $otherActiveTenant->id);
+
+        $this->assertContains('tenant.audit.view', $switchResponse->json('data.permissions', []));
+        $this->assertContains('tenant.audit.view', $switchResponse->json('data.tenant_permissions', []));
+
+        $this->actingAs($admin, 'sanctum')
+            ->postJson('/api/v1/user/tenant/switch', [
+                'tenant_uuid' => $suspendedTenant->id,
+            ])
+            ->assertForbidden();
+    }
+
+    public function test_non_admin_platform_user_cannot_use_tenant_context_without_membership(): void
+    {
+        $tenant = $this->createTenant('tenant-platform-isolation');
+        $supportRole = Role::firstOrCreate([
+            'name' => 'platform_support',
+            'scope' => RoleScope::Platform->value,
+        ], [
+            'scope_reference' => RoleScope::Platform->value,
+            'description' => 'Platform support',
+            'is_system' => false,
+            'is_protected' => false,
+        ]);
+
+        $user = User::factory()->create();
+        $user->roles()->sync([$supportRole->id]);
+
+        Sanctum::actingAs($user);
 
         $this->withHeader('X-Tenant-ID', $tenant->id)
             ->getJson('/api/v1/user/tenants')

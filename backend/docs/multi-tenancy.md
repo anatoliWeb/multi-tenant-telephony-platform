@@ -31,6 +31,10 @@ Implemented after the initial slice:
 - tenant-owned extensions and extension credentials;
 - tenant-scoped extension-number uniqueness and credential rotation;
 - tenant-aware fake-provider endpoint provisioning and provider-state reads.
+- tenant-owned call logs and call events;
+- tenant-scoped call-history visibility and statistics;
+- tenant-aware telephony lifecycle recording through the fake provider.
+- tenant-scoped navigation permissions returned through `/api/v1/user/tenants`, `/api/v1/user/tenant`, and `/api/v1/user/tenant/switch`.
 
 ## Request Contract
 
@@ -45,6 +49,18 @@ If a request needs a tenant and the header is missing, the backend fails closed 
 - `GET /api/v1/user/tenants`
 - `GET /api/v1/user/tenant`
 - `POST /api/v1/user/tenant/switch`
+- `GET /api/v1/settings/preload`
+
+The tenant context payload returns:
+
+- `current_tenant_id`
+- `platform_permissions`
+- `tenant_permissions`
+- `permissions` on the current-tenant endpoints, matching `tenant_permissions`
+
+`GET /api/v1/settings/preload` is a public bootstrap endpoint for the frontend
+shell. It returns only active frontend settings that are explicitly marked
+public and global. Private or backend-only settings must not be exposed there.
 
 ## Data Model
 
@@ -81,27 +97,48 @@ Fields:
 
 ## Bootstrap Strategy
 
-The current bootstrap service creates:
+`TenantBootstrapService` is runtime-only.
 
-- one default active tenant;
-- one second active tenant;
-- one suspended tenant;
-- active memberships for non-platform users;
-- one dual-tenant demo user;
-- one suspended membership example.
+It may:
 
-Platform-only users are identified through the existing `admin` role and are not automatically attached to tenant memberships.
+- resolve the current tenant from `X-Tenant-ID`;
+- list accessible tenants for the authenticated user;
+- validate whether the selected tenant is active and accessible;
+- return the active membership for ordinary tenant users;
+- identify the protected Platform Admin role through canonical role assignment.
+
+It must not:
+
+- create tenants;
+- create memberships;
+- backfill missing demo users;
+- repair role-permission pivots;
+- attach Platform Admin to tenants as a side effect.
+
+Deterministic tenant and membership creation now lives in `App\Services\Seeding\TenantSeedService` and the seeder layer.
 
 ## Seeder Layout
 
 Tenant-aware fixtures are now split by intent:
 
 - `CoreSeeder` seeds shared RBAC and system baseline data;
-- `DemoSeeder` seeds deterministic demo tenants and personas;
+- `DemoSeeder` seeds deterministic demo tenants, personas, memberships, contacts, extensions, phone numbers, and call logs;
 - `TestSeeder` seeds testing-only tenant fixtures;
 - `PerformanceSeeder` seeds high-volume tenant data on demand.
 
 The demo and test seeders intentionally use stable identity keys so repeated runs stay predictable and do not rewrite existing passwords.
+
+## Platform Admin Access Model
+
+The canonical Platform Admin account is `platform-admin@test.local`.
+
+Platform Admin access is role-based, not email-based:
+
+- the protected platform `admin` role unlocks the Vue platform shell;
+- the same role allows listing every active tenant through `/api/v1/user/tenants`;
+- tenant permissions remain empty until a tenant is explicitly selected;
+- after selection, tenant permission resolution returns the full tenant permission catalog for that tenant only;
+- tenant APIs remain scoped to the selected tenant and still fail closed when no tenant is active.
 
 ## Chat Ownership
 
@@ -153,6 +190,15 @@ The next slice should continue applying tenant ownership to the remaining legacy
 
 Private per-user contacts remain deferred. The completed `Personal contacts` TODO item refers to tenant-owned contacts representing natural persons, not user-private contact books.
 
+## Frontend Boundary
+
+- Angular is the tenant application and owns tenant feature navigation such as chat, contacts, extensions, phone numbers, and call logs.
+- Angular tenant navigation must use `tenant_permissions` only and must not fire tenant feature requests until a tenant is selected.
+- Vue remains the platform administration shell and must use `platform_permissions`, not tenant permissions, for admin navigation.
+- Vue platform support pages for tenants, contacts, extensions, phone numbers,
+  and call logs may reuse tenant-safe `/api/v1/*` endpoints only after an
+  explicit tenant selection is active in the support UI.
+
 ## Phone Number Ownership
 
 Phone numbers use the same tenant boundary as contacts, chat, and extensions.
@@ -162,3 +208,13 @@ Phone numbers use the same tenant boundary as contacts, chat, and extensions.
 - route binding is tenant-aware;
 - the same normalized DID may exist in different tenants for deterministic fixtures;
 - assigned users must be active members of the same tenant.
+
+## Call Log Ownership
+
+Call logs extend the same shared-database tenant boundary.
+
+- every `call_logs` row stores `tenant_id`;
+- every `call_events` row stores `tenant_id`;
+- call-event writes validate that the event tenant matches the parent call log tenant;
+- own-call and all-call visibility checks are enforced after tenant scoping, not instead of it;
+- same provider call identifiers may exist in different tenants without violating isolation.

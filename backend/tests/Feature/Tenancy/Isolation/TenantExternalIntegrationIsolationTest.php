@@ -113,9 +113,10 @@ class TenantExternalIntegrationIsolationTest extends TestCase
         $tenantB = $this->createTenant('webhook-tenant-b');
         $user = $this->actingAsTenantUser($this->createUser('webhook-member'));
 
-        $this->createMembership($tenantA, $user);
-        $this->createMembership($tenantB, $user);
-        $this->assignPlatformPermissions($user, ['chat.webhooks.view', 'chat.webhooks.edit']);
+        foreach ([$tenantA, $tenantB] as $tenant) {
+            $this->createMembership($tenant, $user);
+            $this->assignTenantPermissions($user, $tenant, ['chat.webhooks.view', 'chat.webhooks.edit']);
+        }
 
         $endpointA = $this->createWebhookEndpoint($tenantA, $user, ['name' => 'Tenant A endpoint']);
         $endpointB = $this->createWebhookEndpoint($tenantB, $user, ['name' => 'Tenant B endpoint']);

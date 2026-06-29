@@ -13,10 +13,12 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Route;
 use Laravel\Sanctum\Sanctum;
+use Tests\Feature\Chat\Concerns\InteractsWithTenantScopedChat;
 use Tests\TestCase;
 
 class RbacContractTest extends TestCase
 {
+    use InteractsWithTenantScopedChat;
     use RefreshDatabase;
 
     public function test_permission_foundation_exists_in_seed_context(): void
@@ -214,11 +216,20 @@ class RbacContractTest extends TestCase
     private function actingAsWithPermissions(array $permissions): User
     {
         $user = User::factory()->create();
-        $permissionIds = collect($permissions)
-            ->map(fn (string $name) => Permission::firstOrCreate(['name' => $name, 'scope' => 'platform'])->id)
-            ->all();
+        $chatPermissions = array_values(array_filter($permissions, static fn (string $name): bool => str_starts_with($name, 'chat.')));
+        $platformPermissions = array_values(array_diff($permissions, $chatPermissions));
 
-        $user->permissions()->sync($permissionIds);
+        if ($chatPermissions !== []) {
+            $this->prepareTenantChatUser($user, $chatPermissions);
+        }
+
+        if ($platformPermissions !== []) {
+            $permissionIds = collect($platformPermissions)
+                ->map(fn (string $name) => Permission::firstOrCreate(['name' => $name, 'scope' => 'platform'])->id)
+                ->all();
+            $user->permissions()->syncWithoutDetaching($permissionIds);
+        }
+
         Sanctum::actingAs($user);
 
         return $user;

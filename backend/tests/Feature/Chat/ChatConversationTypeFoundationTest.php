@@ -11,29 +11,22 @@ use App\Services\Chat\ChatConversationService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 use Laravel\Sanctum\Sanctum;
+use Tests\Feature\Chat\Concerns\InteractsWithTenantScopedChat;
 use Tests\TestCase;
 
 class ChatConversationTypeFoundationTest extends TestCase
 {
+    use InteractsWithTenantScopedChat;
     use RefreshDatabase;
 
     private function makeUserWithPermissions(array $permissions): User
     {
-        $user = User::factory()->create();
-        $permissionIds = collect($permissions)
-            ->map(fn (string $name) => Permission::firstOrCreate(['name' => $name])->id)
-            ->all();
-        $user->permissions()->sync($permissionIds);
-
-        return $user;
+        return $this->makeTenantChatUserWithPermissions($permissions);
     }
 
     private function actingAsWithPermissions(array $permissions): User
     {
-        $user = $this->makeUserWithPermissions($permissions);
-        Sanctum::actingAs($user);
-
-        return $user;
+        return $this->actingAsTenantChatUser($permissions);
     }
 
     private function makeConversation(array $overrides = []): Conversation
@@ -160,13 +153,13 @@ class ChatConversationTypeFoundationTest extends TestCase
         ]);
         $this->assertSame('admin', $adminParticipant->role);
 
-        $memberB->permissions()->sync([
-            Permission::firstOrCreate(['name' => 'chat.view'])->id,
-            Permission::firstOrCreate(['name' => 'chat.conversations.view'])->id,
-            Permission::firstOrCreate(['name' => 'chat.participants.add'])->id,
-            Permission::firstOrCreate(['name' => 'chat.participants.remove'])->id,
-            Permission::firstOrCreate(['name' => 'chat.participants.manage'])->id,
-            Permission::firstOrCreate(['name' => 'chat.admin.moderate'])->id,
+        $this->prepareTenantChatUser($memberB, [
+            'chat.view',
+            'chat.conversations.view',
+            'chat.participants.add',
+            'chat.participants.remove',
+            'chat.participants.manage',
+            'chat.admin.moderate',
         ]);
 
         $freshSystemConversation = Conversation::query()->findOrFail($systemConversation->id);
@@ -186,4 +179,5 @@ class ChatConversationTypeFoundationTest extends TestCase
         $this->getJson("/api/v1/chat/conversations/{$freshSystemConversation->id}")->assertStatus(404);
     }
 }
+
 

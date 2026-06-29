@@ -137,3 +137,12 @@ Real calls are not implemented.
 FreeSWITCH is not installed.
 
 SIP.js is not integrated.
+
+## Call Log Enrichment
+
+Contacts now enrich call history in a tenant-safe way.
+
+- normalized external numbers may resolve to a tenant contact during call-log creation;
+- call logs still keep immutable number snapshots after contact lookup;
+- renaming or deleting a contact does not rewrite historical call rows;
+- cross-tenant contact matches fail closed.

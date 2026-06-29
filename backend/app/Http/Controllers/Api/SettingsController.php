@@ -263,26 +263,7 @@ class SettingsController extends BaseController
     public function preload(
         Request $request
     ): JsonResponse {
-
-        $userId = auth()->id();
-
-        if (! $userId) {
-            return $this->errorResponse(
-                dt('notifications.error'),
-                401
-            );
-        }
-
-        $user = User::find($userId);
-
-        if (! $user) {
-            return $this->errorResponse(
-                dt('notifications.error'),
-                404
-            );
-        }
-
-        $payload = $this->settings->preloadFrontend($user);
+        $payload = $this->settings->preloadPublicFrontend();
 
         return $this->successResponse(
             $payload,

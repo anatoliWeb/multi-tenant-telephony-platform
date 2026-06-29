@@ -57,4 +57,14 @@ class Contact extends Model
     {
         return $this->belongsToMany(ContactTag::class, 'contact_contact_tag');
     }
+
+    public function outboundCallLogs(): HasMany
+    {
+        return $this->hasMany(CallLog::class, 'caller_contact_id');
+    }
+
+    public function inboundCallLogs(): HasMany
+    {
+        return $this->hasMany(CallLog::class, 'callee_contact_id');
+    }
 }

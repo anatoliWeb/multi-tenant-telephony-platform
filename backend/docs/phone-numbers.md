@@ -51,5 +51,14 @@ Additional user-scoped reads:
 - carrier provisioning;
 - real inbound routing;
 - real outbound calls;
-- call logs;
+- call-log export;
 - billing.
+
+## Call Logs Relationship
+
+Call logs now use DIDs as optional historical references only.
+
+- inbound enrichment resolves `incoming number -> tenant DID -> assigned user`;
+- outbound enrichment resolves `user -> primary DID -> caller ID snapshot`;
+- call logs keep immutable phone snapshots even when a DID relation exists;
+- no direct DID-to-extension ownership relation was added.

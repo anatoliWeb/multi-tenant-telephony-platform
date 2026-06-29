@@ -11,22 +11,17 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 use Laravel\Sanctum\Sanctum;
+use Tests\Feature\Chat\Concerns\InteractsWithTenantScopedChat;
 use Tests\TestCase;
 
 class ChatMessageSearchApiTest extends TestCase
 {
+    use InteractsWithTenantScopedChat;
     use RefreshDatabase;
 
     private function actingAsWithPermissions(array $permissions): User
     {
-        $user = User::factory()->create();
-        $permissionIds = collect($permissions)
-            ->map(fn (string $name) => Permission::firstOrCreate(['name' => $name])->id)
-            ->all();
-        $user->permissions()->sync($permissionIds);
-        Sanctum::actingAs($user);
-
-        return $user;
+        return $this->actingAsTenantChatUser($permissions);
     }
 
     private function makeConversation(array $overrides = []): Conversation
@@ -241,10 +236,7 @@ class ChatMessageSearchApiTest extends TestCase
         $first = collect($data)->first();
         $this->assertArrayNotHasKey('metadata', $first);
 
-        $newGroupUser->permissions()->sync([
-            Permission::firstOrCreate(['name' => 'chat.view'])->id,
-            Permission::firstOrCreate(['name' => 'chat.conversations.view'])->id,
-        ]);
+        $this->prepareTenantChatUser($newGroupUser, ['chat.view', 'chat.conversations.view']);
         Sanctum::actingAs($newGroupUser);
         $this->getJson("/api/v1/chat/conversations/{$direct->id}/messages/search?q=direct-only")
             ->assertOk()
@@ -257,13 +249,11 @@ class ChatMessageSearchApiTest extends TestCase
         $participantRow->history_visible_until_at = now()->addHours(2);
         $participantRow->save();
         Sanctum::actingAs($participant);
-        $participant->permissions()->sync([
-            Permission::firstOrCreate(['name' => 'chat.view'])->id,
-            Permission::firstOrCreate(['name' => 'chat.conversations.view'])->id,
-        ]);
+        $this->prepareTenantChatUser($participant, ['chat.view', 'chat.conversations.view']);
         $this->getJson("/api/v1/chat/conversations/{$conversation->id}/messages/search?q=keyword")
             ->assertOk()
             ->assertJsonCount(0, 'data');
     }
 }
+
 

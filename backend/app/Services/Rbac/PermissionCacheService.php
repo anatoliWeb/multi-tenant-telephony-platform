@@ -185,6 +185,15 @@ class PermissionCacheService
      */
     protected function resolveTenantPermissions(User $user, Tenant $tenant): array
     {
+        if ($user->isPlatformAdmin()) {
+            return Permission::query()
+                ->where('scope', RoleScope::Tenant->value)
+                ->orderBy('name')
+                ->pluck('name')
+                ->values()
+                ->all();
+        }
+
         $hasActiveMembership = TenantMembership::query()
             ->where('tenant_id', $tenant->getKey())
             ->where('user_id', $user->getKey())

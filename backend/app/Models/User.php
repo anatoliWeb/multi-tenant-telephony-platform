@@ -107,6 +107,16 @@ class User extends Authenticatable
         return $this->hasMany(Extension::class, 'assigned_user_id');
     }
 
+    public function callerCallLogs(): HasMany
+    {
+        return $this->hasMany(CallLog::class, 'caller_user_id');
+    }
+
+    public function calleeCallLogs(): HasMany
+    {
+        return $this->hasMany(CallLog::class, 'callee_user_id');
+    }
+
     /**
      * Check if user has role.
      */
@@ -161,6 +171,18 @@ class User extends Authenticatable
      * Check if user is admin (via role).
      */
     public function isAdmin(): bool
+    {
+        return $this->isPlatformAdmin();
+    }
+
+    /**
+     * Canonical platform-admin capability.
+     *
+     * WHY:
+     * Tenant access must be granted only through the protected platform admin
+     * role so platform permissions alone cannot bypass tenant isolation.
+     */
+    public function isPlatformAdmin(): bool
     {
         return $this->roles()
             ->where('name', 'admin')

@@ -10,6 +10,7 @@ use App\Models\Tenant;
 use App\Models\TenantMembership;
 use App\Models\User;
 use App\Services\Rbac\PermissionCacheService;
+use App\Services\Seeding\TenantSeedService;
 use App\Services\Tenancy\TenantBootstrapService;
 use App\Services\Tenancy\TenantContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -56,7 +57,7 @@ class TenantAwareRbacTest extends TestCase
 
     public function test_tenant_permissions_resolve_only_for_active_tenant_context(): void
     {
-        $tenants = app(TenantBootstrapService::class)->ensureBaseTenants();
+        $tenants = app(TenantSeedService::class)->ensureBaseTenants();
         /** @var Tenant $tenant */
         $tenant = $tenants['default'];
 
@@ -109,7 +110,7 @@ class TenantAwareRbacTest extends TestCase
 
     public function test_tenant_role_does_not_authorize_platform_routes(): void
     {
-        $tenants = app(TenantBootstrapService::class)->ensureBaseTenants();
+        $tenants = app(TenantSeedService::class)->ensureBaseTenants();
         /** @var Tenant $tenant */
         $tenant = $tenants['default'];
 
@@ -158,9 +159,97 @@ class TenantAwareRbacTest extends TestCase
             ->assertForbidden();
     }
 
+    public function test_tenant_route_uses_tenant_permissions_for_unprefixed_middleware_names(): void
+    {
+        $tenants = app(TenantSeedService::class)->ensureBaseTenants();
+        /** @var Tenant $tenant */
+        $tenant = $tenants['default'];
+
+        $permission = Permission::create([
+            'name' => 'contacts.view',
+            'scope' => PermissionScope::Tenant->value,
+            'scope_reference' => PermissionScope::Tenant->value,
+            'description' => 'Contacts view',
+        ]);
+
+        $role = Role::create([
+            'name' => 'tenant_contacts_viewer',
+            'scope' => RoleScope::Tenant->value,
+            'scope_reference' => (string) $tenant->getKey(),
+            'tenant_id' => $tenant->getKey(),
+            'description' => 'Tenant contacts viewer',
+            'is_system' => false,
+            'is_protected' => false,
+        ]);
+        $role->permissions()->sync([$permission->id]);
+
+        $user = User::create([
+            'name' => 'Tenant Contacts User',
+            'email' => 'tenant-contacts@example.com',
+            'password' => Hash::make('password'),
+        ]);
+        $user->roles()->syncWithoutDetaching([
+            $role->id => [
+                'tenant_id' => $tenant->getKey(),
+                'scope_reference' => (string) $tenant->getKey(),
+            ],
+        ]);
+        TenantMembership::create([
+            'tenant_id' => $tenant->getKey(),
+            'user_id' => $user->id,
+            'status' => 'active',
+            'activated_at' => now(),
+        ]);
+
+        Sanctum::actingAs($user);
+
+        $this->withHeader('X-Tenant-ID', $tenant->id)
+            ->getJson('/api/v1/contacts')
+            ->assertOk();
+    }
+
+    public function test_platform_admin_can_access_tenant_route_only_after_selecting_active_tenant(): void
+    {
+        $tenants = app(TenantSeedService::class)->ensureBaseTenants();
+        /** @var Tenant $tenant */
+        $tenant = $tenants['default'];
+
+        $platformAdminRole = Role::create([
+            'name' => 'admin',
+            'scope' => RoleScope::Platform->value,
+            'scope_reference' => RoleScope::Platform->value,
+            'description' => 'Administrator',
+            'is_system' => false,
+            'is_protected' => true,
+        ]);
+
+        Permission::create([
+            'name' => 'contacts.view',
+            'scope' => PermissionScope::Tenant->value,
+            'scope_reference' => PermissionScope::Tenant->value,
+            'description' => 'Contacts view',
+        ]);
+
+        $admin = User::create([
+            'name' => 'Platform Admin',
+            'email' => 'platform-admin-scope@example.com',
+            'password' => Hash::make('password'),
+        ]);
+        $admin->roles()->sync([$platformAdminRole->id]);
+
+        Sanctum::actingAs($admin);
+
+        $this->getJson('/api/v1/contacts')
+            ->assertForbidden();
+
+        $this->withHeader('X-Tenant-ID', $tenant->id)
+            ->getJson('/api/v1/contacts')
+            ->assertOk();
+    }
+
     public function test_tenant_permission_cache_is_isolated_between_tenants_and_switches_cleanly(): void
     {
-        $tenants = app(TenantBootstrapService::class)->ensureBaseTenants();
+        $tenants = app(TenantSeedService::class)->ensureBaseTenants();
         /** @var Tenant $tenantA */
         $tenantA = $tenants['default'];
         /** @var Tenant $tenantB */

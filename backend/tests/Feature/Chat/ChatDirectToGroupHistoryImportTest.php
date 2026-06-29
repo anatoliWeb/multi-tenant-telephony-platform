@@ -11,22 +11,17 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 use Laravel\Sanctum\Sanctum;
+use Tests\Feature\Chat\Concerns\InteractsWithTenantScopedChat;
 use Tests\TestCase;
 
 class ChatDirectToGroupHistoryImportTest extends TestCase
 {
+    use InteractsWithTenantScopedChat;
     use RefreshDatabase;
 
     private function actingAsWithPermissions(array $permissions): User
     {
-        $user = User::factory()->create();
-        $permissionIds = collect($permissions)
-            ->map(fn (string $name) => Permission::firstOrCreate(['name' => $name])->id)
-            ->all();
-        $user->permissions()->sync($permissionIds);
-        Sanctum::actingAs($user);
-
-        return $user;
+        return $this->actingAsTenantChatUser($permissions);
     }
 
     private function makeConversation(array $overrides = []): Conversation
@@ -171,12 +166,8 @@ class ChatDirectToGroupHistoryImportTest extends TestCase
 
         $actor = $this->actingAsWithPermissions(['chat.create', 'chat.conversations.create', 'chat.view', 'chat.conversations.view']);
         // align actor with direct owner
+        $this->prepareTenantChatUser($owner, ['chat.create', 'chat.conversations.create', 'chat.view', 'chat.conversations.view']);
         Sanctum::actingAs($owner);
-        $owner->permissions()->sync(
-            collect(['chat.create', 'chat.conversations.create', 'chat.view', 'chat.conversations.view'])
-                ->map(fn (string $name) => Permission::firstOrCreate(['name' => $name])->id)
-                ->all()
-        );
 
         $nonDirect = $this->makeConversation(['type' => 'group', 'visibility' => 'private', 'owner' => $owner]);
         $this->addParticipant($nonDirect, $owner, ['role' => 'owner']);
@@ -266,11 +257,7 @@ class ChatDirectToGroupHistoryImportTest extends TestCase
         ])->assertStatus(422);
 
         $thirdWithView = User::query()->findOrFail($third->id);
-        $thirdWithView->permissions()->sync(
-            collect(['chat.view', 'chat.conversations.view'])
-                ->map(fn (string $name) => Permission::firstOrCreate(['name' => $name])->id)
-                ->all()
-        );
+        $this->prepareTenantChatUser($thirdWithView, ['chat.view', 'chat.conversations.view']);
         Sanctum::actingAs($thirdWithView);
         $this->getJson("/api/v1/chat/conversations/{$direct->id}")
             ->assertNotFound();
@@ -286,3 +273,4 @@ class ChatDirectToGroupHistoryImportTest extends TestCase
         ]);
     }
 }
+

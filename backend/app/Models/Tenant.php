@@ -82,4 +82,9 @@ class Tenant extends Model
     {
         return $this->hasMany(PhoneNumber::class);
     }
+
+    public function callLogs(): HasMany
+    {
+        return $this->hasMany(CallLog::class);
+    }
 }

@@ -12,22 +12,17 @@ use App\Services\Chat\ChatWebhookSigningService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 use Laravel\Sanctum\Sanctum;
+use Tests\Feature\Chat\Concerns\InteractsWithTenantScopedChat;
 use Tests\TestCase;
 
 class ChatExternalMessageAuditLoggingTest extends TestCase
 {
+    use InteractsWithTenantScopedChat;
     use RefreshDatabase;
 
     private function actingAsWithPermissions(array $permissions): User
     {
-        $user = User::factory()->create();
-        $permissionIds = collect($permissions)
-            ->map(fn (string $name) => Permission::firstOrCreate(['name' => $name])->id)
-            ->all();
-        $user->permissions()->sync($permissionIds);
-        Sanctum::actingAs($user);
-
-        return $user;
+        return $this->actingAsTenantChatUser($permissions);
     }
 
     private function grantPermissions(User $user, array $permissions): void
@@ -205,7 +200,12 @@ class ChatExternalMessageAuditLoggingTest extends TestCase
         );
 
         $endpointCreator = User::factory()->create();
-        $this->grantPermissions($endpointCreator, ['chat.external_api.send', 'chat.send', 'chat.view', 'chat.conversations.view']);
+        $this->prepareTenantChatUser($endpointCreator, [
+            'chat.external_api.send',
+            'chat.send',
+            'chat.view',
+            'chat.conversations.view',
+        ]);
         $webhookConversation = $this->makeConversation($endpointCreator);
         $this->addParticipant($webhookConversation, $endpointCreator, ['role' => 'owner']);
         $endpoint = $this->makeEndpoint($endpointCreator);
@@ -246,4 +246,5 @@ class ChatExternalMessageAuditLoggingTest extends TestCase
         $this->assertSame($beforeInvalidSignature, ChatModerationLog::query()->where('action', 'message.external_created')->count());
     }
 }
+
 

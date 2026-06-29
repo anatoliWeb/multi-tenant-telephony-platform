@@ -9,6 +9,7 @@ use App\Models\Concerns\BelongsToTenant;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class PhoneNumber extends Model
 {
@@ -64,5 +65,15 @@ class PhoneNumber extends Model
     public function updater(): BelongsTo
     {
         return $this->belongsTo(User::class, 'updated_by');
+    }
+
+    public function outboundCallLogs(): HasMany
+    {
+        return $this->hasMany(CallLog::class, 'caller_phone_number_id');
+    }
+
+    public function inboundCallLogs(): HasMany
+    {
+        return $this->hasMany(CallLog::class, 'callee_phone_number_id');
     }
 }

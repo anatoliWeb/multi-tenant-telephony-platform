@@ -11,19 +11,31 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Route;
 use Laravel\Sanctum\Sanctum;
 use ReflectionMethod;
+use Tests\Feature\Chat\Concerns\InteractsWithTenantScopedChat;
 use Tests\TestCase;
 
 class OpenApiPreparationTest extends TestCase
 {
+    use InteractsWithTenantScopedChat;
     use RefreshDatabase;
 
     private function actingAsWithPermissions(array $permissions): User
     {
         $user = User::factory()->create();
-        $permissionIds = collect($permissions)
-            ->map(fn (string $name) => Permission::firstOrCreate(['name' => $name])->id)
-            ->all();
-        $user->permissions()->sync($permissionIds);
+        $chatPermissions = array_values(array_filter($permissions, static fn (string $name): bool => str_starts_with($name, 'chat.')));
+        $platformPermissions = array_values(array_diff($permissions, $chatPermissions));
+
+        if ($chatPermissions !== []) {
+            $this->prepareTenantChatUser($user, $chatPermissions);
+        }
+
+        if ($platformPermissions !== []) {
+            $permissionIds = collect($platformPermissions)
+                ->map(fn (string $name) => Permission::firstOrCreate(['name' => $name, 'scope' => 'platform'])->id)
+                ->all();
+            $user->permissions()->syncWithoutDetaching($permissionIds);
+        }
+
         Sanctum::actingAs($user);
 
         return $user;
@@ -120,4 +132,3 @@ class OpenApiPreparationTest extends TestCase
             ->assertJsonStructure(['errors']);
     }
 }
-

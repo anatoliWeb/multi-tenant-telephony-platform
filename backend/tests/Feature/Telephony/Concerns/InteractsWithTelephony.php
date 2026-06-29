@@ -13,14 +13,14 @@ trait InteractsWithTelephony
 {
     protected function setTelephonyTenant(string $tenantId = 'tenant-a', string $slug = 'tenant-a'): Tenant
     {
-        $tenant = new Tenant();
-        $tenant->forceFill([
-            'id' => $tenantId,
-            'name' => strtoupper(str_replace('-', ' ', $slug)),
-            'slug' => $slug,
-            'status' => 'active',
-        ]);
-        $tenant->exists = true;
+        $tenant = Tenant::query()->firstOrCreate(
+            ['id' => $tenantId],
+            [
+                'name' => strtoupper(str_replace('-', ' ', $slug)),
+                'slug' => $slug,
+                'status' => 'active',
+            ]
+        );
 
         app(TenantContext::class)->setTenant($tenant);
 

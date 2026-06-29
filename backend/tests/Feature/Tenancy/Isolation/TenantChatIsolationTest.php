@@ -59,7 +59,7 @@ class TenantChatIsolationTest extends TestCase
 
         $this->withHeader('X-Tenant-ID', $tenant->id)
             ->getJson("/api/v1/chat/conversations/{$conversation->id}")
-            ->assertNotFound()
+            ->assertForbidden()
             ->assertJsonPath('success', false);
     }
 

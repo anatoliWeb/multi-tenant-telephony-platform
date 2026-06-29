@@ -12,22 +12,17 @@ use App\Services\Chat\ChatAccessService;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
+use Tests\Feature\Chat\Concerns\InteractsWithTenantScopedChat;
 use Tests\TestCase;
 
 class ChatConversationQueryServiceTest extends TestCase
 {
+    use InteractsWithTenantScopedChat;
     use RefreshDatabase;
 
     private function makeUserWithPermissions(array $permissions): User
     {
-        $user = User::factory()->create();
-        $permissionIds = collect($permissions)
-            ->map(fn (string $name) => Permission::firstOrCreate(['name' => $name])->id)
-            ->all();
-
-        $user->permissions()->sync($permissionIds);
-
-        return $user;
+        return $this->makeTenantChatUserWithPermissions($permissions);
     }
 
     private function makeConversation(array $overrides = []): Conversation
@@ -294,3 +289,4 @@ class ChatConversationQueryServiceTest extends TestCase
         $this->assertContains($unreadConversation->id, $unreadFilteredIds);
     }
 }
+

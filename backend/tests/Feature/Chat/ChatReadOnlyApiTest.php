@@ -10,30 +10,22 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 use Laravel\Sanctum\Sanctum;
+use Tests\Feature\Chat\Concerns\InteractsWithTenantScopedChat;
 use Tests\TestCase;
 
 class ChatReadOnlyApiTest extends TestCase
 {
+    use InteractsWithTenantScopedChat;
     use RefreshDatabase;
 
     private function actingAsWithPermissions(array $permissions): User
     {
-        $user = $this->makeUserWithPermissions($permissions);
-        Sanctum::actingAs($user);
-
-        return $user;
+        return $this->actingAsTenantChatUser($permissions);
     }
 
     private function makeUserWithPermissions(array $permissions): User
     {
-        $user = User::factory()->create();
-        $permissionIds = collect($permissions)
-            ->map(fn (string $name) => Permission::firstOrCreate(['name' => $name])->id)
-            ->all();
-
-        $user->permissions()->sync($permissionIds);
-
-        return $user;
+        return $this->makeTenantChatUserWithPermissions($permissions);
     }
 
     private function makeConversation(array $overrides = []): Conversation
@@ -253,10 +245,12 @@ class ChatReadOnlyApiTest extends TestCase
             ->assertJsonMissingPath('data.admin_metadata');
 
         $admin = User::factory()->create();
-        $adminPerms = collect(['chat.view', 'chat.conversations.view', 'chat.admin.view', 'chat.admin.view_metadata'])
-            ->map(fn (string $name) => Permission::firstOrCreate(['name' => $name])->id)
-            ->all();
-        $admin->permissions()->sync($adminPerms);
+        $this->prepareTenantChatUser($admin, [
+            'chat.view',
+            'chat.conversations.view',
+            'chat.admin.view',
+            'chat.admin.view_metadata',
+        ]);
         Sanctum::actingAs($admin);
 
         $this->getJson("/api/v1/chat/conversations/{$visibleConversation->id}")
@@ -290,3 +284,4 @@ class ChatReadOnlyApiTest extends TestCase
         ]);
     }
 }
+

@@ -30,6 +30,7 @@ class TelephonyServiceProvider extends ServiceProvider
                 $app->make(TelephonyProviderRegistry::class),
                 $app->make(\App\Services\Tenancy\TenantContext::class),
                 $app->make(\App\Services\Monitoring\StructuredLogContextService::class),
+                $app->make(\App\Services\CallLogs\CallRecordingService::class),
             );
         });
     }

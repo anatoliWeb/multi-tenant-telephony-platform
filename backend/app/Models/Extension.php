@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Extension extends Model
 {
@@ -67,5 +68,15 @@ class Extension extends Model
     public function credential(): HasOne
     {
         return $this->hasOne(ExtensionCredential::class);
+    }
+
+    public function outboundCallLogs(): HasMany
+    {
+        return $this->hasMany(CallLog::class, 'caller_extension_id');
+    }
+
+    public function inboundCallLogs(): HasMany
+    {
+        return $this->hasMany(CallLog::class, 'callee_extension_id');
     }
 }

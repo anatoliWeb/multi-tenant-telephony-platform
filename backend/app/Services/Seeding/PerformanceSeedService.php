@@ -28,14 +28,17 @@ class PerformanceSeedService
 
         $startedAt = microtime(true);
 
-        $this->rbacSeedService->seedPermissionCatalog();
+        $permissions = $this->rbacSeedService->seedPermissionCatalog();
         $this->rbacSeedService->seedPlatformRoles();
 
         $tenants = $this->seedTenants(max(1, $tenantCount));
         $roleMap = [];
         foreach ($tenants as $tenant) {
             $roleMap[$tenant->id] = $this->rbacSeedService->seedTenantRoles($tenant);
+            $this->rbacSeedService->syncTenantRolePermissions($tenant, $roleMap[$tenant->id], $permissions);
         }
+
+        $this->rbacSeedService->invalidateRbacCaches();
 
         $userCount = 0;
         $membershipCount = 0;

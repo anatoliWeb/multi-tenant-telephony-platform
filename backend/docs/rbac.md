@@ -26,7 +26,8 @@ Permissions now carry:
 
 - Platform requests resolve platform-role permissions only.
 - Tenant requests resolve tenant-role permissions only for the active `TenantContext`.
-- Tenant permission resolution requires an active and `active`-status `TenantMembership` for the current user and tenant.
+- Tenant permission resolution requires an active and `active`-status `TenantMembership` for ordinary tenant users.
+- Platform Admin is the one explicit exception: after selecting an active tenant, tenant permission resolution returns the canonical tenant catalog for that tenant without creating a membership row.
 - Legacy direct user permissions remain in the database for compatibility, but they are not part of the tenant permission resolver.
 
 ## Cache
@@ -54,12 +55,55 @@ The seeding flow keeps role and permission identity stable by using `name` plus 
 
 ## Middleware
 
-`PermissionMiddleware` understands scoped permission strings:
+`PermissionMiddleware` resolves permissions by the active RBAC scope, not by a string prefix.
 
-- `platform.*` uses platform permissions;
-- `tenant.*` uses tenant permissions and requires an active tenant context.
+- platform routes still use platform-resolved permissions;
+- unprefixed permission names resolve against tenant scope automatically when `TenantContext` is active;
+- tenant routes now use the canonical permission names from the tenant catalog;
+- tenant authorization requires an active tenant context, while membership enforcement stays inside tenant permission resolution instead of scattered route exceptions.
 
-Unprefixed checks default to the platform scope for backward compatibility.
+Canonical tenant feature names:
+
+- `chat.view`
+- `chat.conversations.view`
+- `contacts.view`
+- `contacts.create`
+- `contacts.update`
+- `contacts.delete`
+- `contacts.import`
+- `contacts.export`
+- `contacts.manage_tags`
+- `extensions.view`
+- `extensions.create`
+- `extensions.update`
+- `extensions.delete`
+- `extensions.manage_credentials`
+- `phone_numbers.view`
+- `phone_numbers.create`
+- `phone_numbers.update`
+- `phone_numbers.delete`
+- `phone_numbers.assign`
+- `phone_numbers.set_primary`
+- `phone_numbers.provision`
+- `phone_numbers.release`
+- `call_logs.view`
+- `call_logs.view_own`
+- `call_logs.view_all`
+- `call_logs.export`
+- `call_logs.view_statistics`
+
+Canonical platform-admin support names exposed in Vue Admin:
+
+- `tenants.view`
+- `contacts.view`
+- `extensions.view`
+- `phone_numbers.view`
+- `call_logs.view`
+
+These platform permissions control Vue Admin navigation and support pages.
+They do not replace tenant-scoped authorization inside the tenant API. The
+support UI must still select an active tenant and send that tenant context on
+every tenant-scoped request.
 
 ## Compatibility
 
@@ -86,13 +130,13 @@ The Contacts module uses tenant-scoped permissions only.
 
 Implemented permissions:
 
-- `tenant.contacts.view`
-- `tenant.contacts.create`
-- `tenant.contacts.update`
-- `tenant.contacts.delete`
-- `tenant.contacts.import`
-- `tenant.contacts.export`
-- `tenant.contacts.manage_tags`
+- `contacts.view`
+- `contacts.create`
+- `contacts.update`
+- `contacts.delete`
+- `contacts.import`
+- `contacts.export`
+- `contacts.manage_tags`
 
 Verified behavior:
 
@@ -107,11 +151,11 @@ The Extensions module also uses tenant-scoped permissions only.
 
 Implemented permissions:
 
-- `tenant.extensions.view`
-- `tenant.extensions.create`
-- `tenant.extensions.update`
-- `tenant.extensions.delete`
-- `tenant.extensions.manage_credentials`
+- `extensions.view`
+- `extensions.create`
+- `extensions.update`
+- `extensions.delete`
+- `extensions.manage_credentials`
 
 Verified behavior:
 
@@ -127,14 +171,14 @@ The DID module uses tenant-scoped permissions only.
 
 Implemented permissions:
 
-- `tenant.phone_numbers.view`
-- `tenant.phone_numbers.create`
-- `tenant.phone_numbers.update`
-- `tenant.phone_numbers.delete`
-- `tenant.phone_numbers.assign`
-- `tenant.phone_numbers.set_primary`
-- `tenant.phone_numbers.provision`
-- `tenant.phone_numbers.release`
+- `phone_numbers.view`
+- `phone_numbers.create`
+- `phone_numbers.update`
+- `phone_numbers.delete`
+- `phone_numbers.assign`
+- `phone_numbers.set_primary`
+- `phone_numbers.provision`
+- `phone_numbers.release`
 
 Verified behavior:
 
@@ -142,3 +186,23 @@ Verified behavior:
 - suspended, invited, and removed memberships cannot receive a DID assignment;
 - cross-tenant user identifiers fail closed;
 - primary DID changes remain tenant-local.
+
+## Call Logs Permissions
+
+The Call Logs module uses tenant-scoped permissions only.
+
+Implemented permissions:
+
+- `call_logs.view`
+- `call_logs.view_own`
+- `call_logs.view_all`
+- `call_logs.export`
+- `call_logs.view_statistics`
+
+Verified behavior:
+
+- `call_logs.view_own` is limited to rows where the active user is the caller or callee user;
+- `call_logs.view_all` unlocks tenant-wide list and detail visibility;
+- statistics follow the same own-vs-all boundary;
+- active membership is required for ordinary tenant users;
+- platform permissions alone do not grant tenant call-log access.

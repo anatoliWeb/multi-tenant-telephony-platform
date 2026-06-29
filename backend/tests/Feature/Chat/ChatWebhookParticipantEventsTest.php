@@ -13,22 +13,17 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Str;
 use Laravel\Sanctum\Sanctum;
+use Tests\Feature\Chat\Concerns\InteractsWithTenantScopedChat;
 use Tests\TestCase;
 
 class ChatWebhookParticipantEventsTest extends TestCase
 {
+    use InteractsWithTenantScopedChat;
     use RefreshDatabase;
 
     private function actingAsWithPermissions(array $permissions): User
     {
-        $user = User::factory()->create();
-        $permissionIds = collect($permissions)
-            ->map(fn (string $name) => Permission::firstOrCreate(['name' => $name])->id)
-            ->all();
-        $user->permissions()->sync($permissionIds);
-        Sanctum::actingAs($user);
-
-        return $user;
+        return $this->actingAsTenantChatUser($permissions);
     }
 
     private function makeConversation(User $owner): Conversation
@@ -141,10 +136,7 @@ class ChatWebhookParticipantEventsTest extends TestCase
         $this->assertSame(1, ChatWebhookDelivery::query()->where('event', 'participant.unblocked')->where('webhook_endpoint_id', $active->id)->count());
 
         Sanctum::actingAs($leaveUser);
-        $leaveUser->permissions()->sync([
-            Permission::firstOrCreate(['name' => 'chat.view'])->id,
-            Permission::firstOrCreate(['name' => 'chat.conversations.view'])->id,
-        ]);
+        $this->prepareTenantChatUser($leaveUser, ['chat.view', 'chat.conversations.view']);
         $this->postJson("/api/v1/chat/conversations/{$conversation->id}/leave")->assertOk();
         $this->assertSame(1, ChatWebhookDelivery::query()->where('event', 'participant.left')->where('webhook_endpoint_id', $active->id)->count());
 
@@ -174,4 +166,5 @@ class ChatWebhookParticipantEventsTest extends TestCase
         Bus::assertDispatched(DeliverChatWebhookJob::class);
     }
 }
+
 

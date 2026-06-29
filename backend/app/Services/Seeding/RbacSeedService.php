@@ -8,9 +8,17 @@ use App\Models\Permission;
 use App\Models\Role;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Services\MetaCacheService;
+use App\Services\Rbac\PermissionCacheService;
 
 class RbacSeedService
 {
+    public function __construct(
+        protected PermissionCacheService $permissionCacheService,
+        protected MetaCacheService $metaCacheService,
+    ) {
+    }
+
     /**
      * Seed the scope-aware permission catalog.
      *
@@ -110,9 +118,48 @@ class RbacSeedService
             ->where('scope', $scope)
             ->whereIn('name', $permissionNames)
             ->pluck('id')
+            ->unique()
+            ->values()
             ->all();
 
         $role->permissions()->sync($permissionIds);
+    }
+
+    /**
+     * @param array<string, Role> $roles
+     * @param array{
+     *   tenant: array<int, string>,
+     *   tenant_admin: array<int, string>,
+     *   tenant_telephony_manager: array<int, string>,
+     *   tenant_team_manager: array<int, string>,
+     *   tenant_billing_manager: array<int, string>,
+     *   tenant_analyst: array<int, string>,
+     *   tenant_agent: array<int, string>,
+     *   tenant_read_only: array<int, string>
+     * } $permissions
+     */
+    public function syncTenantRolePermissions(Tenant $tenant, array $roles, array $permissions): void
+    {
+        $this->syncPermissions($roles['owner'], $permissions['tenant']);
+        $this->syncPermissions($roles['admin'], $permissions['tenant_admin']);
+        $this->syncPermissions($roles['telephony_manager'], $permissions['tenant_telephony_manager']);
+        $this->syncPermissions($roles['team_manager'], $permissions['tenant_team_manager']);
+        $this->syncPermissions($roles['billing_manager'], $permissions['tenant_billing_manager']);
+        $this->syncPermissions($roles['analyst'], $permissions['tenant_analyst']);
+        $this->syncPermissions($roles['agent'], $permissions['tenant_agent']);
+        $this->syncPermissions($roles['read_only'], $permissions['tenant_read_only']);
+
+        // Keep the demo-only custom observer role intentionally empty so
+        // tenant-specific custom-role workflows can be exercised safely.
+        $this->syncPermissions($roles['custom_observer'], []);
+
+        $this->permissionCacheService->forgetForTenant((string) $tenant->getKey());
+    }
+
+    public function invalidateRbacCaches(): void
+    {
+        $this->permissionCacheService->forgetAll();
+        $this->metaCacheService->bumpRbacVersion();
     }
 
     /**
@@ -196,6 +243,7 @@ class RbacSeedService
             'notifications.create',
             'notifications.delete',
             'notifications.preferences',
+            'tenants.view',
             'contacts.view',
             'contacts.create',
             'contacts.update',
@@ -216,6 +264,11 @@ class RbacSeedService
             'phone_numbers.set_primary',
             'phone_numbers.provision',
             'phone_numbers.release',
+            'call_logs.view',
+            'call_logs.view_own',
+            'call_logs.view_all',
+            'call_logs.export',
+            'call_logs.view_statistics',
             'chat.view',
             'chat.create',
             'chat.send',
@@ -264,6 +317,7 @@ class RbacSeedService
                 'api.docs.view',
                 'activity.view',
                 'system.monitoring',
+                'tenants.view',
             ],
             'platform_admin' => $all,
             'tenant' => array_values(array_diff($all, [
@@ -356,6 +410,11 @@ class RbacSeedService
                 'phone_numbers.set_primary',
                 'phone_numbers.provision',
                 'phone_numbers.release',
+                'call_logs.view',
+                'call_logs.view_own',
+                'call_logs.view_all',
+                'call_logs.export',
+                'call_logs.view_statistics',
             ],
             'tenant_telephony_manager' => [
                 'dashboard.view',
@@ -377,6 +436,10 @@ class RbacSeedService
                 'phone_numbers.set_primary',
                 'phone_numbers.provision',
                 'phone_numbers.release',
+                'call_logs.view',
+                'call_logs.view_own',
+                'call_logs.view_all',
+                'call_logs.view_statistics',
                 'chat.view',
                 'chat.send',
                 'chat.conversations.view',
@@ -399,6 +462,10 @@ class RbacSeedService
                 'phone_numbers.view',
                 'phone_numbers.assign',
                 'phone_numbers.set_primary',
+                'call_logs.view',
+                'call_logs.view_own',
+                'call_logs.view_all',
+                'call_logs.view_statistics',
                 'chat.view',
                 'chat.send',
                 'chat.conversations.view',
@@ -413,6 +480,8 @@ class RbacSeedService
                 'contacts.view',
                 'extensions.view',
                 'phone_numbers.view',
+                'call_logs.view',
+                'call_logs.view_statistics',
             ],
             'tenant_analyst' => [
                 'dashboard.view',
@@ -423,6 +492,9 @@ class RbacSeedService
                 'contacts.export',
                 'extensions.view',
                 'phone_numbers.view',
+                'call_logs.view',
+                'call_logs.view_all',
+                'call_logs.view_statistics',
                 'chat.view',
                 'chat.conversations.view',
             ],
@@ -434,6 +506,9 @@ class RbacSeedService
                 'contacts.update',
                 'extensions.view',
                 'phone_numbers.view',
+                'call_logs.view',
+                'call_logs.view_own',
+                'call_logs.view_statistics',
                 'chat.view',
                 'chat.send',
                 'chat.conversations.view',
@@ -448,6 +523,8 @@ class RbacSeedService
                 'contacts.view',
                 'extensions.view',
                 'phone_numbers.view',
+                'call_logs.view',
+                'call_logs.view_own',
                 'chat.view',
                 'chat.conversations.view',
                 'chat.participants.view',

@@ -9,10 +9,12 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 use Laravel\Sanctum\Sanctum;
+use Tests\Feature\Chat\Concerns\InteractsWithTenantScopedChat;
 use Tests\TestCase;
 
 class OpenApiWebhookEndpointsTest extends TestCase
 {
+    use InteractsWithTenantScopedChat;
     use RefreshDatabase;
 
     protected function setUp(): void
@@ -97,8 +99,7 @@ class OpenApiWebhookEndpointsTest extends TestCase
         $this->getJson('/api/v1/chat/webhook-endpoints')->assertStatus(403);
 
         $user = User::factory()->create();
-        $permission = Permission::firstOrCreate(['name' => 'chat.webhooks.view']);
-        $user->permissions()->syncWithoutDetaching([$permission->id]);
+        $this->prepareTenantChatUser($user, ['chat.webhooks.view']);
         Sanctum::actingAs($user);
 
         $this->getJson('/api/v1/chat/webhook-endpoints')

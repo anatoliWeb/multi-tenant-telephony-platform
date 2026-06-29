@@ -29,6 +29,7 @@ use App\Http\Controllers\Api\V1\Contacts\ContactController;
 use App\Http\Controllers\Api\V1\Contacts\ContactExportController;
 use App\Http\Controllers\Api\V1\Contacts\ContactImportController;
 use App\Http\Controllers\Api\V1\Contacts\ContactTagController;
+use App\Http\Controllers\Api\V1\CallLogs\CallLogController;
 use App\Http\Controllers\Api\V1\Extensions\ExtensionController;
 use App\Http\Controllers\Api\V1\PhoneNumbers\PhoneNumberController;
 use Illuminate\Support\Facades\Route;
@@ -243,6 +244,13 @@ Route::prefix('v1')
                     ->name('index');
             });
 
+        Route::prefix('settings')
+            ->as('settings.')
+            ->group(function () {
+                Route::get('/preload', [SettingsController::class, 'preload'])
+                    ->name('preload');
+            });
+
         /**
          * --------------------------------------------------------
          * Protected v1 API
@@ -386,10 +394,6 @@ Route::prefix('v1')
                         Route::get('/', [SettingsController::class, 'index'])
                             ->middleware('permission:settings.view')
                             ->name('index');
-
-                        Route::get('/preload', [SettingsController::class, 'preload'])
-                            ->middleware('auth:sanctum')
-                            ->name('preload');
 
                         Route::get('/effective', [SettingsController::class, 'effective'])
                             ->middleware('permission:settings.view')
@@ -675,47 +679,47 @@ Route::prefix('v1')
                     ->group(function (): void {
                     Route::get('/', [ContactController::class, 'index'])
                         ->name('index')
-                        ->middleware('permission:tenant.contacts.view');
+                        ->middleware('permission:contacts.view');
 
                     Route::get('/search', [ContactController::class, 'search'])
                         ->name('search')
-                        ->middleware('permission:tenant.contacts.view');
+                        ->middleware('permission:contacts.view');
 
                     Route::get('/lookup-phone', [ContactController::class, 'lookupPhone'])
                         ->name('lookup-phone')
-                        ->middleware('permission:tenant.contacts.view');
+                        ->middleware('permission:contacts.view');
 
                     Route::post('/', [ContactController::class, 'store'])
                         ->name('store')
-                        ->middleware('permission:tenant.contacts.create');
+                        ->middleware('permission:contacts.create');
 
                     Route::get('/export', ContactExportController::class)
                         ->name('export')
-                        ->middleware('permission:tenant.contacts.export');
+                        ->middleware('permission:contacts.export');
 
                     Route::post('/import/validate', [ContactImportController::class, 'validateImport'])
                         ->name('import.validate')
-                        ->middleware('permission:tenant.contacts.import');
+                        ->middleware('permission:contacts.import');
 
                     Route::post('/import', [ContactImportController::class, 'import'])
                         ->name('import')
-                        ->middleware('permission:tenant.contacts.import');
+                        ->middleware('permission:contacts.import');
 
                     Route::get('/{contact}', [ContactController::class, 'show'])
                         ->name('show')
-                        ->middleware('permission:tenant.contacts.view');
+                        ->middleware('permission:contacts.view');
 
                     Route::put('/{contact}', [ContactController::class, 'update'])
                         ->name('update')
-                        ->middleware('permission:tenant.contacts.update');
+                        ->middleware('permission:contacts.update');
 
                     Route::patch('/{contact}', [ContactController::class, 'update'])
                         ->name('patch')
-                        ->middleware('permission:tenant.contacts.update');
+                        ->middleware('permission:contacts.update');
 
                     Route::delete('/{contact}', [ContactController::class, 'destroy'])
                         ->name('destroy')
-                        ->middleware('permission:tenant.contacts.delete');
+                        ->middleware('permission:contacts.delete');
                 });
 
                 Route::prefix('contact-tags')
@@ -724,19 +728,19 @@ Route::prefix('v1')
                     ->group(function (): void {
                     Route::get('/', [ContactTagController::class, 'index'])
                         ->name('index')
-                        ->middleware('permission:tenant.contacts.view');
+                        ->middleware('permission:contacts.view');
 
                     Route::post('/', [ContactTagController::class, 'store'])
                         ->name('store')
-                        ->middleware('permission:tenant.contacts.manage_tags');
+                        ->middleware('permission:contacts.manage_tags');
 
                     Route::put('/{tag}', [ContactTagController::class, 'update'])
                         ->name('update')
-                        ->middleware('permission:tenant.contacts.manage_tags');
+                        ->middleware('permission:contacts.manage_tags');
 
                     Route::delete('/{tag}', [ContactTagController::class, 'destroy'])
                         ->name('destroy')
-                        ->middleware('permission:tenant.contacts.manage_tags');
+                        ->middleware('permission:contacts.manage_tags');
                 });
 
                 Route::prefix('extensions')
@@ -745,35 +749,35 @@ Route::prefix('v1')
                     ->group(function (): void {
                     Route::get('/', [ExtensionController::class, 'index'])
                         ->name('index')
-                        ->middleware('permission:tenant.extensions.view');
+                        ->middleware('permission:extensions.view');
 
                     Route::get('/assignment-options', [ExtensionController::class, 'assignmentOptions'])
                         ->name('assignment-options')
-                        ->middleware('permission:tenant.extensions.view');
+                        ->middleware('permission:extensions.view');
 
                     Route::post('/', [ExtensionController::class, 'store'])
                         ->name('store')
-                        ->middleware('permission:tenant.extensions.create');
+                        ->middleware('permission:extensions.create');
 
                     Route::get('/{extension}', [ExtensionController::class, 'show'])
                         ->name('show')
-                        ->middleware('permission:tenant.extensions.view');
+                        ->middleware('permission:extensions.view');
 
                     Route::put('/{extension}', [ExtensionController::class, 'update'])
                         ->name('update')
-                        ->middleware('permission:tenant.extensions.update');
+                        ->middleware('permission:extensions.update');
 
                     Route::patch('/{extension}', [ExtensionController::class, 'update'])
                         ->name('patch')
-                        ->middleware('permission:tenant.extensions.update');
+                        ->middleware('permission:extensions.update');
 
                     Route::post('/{extension}/rotate-credentials', [ExtensionController::class, 'rotateCredentials'])
                         ->name('rotate-credentials')
-                        ->middleware('permission:tenant.extensions.manage_credentials');
+                        ->middleware('permission:extensions.manage_credentials');
 
                     Route::delete('/{extension}', [ExtensionController::class, 'destroy'])
                         ->name('destroy')
-                        ->middleware('permission:tenant.extensions.delete');
+                        ->middleware('permission:extensions.delete');
                 });
 
                 Route::prefix('phone-numbers')
@@ -782,55 +786,80 @@ Route::prefix('v1')
                     ->group(function (): void {
                     Route::get('/', [PhoneNumberController::class, 'index'])
                         ->name('index')
-                        ->middleware('permission:tenant.phone_numbers.view');
+                        ->middleware('permission:phone_numbers.view');
 
                     Route::get('/assignment-options', [PhoneNumberController::class, 'assignmentOptions'])
                         ->name('assignment-options')
-                        ->middleware('permission:tenant.phone_numbers.view');
+                        ->middleware('permission:phone_numbers.view');
 
                     Route::post('/', [PhoneNumberController::class, 'store'])
                         ->name('store')
-                        ->middleware('permission:tenant.phone_numbers.create');
+                        ->middleware('permission:phone_numbers.create');
 
                     Route::get('/{phoneNumber}', [PhoneNumberController::class, 'show'])
                         ->name('show')
-                        ->middleware('permission:tenant.phone_numbers.view');
+                        ->middleware('permission:phone_numbers.view');
 
                     Route::put('/{phoneNumber}', [PhoneNumberController::class, 'update'])
                         ->name('update')
-                        ->middleware('permission:tenant.phone_numbers.update');
+                        ->middleware('permission:phone_numbers.update');
 
                     Route::patch('/{phoneNumber}', [PhoneNumberController::class, 'update'])
                         ->name('patch')
-                        ->middleware('permission:tenant.phone_numbers.update');
+                        ->middleware('permission:phone_numbers.update');
 
                     Route::delete('/{phoneNumber}', [PhoneNumberController::class, 'destroy'])
                         ->name('destroy')
-                        ->middleware('permission:tenant.phone_numbers.delete');
+                        ->middleware('permission:phone_numbers.delete');
 
                     Route::post('/{phoneNumber}/assign', [PhoneNumberController::class, 'assign'])
                         ->name('assign')
-                        ->middleware('permission:tenant.phone_numbers.assign');
+                        ->middleware('permission:phone_numbers.assign');
 
                     Route::post('/{phoneNumber}/unassign', [PhoneNumberController::class, 'unassign'])
                         ->name('unassign')
-                        ->middleware('permission:tenant.phone_numbers.assign');
+                        ->middleware('permission:phone_numbers.assign');
 
                     Route::post('/{phoneNumber}/set-primary', [PhoneNumberController::class, 'setPrimary'])
                         ->name('set-primary')
-                        ->middleware('permission:tenant.phone_numbers.set_primary');
+                        ->middleware('permission:phone_numbers.set_primary');
 
                     Route::post('/{phoneNumber}/activate', [PhoneNumberController::class, 'activate'])
                         ->name('activate')
-                        ->middleware('permission:tenant.phone_numbers.provision');
+                        ->middleware('permission:phone_numbers.provision');
 
                     Route::post('/{phoneNumber}/suspend', [PhoneNumberController::class, 'suspend'])
                         ->name('suspend')
-                        ->middleware('permission:tenant.phone_numbers.provision');
+                        ->middleware('permission:phone_numbers.provision');
 
                     Route::post('/{phoneNumber}/release', [PhoneNumberController::class, 'release'])
                         ->name('release')
-                        ->middleware('permission:tenant.phone_numbers.release');
+                        ->middleware('permission:phone_numbers.release');
+                });
+
+                Route::prefix('call-logs')
+                    ->as('call-logs.')
+                    ->middleware('resolve.tenant')
+                    ->group(function (): void {
+                    Route::get('/', [CallLogController::class, 'index'])
+                        ->name('index')
+                        ->middleware('permission:call_logs.view');
+
+                    Route::get('/statistics', [CallLogController::class, 'statistics'])
+                        ->name('statistics')
+                        ->middleware('permission:call_logs.view_statistics');
+
+                    Route::get('/filter-options', [CallLogController::class, 'filterOptions'])
+                        ->name('filter-options')
+                        ->middleware('permission:call_logs.view');
+
+                    Route::get('/{callLog}', [CallLogController::class, 'show'])
+                        ->name('show')
+                        ->middleware('permission:call_logs.view');
+
+                    Route::get('/{callLog}/events', [CallLogController::class, 'events'])
+                        ->name('events')
+                        ->middleware('permission:call_logs.view');
                 });
 
                 Route::prefix('users')
@@ -839,11 +868,11 @@ Route::prefix('v1')
                     ->group(function (): void {
                     Route::get('/{user}/phone-numbers', [PhoneNumberController::class, 'userPhoneNumbers'])
                         ->name('phone-numbers')
-                        ->middleware('permission:tenant.phone_numbers.view');
+                        ->middleware('permission:phone_numbers.view');
 
                     Route::get('/{user}/primary-did', [PhoneNumberController::class, 'userPrimaryDid'])
                         ->name('primary-did')
-                        ->middleware('permission:tenant.phone_numbers.view');
+                        ->middleware('permission:phone_numbers.view');
                 });
 
 

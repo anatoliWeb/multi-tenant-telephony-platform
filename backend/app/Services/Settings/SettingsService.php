@@ -279,6 +279,52 @@ class SettingsService
     }
 
     /**
+     * Preload guest-safe frontend settings without auth-specific overrides.
+     *
+     * WHY:
+     * Login/bootstrap flows need a stable preload contract before auth
+     * hydration completes, but only public global frontend settings may be
+     * exposed there.
+     *
+     * @return array<string, mixed>
+     */
+    public function preloadPublicFrontend(): array
+    {
+        $resolved = SystemSetting::query()
+            ->active()
+            ->frontend()
+            ->public()
+            ->whereNull('scope_user_id')
+            ->whereNull('scope_role_id')
+            ->whereNull('scope_permission_id')
+            ->orderBy('key')
+            ->get()
+            ->groupBy('key');
+
+        $flattened = [];
+
+        foreach ($resolved as $key => $items) {
+            /** @var SystemSetting|null $winner */
+            $winner = $items
+                ->sortByDesc(static fn (SystemSetting $setting) => [
+                    (int) $setting->priority,
+                    (int) $setting->id,
+                ])
+                ->first();
+
+            $raw = $winner?->value ?? $winner?->default_value;
+            $flattened[$key] = $winner
+                ? $this->resolver->castValue($raw, $winner->type)
+                : null;
+        }
+
+        return [
+            'channel' => SystemSetting::CHANNEL_FRONTEND,
+            'settings' => $flattened,
+        ];
+    }
+
+    /**
      * Invalidate runtime settings caches.
      *
      * WHY:

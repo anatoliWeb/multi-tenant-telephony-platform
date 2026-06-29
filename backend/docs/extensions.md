@@ -196,3 +196,17 @@ Future routing remains:
 
 - inbound: `DID -> assigned user -> active extension`
 - outbound: `user -> primary DID -> caller ID`
+
+## Relationship to Call Logs
+
+Call logs may keep optional historical references to:
+
+- `caller_extension_id`
+- `callee_extension_id`
+
+Rules:
+
+- the extension reference supplements immutable number snapshots and is not the sole display source;
+- deleted extensions must not cascade-delete call history;
+- inbound call enrichment resolves `DID -> assigned user -> active extension`;
+- internal calls may resolve two tenant-owned extensions without leaving the active tenant boundary.

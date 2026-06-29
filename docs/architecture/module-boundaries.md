@@ -38,6 +38,10 @@ The boundaries below are planning rules for new code. They do not require a whol
 - Contracts consumed: Identity, AccessControl, Chat, Notifications, Billing, Reporting.
 - Allowed dependencies: Identity, AccessControl, Shared.
 - Forbidden dependencies: provider-specific telephony code, frontend UI state.
+- Runtime boundary: runtime tenancy services may read and resolve context, but deterministic tenant creation and membership repair belong to seeding services only.
+- Frontend boundary: Angular owns tenant navigation state and tenant preload
+  timing, while Vue Admin may hold a support-oriented tenant selector without
+  becoming the source of truth for tenant authorization.
 
 ## AccessControl
 
@@ -48,6 +52,10 @@ The boundaries below are planning rules for new code. They do not require a whol
 - Contracts consumed: Identity, Tenancy, Monitoring.
 - Allowed dependencies: Identity, Tenancy, Shared.
 - Forbidden dependencies: direct writes into Chat, Billing, or Telephony tables.
+- Platform Admin tenant access is centralized here through tenant permission resolution, not ad-hoc controller or policy bypasses.
+- Vue Admin support pages use platform permissions for visibility, but tenant
+  feature data still depends on active tenant context and tenant-scoped policy
+  enforcement at the API layer.
 
 ## Contacts
 
@@ -72,9 +80,9 @@ The boundaries below are planning rules for new code. They do not require a whol
 ## Telephony
 
 - Responsibility: telephony domain behavior and provider-neutral call lifecycle.
-- Owned entities: extensions, extension credentials, call sessions, call legs, routing decisions, extension bindings.
-- Public application services: `TelephonyService`, `ExtensionService`, `ExtensionProvisioningService`, `ExtensionCredentialService`, `ExtensionQueryService`.
-- Events emitted: call started, call answered, call ended, routing changed.
+- Owned entities: extensions, extension credentials, active call sessions, call legs, routing decisions, extension bindings.
+- Public application services: `TelephonyService`, `ExtensionService`, `ExtensionProvisioningService`, `ExtensionCredentialService`, `ExtensionQueryService`, `CallRecordingService`.
+- Events emitted: call started, call answered, call ended, routing changed, provider-neutral call lifecycle notifications for history recording.
 - Contracts consumed: Integrations, Contacts, AccessControl, Tenancy.
 - Allowed dependencies: Shared, Integrations, Contacts, AccessControl.
 - Forbidden dependencies: direct FreeSWITCH class references.
@@ -82,9 +90,9 @@ The boundaries below are planning rules for new code. They do not require a whol
 ## CallManagement
 
 - Responsibility: call logs, call summaries, call history, agent activity around calls.
-- Owned entities: call logs, call outcomes, call summaries, routing history.
-- Public application services: `CallLogService`, `CallSummaryService`, `CallHistoryQueryService`.
-- Events emitted: call log created, call summary ready, call disposition updated.
+- Owned entities: call logs, call events, call outcomes, call summaries, routing history.
+- Public application services: `CallLogService`, `CallLifecycleService`, `CallEventService`, `CallQueryService`, `CallStatisticsService`.
+- Events emitted: call log created, call event recorded, call disposition updated, call statistics queried.
 - Contracts consumed: Telephony, Tenancy, AccessControl, Reporting.
 - Allowed dependencies: Telephony, Reporting, Shared.
 - Forbidden dependencies: provider-specific call execution code.

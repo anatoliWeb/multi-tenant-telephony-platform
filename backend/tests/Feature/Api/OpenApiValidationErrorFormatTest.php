@@ -6,17 +6,18 @@ use App\Models\Permission;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
+use Tests\Feature\Chat\Concerns\InteractsWithTenantScopedChat;
 use Tests\TestCase;
 
 class OpenApiValidationErrorFormatTest extends TestCase
 {
+    use InteractsWithTenantScopedChat;
     use RefreshDatabase;
 
     public function test_form_request_endpoint_returns_standardized_422_validation_shape(): void
     {
         $user = User::factory()->create();
-        $permission = Permission::firstOrCreate(['name' => 'chat.conversations.create']);
-        $user->permissions()->syncWithoutDetaching([$permission->id]);
+        $this->prepareTenantChatUser($user, ['chat.conversations.create']);
         Sanctum::actingAs($user);
 
         $response = $this->postJson('/api/v1/chat/conversations/group', []);

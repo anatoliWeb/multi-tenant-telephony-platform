@@ -31,6 +31,9 @@ Implemented after this baseline:
 - tenant-aware Extensions integrated through the shared endpoint-provisioning contracts;
 - fake-provider-backed endpoint lifecycle for extension create, update, suspend, activate, delete, and sync;
 - one-time extension credential generation and rotation with encrypted storage.
+- tenant-aware call logs and call events integrated through provider-neutral recording services;
+- bounded tenant statistics over fake-provider call history;
+- fake call lifecycle recording for originate, answer, hold, resume, and hangup flows.
 
 ## Contacts Dependency
 
@@ -165,3 +168,19 @@ Current rules:
 - extensions stay separate and are linked only through the assigned user.
 
 Current implementation does not add FreeSWITCH, SIP.js, carrier adapters, or real call routing.
+
+## Call Logs Integration
+
+The telephony service now records provider-neutral call history through:
+
+- `CallRecordingService`
+- `CallLogService`
+- `CallLifecycleService`
+- `CallEventService`
+
+Current behavior:
+
+- fake-provider call origination creates a tenant-owned call log and call-created or ringing events;
+- answer, hold, resume, and hangup transitions append provider-neutral events and reconcile lifecycle state;
+- historical caller and callee snapshots are stored even when related users, extensions, DIDs, or contacts are linked;
+- no real SIP transport, RTP, or provider webhooks are involved.

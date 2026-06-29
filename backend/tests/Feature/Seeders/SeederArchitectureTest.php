@@ -11,9 +11,13 @@ use App\Models\TenantMembership;
 use App\Models\Contact;
 use App\Models\ContactPhone;
 use App\Models\ContactTag;
+use App\Models\CallLog;
 use App\Models\PhoneNumber;
 use App\Models\User;
 use App\Services\Seeding\PerformanceSeedService;
+use App\Services\Seeding\TenantSeedService;
+use App\Services\Tenancy\TenantBootstrapService;
+use Illuminate\Support\Collection;
 use Database\Seeders\CoreSeeder;
 use Database\Seeders\DemoSeeder;
 use Database\Seeders\TestSeeder;
@@ -102,6 +106,10 @@ class SeederArchitectureTest extends TestCase
         $this->assertSame(1, PhoneNumber::query()->where('tenant_id', $secondaryTenant->id)->where('normalized_number', '+15550001001')->count());
         $this->assertGreaterThanOrEqual(4, PhoneNumber::query()->where('tenant_id', $defaultTenant->id)->count());
         $this->assertGreaterThanOrEqual(2, PhoneNumber::query()->where('tenant_id', $defaultTenant->id)->where('is_primary', true)->count());
+        $this->assertGreaterThanOrEqual(5, CallLog::query()->where('tenant_id', $defaultTenant->id)->count());
+        $this->assertGreaterThanOrEqual(2, CallLog::query()->where('tenant_id', $secondaryTenant->id)->count());
+        $this->assertSame(1, CallLog::query()->where('tenant_id', $defaultTenant->id)->where('provider_call_id', 'shared-provider-call')->count());
+        $this->assertSame(1, CallLog::query()->where('tenant_id', $secondaryTenant->id)->where('provider_call_id', 'shared-provider-call')->count());
 
         $tenantOwnerRoles = Role::query()
             ->where('scope', 'tenant')
@@ -110,12 +118,42 @@ class SeederArchitectureTest extends TestCase
 
         $this->assertCount(3, $tenantOwnerRoles);
         $this->assertSame(3, $tenantOwnerRoles->unique()->count());
+        $this->assertTenantRolePermissions($defaultTenant, 'tenant_owner', ['contacts.view', 'extensions.view', 'phone_numbers.view', 'call_logs.view_all', 'chat.view']);
+        $this->assertTenantRolePermissions($defaultTenant, 'tenant_admin', ['contacts.create', 'extensions.manage_credentials', 'phone_numbers.release', 'call_logs.export']);
+        $this->assertTenantRolePermissions($defaultTenant, 'agent', ['contacts.view', 'extensions.view', 'phone_numbers.view', 'call_logs.view_own', 'chat.conversations.view']);
+        $this->assertTenantRolePermissions($defaultTenant, 'read_only', ['contacts.view', 'extensions.view', 'phone_numbers.view', 'call_logs.view_own', 'chat.view']);
+        $this->assertSame(
+            0,
+            Role::query()
+                ->where('tenant_id', $defaultTenant->id)
+                ->where('name', 'custom_observer')
+                ->firstOrFail()
+                ->permissions()
+                ->count()
+        );
 
         $demoSeeder->seed();
         $countsAfter = $this->snapshotDemoCounts();
 
         $this->assertSame($countsBefore, $countsAfter);
         $this->assertSame($firstReport, $demoSeeder->seed());
+    }
+
+    public function test_tenant_bootstrap_service_is_read_only_and_does_not_repair_memberships(): void
+    {
+        $tenants = app(TenantSeedService::class)->ensureBaseTenants();
+        $user = User::factory()->create();
+
+        /** @var Tenant $defaultTenant */
+        $defaultTenant = $tenants['default'];
+        /** @var TenantBootstrapService $bootstrap */
+        $bootstrap = app(TenantBootstrapService::class);
+
+        $this->assertSame(0, TenantMembership::count());
+        $this->assertCount(0, $bootstrap->accessibleTenantsForUser($user));
+        $this->assertFalse($bootstrap->canAccessTenant($user, $defaultTenant));
+        $this->assertNull($bootstrap->activeMembershipFor($user, $defaultTenant));
+        $this->assertSame(0, TenantMembership::count());
     }
 
     public function test_test_seeder_refuses_non_testing_environment(): void
@@ -168,5 +206,27 @@ class SeederArchitectureTest extends TestCase
             'roles' => Role::count(),
             'permissions' => Permission::count(),
         ];
+    }
+
+    /**
+     * @param array<int, string> $expectedPermissions
+     */
+    private function assertTenantRolePermissions(Tenant $tenant, string $roleName, array $expectedPermissions): void
+    {
+        /** @var Collection<int, string> $actual */
+        $actual = Role::query()
+            ->where('tenant_id', $tenant->id)
+            ->where('name', $roleName)
+            ->firstOrFail()
+            ->permissions()
+            ->orderBy('name')
+            ->pluck('name');
+
+        foreach ($expectedPermissions as $permission) {
+            $this->assertTrue(
+                $actual->contains($permission),
+                sprintf('Role [%s] for tenant [%s] is missing permission [%s].', $roleName, $tenant->slug, $permission)
+            );
+        }
     }
 }
