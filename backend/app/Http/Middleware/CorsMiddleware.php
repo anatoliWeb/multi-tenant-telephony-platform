@@ -3,8 +3,10 @@
 namespace App\Http\Middleware;
 
 use Closure;
+use Illuminate\Contracts\Debug\ExceptionHandler;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Throwable;
 
 /**
  * Class CorsMiddleware
@@ -49,15 +51,17 @@ class CorsMiddleware
                 ->withHeaders($headers);
         }
 
-        // Process normal request
-        $response = $next($request);
-
-        // Attach CORS headers to response
-        foreach ($headers as $key => $value) {
-            $response->headers->set($key, $value);
+        try {
+            $response = $next($request);
+        } catch (Throwable $exception) {
+            // Keep API error responses browser-readable by reusing Laravel's
+            // exception rendering path and appending the same CORS contract.
+            $handler = app(ExceptionHandler::class);
+            $handler->report($exception);
+            $response = $handler->render($request, $exception);
         }
 
-        return $response;
+        return $this->applyHeaders($response, $headers);
     }
 
     /**
@@ -109,6 +113,18 @@ class CorsMiddleware
             'Access-Control-Allow-Credentials' => $supportsCredentials ? 'true' : 'false',
             'Vary' => 'Origin',
         ];
+    }
+
+    /**
+     * @param array<string, string> $headers
+     */
+    private function applyHeaders(Response $response, array $headers): Response
+    {
+        foreach ($headers as $key => $value) {
+            $response->headers->set($key, $value);
+        }
+
+        return $response;
     }
 
     /**

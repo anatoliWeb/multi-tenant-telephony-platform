@@ -80,6 +80,7 @@ return [
         'Content-Type',
         'Origin',
         'X-Requested-With',
+        'X-Tenant-ID',
         'X-CSRF-TOKEN',
         'X-XSRF-TOKEN',
         'X-Socket-Id',
