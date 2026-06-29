@@ -1,0 +1,147 @@
+<section class="call-logs-shell">
+  <header class="page-header">
+    <div>
+      <h1>{{ 'callLogs.title' | t }}</h1>
+      <p>{{ 'callLogs.subtitle' | t }}</p>
+    </div>
+  </header>
+
+  <div class="filters-card" *ngIf="filters$ | async as filters">
+    <label>
+      <span>{{ 'callLogs.filters.search' | t }}</span>
+      <input data-testid="call-log-search" type="text" [value]="filters.search" (change)="onSearchChange(($any($event.target).value ?? '').toString())" />
+    </label>
+
+    <label>
+      <span>{{ 'callLogs.filters.direction' | t }}</span>
+      <select data-testid="call-log-direction" [value]="filters.direction" (change)="onDirectionChange(($any($event.target).value ?? '').toString())">
+        <option value="">{{ 'callLogs.filters.any' | t }}</option>
+        <option value="inbound">{{ 'callLogs.direction.inbound' | t }}</option>
+        <option value="outbound">{{ 'callLogs.direction.outbound' | t }}</option>
+        <option value="internal">{{ 'callLogs.direction.internal' | t }}</option>
+      </select>
+    </label>
+
+    <label>
+      <span>{{ 'callLogs.filters.status' | t }}</span>
+      <select data-testid="call-log-status" [value]="filters.status" (change)="onStatusChange(($any($event.target).value ?? '').toString())">
+        <option value="">{{ 'callLogs.filters.any' | t }}</option>
+        <option value="created">created</option>
+        <option value="ringing">ringing</option>
+        <option value="answered">answered</option>
+        <option value="completed">completed</option>
+        <option value="failed">failed</option>
+        <option value="cancelled">cancelled</option>
+      </select>
+    </label>
+
+    <label>
+      <span>{{ 'callLogs.filters.disposition' | t }}</span>
+      <select data-testid="call-log-disposition" [value]="filters.disposition" (change)="onDispositionChange(($any($event.target).value ?? '').toString())">
+        <option value="">{{ 'callLogs.filters.any' | t }}</option>
+        <option value="answered">answered</option>
+        <option value="no_answer">no_answer</option>
+        <option value="busy">busy</option>
+        <option value="failed">failed</option>
+      </select>
+    </label>
+
+    <label *ngIf="canViewAll">
+      <span>{{ 'callLogs.filters.user' | t }}</span>
+      <select data-testid="call-log-user" [value]="filters.user" (change)="onUserChange(($any($event.target).value ?? '').toString())">
+        <option value="">{{ 'callLogs.filters.any' | t }}</option>
+        <option *ngFor="let user of users$ | async" [value]="user.id">{{ user.name }}</option>
+      </select>
+    </label>
+
+    <label>
+      <span>{{ 'callLogs.filters.dateFrom' | t }}</span>
+      <input data-testid="call-log-date-from" type="date" [value]="filters.date_from" (change)="onDateRangeChange(($any($event.target).value ?? '').toString(), filters.date_to)" />
+    </label>
+
+    <label>
+      <span>{{ 'callLogs.filters.dateTo' | t }}</span>
+      <input data-testid="call-log-date-to" type="date" [value]="filters.date_to" (change)="onDateRangeChange(filters.date_from, ($any($event.target).value ?? '').toString())" />
+    </label>
+  </div>
+
+  <div class="statistics-grid" *ngIf="canViewStatistics && (statistics$ | async) as statistics">
+    <article class="stat-card" data-testid="statistics-card">
+      <span>{{ 'callLogs.statistics.total' | t }}</span>
+      <strong>{{ statistics.total_calls }}</strong>
+    </article>
+    <article class="stat-card">
+      <span>{{ 'callLogs.statistics.answered' | t }}</span>
+      <strong>{{ statistics.answered_calls }}</strong>
+    </article>
+    <article class="stat-card">
+      <span>{{ 'callLogs.statistics.missed' | t }}</span>
+      <strong>{{ statistics.missed_calls }}</strong>
+    </article>
+    <article class="stat-card">
+      <span>{{ 'callLogs.statistics.answerRate' | t }}</span>
+      <strong>{{ statistics.answer_rate }}%</strong>
+    </article>
+  </div>
+
+  <p class="error" *ngIf="error$ | async as error">{{ error }}</p>
+
+  <div class="content-grid">
+    <section class="list-panel">
+      <p *ngIf="loading$ | async">{{ 'callLogs.states.loading' | t }}</p>
+
+      <button
+        *ngFor="let callLog of callLogs$ | async; trackBy: trackCallLog"
+        type="button"
+        class="call-row"
+        data-testid="call-log-row"
+        (click)="selectCallLog(callLog)"
+      >
+        <div class="call-row__head">
+          <strong>{{ callLog.from_number || 'Unknown' }}</strong>
+          <span>{{ callLog.direction }}</span>
+        </div>
+        <div class="call-row__meta">
+          <span>{{ callLog.to_number || 'Unknown' }}</span>
+          <span>{{ callLog.status }}</span>
+          <span>{{ formatDuration(callLog.total_seconds) }}</span>
+        </div>
+      </button>
+
+      <p *ngIf="!(loading$ | async) && (pagination$ | async)?.total === 0">{{ 'callLogs.states.empty' | t }}</p>
+
+      <div class="pagination" *ngIf="pagination$ | async as pagination">
+        <button type="button" [disabled]="pagination.current_page <= 1" (click)="onPageChange(pagination.current_page - 1)">
+          {{ 'callLogs.pagination.previous' | t }}
+        </button>
+        <span>{{ pagination.current_page }} / {{ pagination.last_page }}</span>
+        <button type="button" [disabled]="pagination.current_page >= pagination.last_page" (click)="onPageChange(pagination.current_page + 1)">
+          {{ 'callLogs.pagination.next' | t }}
+        </button>
+      </div>
+    </section>
+
+    <aside class="detail-panel" data-testid="call-log-detail" *ngIf="activeCallLog$ | async as activeCallLog">
+      <p *ngIf="detailLoading$ | async">{{ 'callLogs.states.loadingDetails' | t }}</p>
+
+      <h2>{{ 'callLogs.details.title' | t }}</h2>
+      <p>{{ activeCallLog.direction }} / {{ activeCallLog.status }}</p>
+      <p>{{ 'callLogs.details.from' | t }}: {{ activeCallLog.from_number || 'Unknown' }}</p>
+      <p>{{ 'callLogs.details.to' | t }}: {{ activeCallLog.to_number || 'Unknown' }}</p>
+      <p>{{ 'callLogs.details.duration' | t }}: {{ formatDuration(activeCallLog.total_seconds) }}</p>
+      <p *ngIf="activeCallLog.caller.extension">{{ 'callLogs.details.callerExtension' | t }}: {{ activeCallLog.caller.extension.number }}</p>
+      <p *ngIf="activeCallLog.callee.extension">{{ 'callLogs.details.calleeExtension' | t }}: {{ activeCallLog.callee.extension.number }}</p>
+      <p *ngIf="activeCallLog.caller.phone_number">{{ 'callLogs.details.callerDid' | t }}: {{ activeCallLog.caller.phone_number.display_number || activeCallLog.caller.phone_number.number }}</p>
+      <p *ngIf="activeCallLog.callee.phone_number">{{ 'callLogs.details.calleeDid' | t }}: {{ activeCallLog.callee.phone_number.display_number || activeCallLog.callee.phone_number.number }}</p>
+      <p *ngIf="activeCallLog.caller.contact">{{ 'callLogs.details.callerContact' | t }}: {{ activeCallLog.caller.contact.display_name }}</p>
+      <p *ngIf="activeCallLog.callee.contact">{{ 'callLogs.details.calleeContact' | t }}: {{ activeCallLog.callee.contact.display_name }}</p>
+
+      <h3>{{ 'callLogs.details.events' | t }}</h3>
+      <ul>
+        <li *ngFor="let event of events$ | async">
+          {{ event.type }}<span *ngIf="event.summary.disposition"> ({{ event.summary.disposition }})</span>
+        </li>
+      </ul>
+    </aside>
+  </div>
+</section>
