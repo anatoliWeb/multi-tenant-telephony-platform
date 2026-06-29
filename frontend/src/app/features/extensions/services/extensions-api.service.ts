@@ -12,33 +12,33 @@ export class ExtensionsApiService {
   constructor(private readonly apiClient: ApiClientService) {}
 
   listExtensions(filters: Partial<ExtensionFilters>) {
-    return this.apiClient.get<ExtensionItem[]>('/api/v1/extensions', {
+    return this.apiClient.get<ExtensionItem[]>('/v1/extensions', {
       params: this.toListParams(filters),
     });
   }
 
   getExtension(extensionId: number) {
-    return this.apiClient.get<ExtensionItem>(`/api/v1/extensions/${extensionId}`);
+    return this.apiClient.get<ExtensionItem>(`/v1/extensions/${extensionId}`);
   }
 
   createExtension(payload: ExtensionUpsertPayload) {
-    return this.apiClient.post<ExtensionItem, ExtensionUpsertPayload>('/api/v1/extensions', payload);
+    return this.apiClient.post<ExtensionItem, ExtensionUpsertPayload>('/v1/extensions', payload);
   }
 
   updateExtension(extensionId: number, payload: ExtensionUpsertPayload) {
-    return this.apiClient.put<ExtensionItem, ExtensionUpsertPayload>(`/api/v1/extensions/${extensionId}`, payload);
+    return this.apiClient.put<ExtensionItem, ExtensionUpsertPayload>(`/v1/extensions/${extensionId}`, payload);
   }
 
   rotateCredentials(extensionId: number) {
-    return this.apiClient.post<ExtensionItem, Record<string, never>>(`/api/v1/extensions/${extensionId}/rotate-credentials`, {});
+    return this.apiClient.post<ExtensionItem, Record<string, never>>(`/v1/extensions/${extensionId}/rotate-credentials`, {});
   }
 
   deleteExtension(extensionId: number) {
-    return this.apiClient.delete<{ deleted: boolean }>(`/api/v1/extensions/${extensionId}`);
+    return this.apiClient.delete<{ deleted: boolean }>(`/v1/extensions/${extensionId}`);
   }
 
   assignmentOptions() {
-    return this.apiClient.get<ExtensionAssignmentOptions>('/api/v1/extensions/assignment-options');
+    return this.apiClient.get<ExtensionAssignmentOptions>('/v1/extensions/assignment-options');
   }
 
   private toListParams(filters: Partial<ExtensionFilters>): Record<string, string | number> {

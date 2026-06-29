@@ -6,7 +6,10 @@
       [currentLocale]="localeService.currentLocale"
       [userName]="(authState.user$ | async)?.name || ''"
       [locales]="enabledLocales"
+      [tenants]="tenants$ | async"
+      [activeTenantId]="activeTenantId$ | async"
       (localeChange)="switchLocale($event)"
+      (tenantChange)="switchTenant($event)"
       (logout)="logout()"
     />
 

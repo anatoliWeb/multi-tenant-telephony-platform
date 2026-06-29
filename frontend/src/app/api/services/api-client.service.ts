@@ -57,8 +57,13 @@ export class ApiClientService {
 
   private resolveUrl(path: string): string {
     const normalizedBase = this.config.apiBaseUrl.replace(/\/+$/, '');
-    const normalizedPath = path.startsWith('/') ? path : `/${path}`;
-    return `${normalizedBase}${normalizedPath}`;
+    const normalizedPath = path.replace(/^\/+/, '');
+
+    if (!normalizedPath) {
+      return normalizedBase;
+    }
+
+    return `${normalizedBase}/${normalizedPath}`;
   }
 
   private toHttpParams(params?: Record<string, string | number | boolean>): HttpParams | undefined {

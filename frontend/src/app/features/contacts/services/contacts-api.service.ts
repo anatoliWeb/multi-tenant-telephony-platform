@@ -11,34 +11,34 @@ export class ContactsApiService {
   ) {}
 
   listContacts(filters: Partial<ContactFilters>) {
-    return this.apiClient.get<ContactItem[]>('/api/v1/contacts', {
+    return this.apiClient.get<ContactItem[]>('/v1/contacts', {
       params: this.toListParams(filters),
     });
   }
 
   getContact(contactId: number) {
-    return this.apiClient.get<ContactItem>(`/api/v1/contacts/${contactId}`);
+    return this.apiClient.get<ContactItem>(`/v1/contacts/${contactId}`);
   }
 
   createContact(payload: ContactUpsertPayload) {
-    return this.apiClient.post<ContactItem, ContactUpsertPayload>('/api/v1/contacts', payload);
+    return this.apiClient.post<ContactItem, ContactUpsertPayload>('/v1/contacts', payload);
   }
 
   updateContact(contactId: number, payload: ContactUpsertPayload) {
-    return this.apiClient.put<ContactItem, ContactUpsertPayload>(`/api/v1/contacts/${contactId}`, payload);
+    return this.apiClient.put<ContactItem, ContactUpsertPayload>(`/v1/contacts/${contactId}`, payload);
   }
 
   deleteContact(contactId: number) {
-    return this.apiClient.delete<{ deleted: boolean }>(`/api/v1/contacts/${contactId}`);
+    return this.apiClient.delete<{ deleted: boolean }>(`/v1/contacts/${contactId}`);
   }
 
   listTags() {
-    return this.apiClient.get<ContactTag[]>('/api/v1/contact-tags');
+    return this.apiClient.get<ContactTag[]>('/v1/contact-tags');
   }
 
   exportContactsUrl(): string {
     const normalizedBase = this.config.apiBaseUrl.replace(/\/+$/, '');
-    return `${normalizedBase}/api/v1/contacts/export`;
+    return `${normalizedBase}/v1/contacts/export`;
   }
 
   private toListParams(filters: Partial<ContactFilters>): Record<string, string | number | boolean> {

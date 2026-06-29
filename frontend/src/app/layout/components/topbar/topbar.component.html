@@ -5,6 +5,17 @@
   </div>
 
   <div class="topbar-actions">
+    <select
+      [attr.aria-label]="activeTenantId ? ('layout.topbar.selectedTenant' | t) : ('layout.topbar.noTenantSelected' | t)"
+      [value]="activeTenantId || ''"
+      (change)="onTenantChange($event)"
+    >
+      <option value="">{{ 'layout.topbar.selectTenant' | t }}</option>
+      <option *ngFor="let tenant of tenants; trackBy: trackTenant" [value]="tenantId(tenant)">
+        {{ tenantLabel(tenant) }}
+      </option>
+    </select>
+
     <select [value]="currentLocale" (change)="onLocaleChange($event)">
       <option *ngFor="let locale of locales" [value]="locale">{{ locale | uppercase }}</option>
     </select>

@@ -9,6 +9,10 @@ export class PermissionService {
     return this.authState.hasPermission(permission);
   }
 
+  hasTenantPermission(permission: string): boolean {
+    return this.authState.hasTenantPermission(permission);
+  }
+
   hasRole(role: string): boolean {
     return this.authState.hasRole(role);
   }
@@ -19,5 +23,9 @@ export class PermissionService {
 
   hasAnyPermission(permissions: string[]): boolean {
     return permissions.some((permission) => this.hasPermission(permission));
+  }
+
+  hasAnyTenantPermission(permissions: string[]): boolean {
+    return permissions.some((permission) => this.hasTenantPermission(permission));
   }
 }

@@ -50,6 +50,10 @@ const routes: Routes = [
         path: 'phone-numbers',
         loadChildren: () => import('./features/phone-numbers/phone-numbers.module').then((m) => m.PhoneNumbersModule),
       },
+      {
+        path: 'call-logs',
+        loadChildren: () => import('./features/call-logs/call-logs.module').then((m) => m.CallLogsModule),
+      },
     ],
   },
   {

@@ -1,10 +1,12 @@
 <section class="feature-page">
-  <ui-card>
-    <h2>{{ 'dashboard.title' | t }}</h2>
-    <p>{{ 'dashboard.subtitle' | t }}</p>
-  </ui-card>
+  <ng-container *ngIf="(activeTenant$ | async) as activeTenant; else tenantSelectionState">
+    <ui-card>
+      <h2>{{ 'dashboard.title' | t }}</h2>
+      <p>{{ 'dashboard.subtitle' | t }}</p>
+      <small>{{ activeTenant.name }}</small>
+    </ui-card>
 
-  <div class="widgets-grid">
+    <div class="widgets-grid">
     <app-dashboard-widget-card>
       <app-widget-header [title]="'dashboard.systemStatus.title' | t" [subtitle]="'dashboard.systemStatus.subtitle' | t" />
       <div class="kv"><span>{{ 'dashboard.fields.api' | t }}</span><strong>{{ 'common.status.online' | t }}</strong></div>
@@ -60,5 +62,14 @@
         <strong>{{ dashboardPresenceCount$ | async }}</strong>
       </div>
     </app-dashboard-widget-card>
-  </div>
+    </div>
+  </ng-container>
+
+  <ng-template #tenantSelectionState>
+    <ui-card>
+      <h2>{{ 'dashboard.tenantSelection.title' | t }}</h2>
+      <p>{{ 'dashboard.tenantSelection.subtitle' | t }}</p>
+      <small>{{ 'layout.topbar.selectTenant' | t }}</small>
+    </ui-card>
+  </ng-template>
 </section>

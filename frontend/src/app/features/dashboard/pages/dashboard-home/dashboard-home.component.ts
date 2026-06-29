@@ -1,10 +1,14 @@
 import { Component, OnDestroy, OnInit } from '@angular/core';
-import { firstValueFrom } from 'rxjs';
+import { Observable, firstValueFrom } from 'rxjs';
 import { distinctUntilChanged, map, skip, Subscription } from 'rxjs';
 import { ApiClientService } from '../../../../api/services/api-client.service';
+import type { TenantSummary } from '../../../../core/models/tenant-context.model';
 import { AuthStateService } from '../../../../core/services/auth-state.service';
+import { TenantContextService } from '../../../../core/services/tenant-context.service';
 import { PermissionService } from '../../../../rbac/services/permission.service';
 import { RealtimeService } from '../../../../realtime/services/realtime.service';
+import type { RealtimeStatus, SystemNotificationPayload } from '../../../../realtime/services/realtime.service';
+import type { AuthUser } from '../../../../core/models/auth-user.model';
 
 @Component({
   selector: 'app-dashboard-home',
@@ -14,17 +18,18 @@ import { RealtimeService } from '../../../../realtime/services/realtime.service'
 })
 export class DashboardHomeComponent implements OnInit, OnDestroy {
   private static readonly PRESENCE_DASHBOARD_CHANNEL = 'presence-dashboard';
-  readonly realtimeStatus$;
-  readonly realtimeEvents$;
-  readonly realtimeCount$;
-  readonly realtimeActivityCount$;
-  readonly onlineUsersCount$;
-  readonly dashboardPresenceCount$;
+  readonly realtimeStatus$: Observable<RealtimeStatus>;
+  readonly realtimeEvents$: Observable<SystemNotificationPayload[]>;
+  readonly realtimeCount$: Observable<number>;
+  readonly realtimeActivityCount$: Observable<number>;
+  readonly onlineUsersCount$: Observable<number>;
+  readonly dashboardPresenceCount$: Observable<number>;
+  readonly activeTenant$: Observable<Pick<TenantSummary, 'id' | 'name'> | null>;
 
   isDispatching = false;
-  readonly user$;
-  readonly permissions$;
-  readonly roles$;
+  readonly user$: Observable<AuthUser | null>;
+  readonly permissions$: Observable<string[]>;
+  readonly roles$: Observable<string[]>;
   readonly isAdmin: boolean;
   statsUsers = 0;
   statsTokens = 0;
@@ -39,6 +44,7 @@ export class DashboardHomeComponent implements OnInit, OnDestroy {
     private readonly apiClient: ApiClientService,
     private readonly authState: AuthStateService,
     private readonly permissionService: PermissionService,
+    private readonly tenantContext: TenantContextService,
   ) {
     this.realtimeStatus$ = this.realtime.status$;
     this.realtimeEvents$ = this.realtime.events$;
@@ -46,6 +52,7 @@ export class DashboardHomeComponent implements OnInit, OnDestroy {
     this.realtimeActivityCount$ = this.realtime.activityEvents$.pipe(map((events) => events.length));
     this.onlineUsersCount$ = this.realtime.onlineUsers$.pipe(map((users) => users.length));
     this.dashboardPresenceCount$ = this.realtime.dashboardPresence$.pipe(map((users) => users.length));
+    this.activeTenant$ = this.tenantContext.activeTenant$;
     this.user$ = this.authState.user$;
     this.permissions$ = this.authState.permissions$;
     this.roles$ = this.authState.roles$;
@@ -53,9 +60,23 @@ export class DashboardHomeComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
-    this.realtime.connect();
-    this.realtime.joinPresence(DashboardHomeComponent.PRESENCE_DASHBOARD_CHANNEL);
-    void this.refreshDashboardStats();
+    this.subscriptions.add(
+      this.activeTenant$
+        .pipe(
+          distinctUntilChanged((previous, current) => previous?.id === current?.id),
+        )
+        .subscribe((tenant) => {
+          if (!tenant) {
+            this.resetTenantDashboardState();
+            return;
+          }
+
+          this.realtime.clearEvents();
+          this.realtime.connect();
+          this.realtime.joinPresence(DashboardHomeComponent.PRESENCE_DASHBOARD_CHANNEL);
+          void this.refreshDashboardStats();
+        }),
+    );
 
     this.subscriptions.add(
       this.realtime.events$
@@ -65,13 +86,15 @@ export class DashboardHomeComponent implements OnInit, OnDestroy {
           skip(1),
         )
         .subscribe(() => {
-          this.scheduleStatsRefresh();
+          if (this.tenantContext.hasTenant()) {
+            this.scheduleStatsRefresh();
+          }
         }),
     );
   }
 
   async dispatchTestNotification(): Promise<void> {
-    if (this.isDispatching) return;
+    if (this.isDispatching || !this.tenantContext.hasTenant()) return;
 
     this.isDispatching = true;
     try {
@@ -108,6 +131,10 @@ export class DashboardHomeComponent implements OnInit, OnDestroy {
   }
 
   private async refreshDashboardStats(): Promise<void> {
+    if (!this.tenantContext.hasTenant()) {
+      return;
+    }
+
     if (this.isStatsRefreshing) {
       return;
     }
@@ -130,5 +157,20 @@ export class DashboardHomeComponent implements OnInit, OnDestroy {
     } finally {
       this.isStatsRefreshing = false;
     }
+  }
+
+  private resetTenantDashboardState(): void {
+    this.realtime.leavePresence(DashboardHomeComponent.PRESENCE_DASHBOARD_CHANNEL);
+    this.realtime.clearEvents();
+    if (this.realtimeRefreshTimer) {
+      clearTimeout(this.realtimeRefreshTimer);
+      this.realtimeRefreshTimer = null;
+    }
+
+    this.statsUsers = 0;
+    this.statsTokens = 0;
+    this.statsRecentActivity = 0;
+    this.isStatsRefreshing = false;
+    this.lastStatsRefreshAt = null;
   }
 }
