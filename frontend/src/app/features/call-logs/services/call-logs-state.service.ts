@@ -58,6 +58,7 @@ export class CallLogsStateService {
   private readonly detailLoadingSubject = new BehaviorSubject<boolean>(false);
   private readonly statisticsLoadingSubject = new BehaviorSubject<boolean>(false);
   private readonly optionsLoadingSubject = new BehaviorSubject<boolean>(false);
+  private readonly exportingSubject = new BehaviorSubject<boolean>(false);
   private readonly errorSubject = new BehaviorSubject<string | null>(null);
   private requestVersion = 0;
 
@@ -72,9 +73,14 @@ export class CallLogsStateService {
   readonly detailLoading$ = this.detailLoadingSubject.asObservable();
   readonly statisticsLoading$ = this.statisticsLoadingSubject.asObservable();
   readonly optionsLoading$ = this.optionsLoadingSubject.asObservable();
+  readonly exporting$ = this.exportingSubject.asObservable();
   readonly error$ = this.errorSubject.asObservable();
 
   constructor(private readonly callLogsApi: CallLogsApiService) {}
+
+  get filters(): CallLogFilters {
+    return this.filtersSubject.value;
+  }
 
   async init(loadUserOptions = true): Promise<void> {
     await Promise.all([
@@ -151,6 +157,21 @@ export class CallLogsStateService {
       this.usersSubject.next([]);
     } finally {
       this.optionsLoadingSubject.next(false);
+    }
+  }
+
+  async exportCallLogs(): Promise<void> {
+    this.exportingSubject.next(true);
+    this.errorSubject.next(null);
+
+    try {
+      const response = await firstValueFrom(this.callLogsApi.exportCallLogs(this.filtersSubject.value));
+      const blob = response.body ?? new Blob([], { type: response.headers.get('content-type') ?? 'text/csv;charset=UTF-8' });
+      this.downloadBlob(blob, this.resolveExportFilename(response.headers.get('content-disposition')));
+    } catch (error) {
+      this.errorSubject.next(this.toSafeError(error, 'Failed to export call logs.'));
+    } finally {
+      this.exportingSubject.next(false);
     }
   }
 
@@ -232,6 +253,7 @@ export class CallLogsStateService {
     this.detailLoadingSubject.next(false);
     this.statisticsLoadingSubject.next(false);
     this.optionsLoadingSubject.next(false);
+    this.exportingSubject.next(false);
     this.errorSubject.next(null);
   }
 
@@ -247,6 +269,39 @@ export class CallLogsStateService {
       ...this.filtersSubject.value,
       ...next,
     });
+  }
+
+  private downloadBlob(blob: Blob, filename: string): void {
+    const url = window.URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+
+    anchor.href = url;
+    anchor.download = filename;
+    anchor.rel = 'noopener';
+    anchor.style.display = 'none';
+
+    document.body.appendChild(anchor);
+    anchor.click();
+    document.body.removeChild(anchor);
+    window.URL.revokeObjectURL(url);
+  }
+
+  private resolveExportFilename(contentDisposition: string | null): string {
+    if (!contentDisposition) {
+      return 'call-logs.csv';
+    }
+
+    const utf8Match = contentDisposition.match(/filename\*=UTF-8''([^;]+)/i);
+    if (utf8Match?.[1]) {
+      return decodeURIComponent(utf8Match[1]);
+    }
+
+    const asciiMatch = contentDisposition.match(/filename="?([^";]+)"?/i);
+    if (asciiMatch?.[1]) {
+      return asciiMatch[1];
+    }
+
+    return 'call-logs.csv';
   }
 
   private toSafeError(error: unknown, fallback: string): string {

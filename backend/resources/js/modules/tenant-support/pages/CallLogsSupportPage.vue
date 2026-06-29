@@ -1,8 +1,20 @@
 <template>
   <section class="support-page">
-    <header>
-      <h1>{{ t('common.tenantSupport.callLogs.title') }}</h1>
-      <p>{{ t('common.tenantSupport.callLogs.subtitle') }}</p>
+    <header class="support-page__header">
+      <div>
+        <h1>{{ t('common.tenantSupport.callLogs.title') }}</h1>
+        <p>{{ t('common.tenantSupport.callLogs.subtitle') }}</p>
+      </div>
+
+      <button
+        v-if="activeTenantId && canExport"
+        class="support-page__export"
+        type="button"
+        :disabled="isExporting"
+        @click="onExport"
+      >
+        {{ isExporting ? t('common.tenantSupport.callLogs.exporting') : t('common.tenantSupport.callLogs.export') }}
+      </button>
     </header>
 
     <div v-if="!activeTenantId" class="support-page__empty">
@@ -64,17 +76,20 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref, watch } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useI18n } from 'vue-i18n';
+import { useAuthStore } from '../../../stores/auth.store';
 import { useTenantStore } from '../../../stores/tenant.store';
 import { tenantSupportService } from '../services/tenant-support.service';
 import type { SupportCallLog, SupportCallLogStatistics } from '../types/tenant-support.types';
 import type { PaginationMeta } from '../../../types/response.types';
 
 const { t } = useI18n({ useScope: 'global' });
+const authStore = useAuthStore();
 const tenantStore = useTenantStore();
 const { activeTenantId } = storeToRefs(tenantStore);
+const canExport = computed(() => authStore.hasPlatformPermission('call_logs.export'));
 const callLogs = ref<SupportCallLog[]>([]);
 const meta = ref<PaginationMeta>({ current_page: 1, last_page: 1, per_page: 0, total: 0 });
 const statistics = ref<SupportCallLogStatistics>({
@@ -84,6 +99,7 @@ const statistics = ref<SupportCallLogStatistics>({
   answer_rate: 0,
 });
 const isLoading = ref(false);
+const isExporting = ref(false);
 const errorMessage = ref<string | null>(null);
 
 const load = async (): Promise<void> => {
@@ -118,6 +134,38 @@ const load = async (): Promise<void> => {
   }
 };
 
+const downloadBlob = (blob: Blob, filename: string): void => {
+  const url = window.URL.createObjectURL(blob);
+  const anchor = document.createElement('a');
+
+  anchor.href = url;
+  anchor.download = filename;
+  anchor.rel = 'noopener';
+  anchor.style.display = 'none';
+
+  document.body.appendChild(anchor);
+  anchor.click();
+  document.body.removeChild(anchor);
+  window.URL.revokeObjectURL(url);
+};
+
+const onExport = async (): Promise<void> => {
+  if (!activeTenantId.value) {
+    return;
+  }
+
+  isExporting.value = true;
+
+  try {
+    const blob = await tenantSupportService.exportCallLogs();
+    downloadBlob(blob, 'call-logs.csv');
+  } catch {
+    errorMessage.value = t('common.generic.somethingWentWrong');
+  } finally {
+    isExporting.value = false;
+  }
+};
+
 onMounted(load);
 watch(activeTenantId, () => {
   void load();
@@ -127,6 +175,13 @@ watch(activeTenantId, () => {
 <style scoped>
 .support-page {
   display: grid;
+  gap: 16px;
+}
+
+.support-page__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
   gap: 16px;
 }
 
@@ -145,6 +200,14 @@ header p {
   border-radius: 14px;
   padding: 20px;
   color: #cbd5e1;
+}
+
+.support-page__export {
+  border: 1px solid rgba(56, 189, 248, 0.32);
+  border-radius: 999px;
+  padding: 10px 14px;
+  background: rgba(15, 23, 42, 0.86);
+  color: #e2e8f0;
 }
 
 .support-stats {

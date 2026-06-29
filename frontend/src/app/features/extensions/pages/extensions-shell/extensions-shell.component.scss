@@ -31,7 +31,7 @@
 }
 
 .error {
-  color: #b42318;
+  color: #fda4af;
 }
 
 .extension-list {
@@ -45,16 +45,17 @@
   justify-content: space-between;
   width: 100%;
   padding: 1rem;
-  border: 1px solid #d0d5dd;
+  border: 1px solid rgba(71, 85, 105, 0.55);
   border-radius: 0.75rem;
-  background: #fff;
+  background: rgba(15, 23, 42, 0.72);
+  color: #e2e8f0;
   cursor: pointer;
   text-align: left;
 }
 
 .extension-row.active {
-  border-color: #1570ef;
-  box-shadow: 0 0 0 2px rgba(21, 112, 239, 0.12);
+  border-color: rgba(59, 130, 246, 0.6);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.12);
 }
 
 .meta {
@@ -66,16 +67,18 @@
 .secret-banner code {
   padding: 0.25rem 0.5rem;
   border-radius: 999px;
-  background: #eff8ff;
+  background: rgba(30, 41, 59, 0.88);
+  border: 1px solid rgba(71, 85, 105, 0.55);
+  color: #e2e8f0;
 }
 
 .secret-banner {
   display: grid;
   gap: 0.75rem;
   padding: 1rem;
-  border: 1px solid #b2ddff;
+  border: 1px solid rgba(59, 130, 246, 0.22);
   border-radius: 0.75rem;
-  background: #f5fbff;
+  background: rgba(15, 23, 42, 0.82);
 }
 
 .detail {

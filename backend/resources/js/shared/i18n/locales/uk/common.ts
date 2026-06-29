@@ -350,6 +350,8 @@
       totalCalls: 'Усього дзвінків',
       answeredCalls: 'Відповіли',
       missedCalls: 'Пропущені',
+      export: 'Експорт CSV',
+      exporting: 'Експортування...',
     },
   },
   loading: 'Завантаження',

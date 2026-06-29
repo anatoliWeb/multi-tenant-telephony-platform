@@ -4,6 +4,7 @@ import { vi } from 'vitest';
 import { CallLogsShellComponent } from './call-logs-shell.component';
 import { CallLogsStateService } from '../../services/call-logs-state.service';
 import { PermissionService } from '../../../../rbac/services/permission.service';
+import { TenantContextService } from '../../../../core/services/tenant-context.service';
 import type { CallLogItem } from '../../models/call-log.model';
 
 describe('CallLogsShellComponent', () => {
@@ -93,10 +94,14 @@ describe('CallLogsShellComponent', () => {
     setUser: vi.fn().mockResolvedValue(undefined),
     setDateRange: vi.fn().mockResolvedValue(undefined),
     setPage: vi.fn().mockResolvedValue(undefined),
+    exportCallLogs: vi.fn().mockResolvedValue(undefined),
   };
 
   const permissionServiceMock = {
     hasPermission: vi.fn((permission: string) => permission !== 'call_logs.export'),
+  };
+  const tenantContextMock = {
+    hasTenant: vi.fn(() => true),
   };
 
   beforeEach(async () => {
@@ -105,6 +110,7 @@ describe('CallLogsShellComponent', () => {
       providers: [
         { provide: CallLogsStateService, useValue: callLogsStateMock },
         { provide: PermissionService, useValue: permissionServiceMock },
+        { provide: TenantContextService, useValue: tenantContextMock },
       ],
     }).compileComponents();
 
@@ -157,5 +163,18 @@ describe('CallLogsShellComponent', () => {
   it('formats duration safely for display', () => {
     expect(component.formatDuration(65)).toBe('1:05');
     expect(component.formatDuration(0)).toBe('0:00');
+  });
+
+  it('hides export actions when the permission is missing', () => {
+    expect(fixture.nativeElement.querySelector('[data-testid="call-log-export"]')).toBeNull();
+    expect(component.canExport).toBe(false);
+  });
+
+  it('skips export requests when no tenant is selected', async () => {
+    tenantContextMock.hasTenant.mockReturnValue(false);
+
+    await component.onExport();
+
+    expect(callLogsStateMock.exportCallLogs).not.toHaveBeenCalled();
   });
 });

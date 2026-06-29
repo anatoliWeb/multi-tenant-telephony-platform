@@ -1,9 +1,10 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { SharedModule } from '../../../../shared/shared.module';
+import { TenantContextService } from '../../../../core/services/tenant-context.service';
 import { PermissionService } from '../../../../rbac/services/permission.service';
 import { CallLogsStateService } from '../../services/call-logs-state.service';
-import type { CallLogItem } from '../../models/call-log.model';
+import type { CallLogItem, CallLogUserOption } from '../../models/call-log.model';
 
 @Component({
   selector: 'app-call-logs-shell',
@@ -23,14 +24,17 @@ export class CallLogsShellComponent implements OnInit {
   readonly loading$;
   readonly detailLoading$;
   readonly statisticsLoading$;
+  readonly exporting$;
   readonly error$;
 
   readonly canViewAll: boolean;
   readonly canViewStatistics: boolean;
+  readonly canExport: boolean;
 
   constructor(
     private readonly callLogsState: CallLogsStateService,
     private readonly permissionService: PermissionService,
+    private readonly tenantContext: TenantContextService,
   ) {
     this.callLogs$ = this.callLogsState.callLogs$;
     this.activeCallLog$ = this.callLogsState.activeCallLog$;
@@ -42,9 +46,11 @@ export class CallLogsShellComponent implements OnInit {
     this.loading$ = this.callLogsState.loading$;
     this.detailLoading$ = this.callLogsState.detailLoading$;
     this.statisticsLoading$ = this.callLogsState.statisticsLoading$;
+    this.exporting$ = this.callLogsState.exporting$;
     this.error$ = this.callLogsState.error$;
     this.canViewAll = this.permissionService.hasPermission('call_logs.view_all');
     this.canViewStatistics = this.permissionService.hasPermission('call_logs.view_statistics');
+    this.canExport = this.permissionService.hasPermission('call_logs.export');
   }
 
   ngOnInit(): void {
@@ -84,6 +90,14 @@ export class CallLogsShellComponent implements OnInit {
     await this.callLogsState.setPage(page);
   }
 
+  async onExport(): Promise<void> {
+    if (!this.tenantContext.hasTenant()) {
+      return;
+    }
+
+    await this.callLogsState.exportCallLogs();
+  }
+
   formatDuration(seconds: number): string {
     const safe = Math.max(0, Number(seconds || 0));
     const minutes = Math.floor(safe / 60);
@@ -94,5 +108,12 @@ export class CallLogsShellComponent implements OnInit {
 
   trackCallLog(_index: number, callLog: CallLogItem): number {
     return callLog.id;
+  }
+
+  userOptions(users: CallLogUserOption[] | null | undefined): Array<{ value: string; label: string }> {
+    return (users ?? []).map((user) => ({
+      value: String(user.id),
+      label: user.name,
+    }));
   }
 }

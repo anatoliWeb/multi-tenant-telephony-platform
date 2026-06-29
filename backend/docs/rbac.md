@@ -99,6 +99,7 @@ Canonical platform-admin support names exposed in Vue Admin:
 - `extensions.view`
 - `phone_numbers.view`
 - `call_logs.view`
+- `call_logs.export`
 
 These platform permissions control Vue Admin navigation and support pages.
 They do not replace tenant-scoped authorization inside the tenant API. The

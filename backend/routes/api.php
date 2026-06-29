@@ -845,6 +845,10 @@ Route::prefix('v1')
                         ->name('index')
                         ->middleware('permission:call_logs.view');
 
+                    Route::get('/export', [CallLogController::class, 'export'])
+                        ->name('export')
+                        ->middleware('permission:call_logs.export');
+
                     Route::get('/statistics', [CallLogController::class, 'statistics'])
                         ->name('statistics')
                         ->middleware('permission:call_logs.view_statistics');

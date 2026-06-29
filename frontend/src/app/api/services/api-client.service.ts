@@ -1,5 +1,6 @@
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { HttpClient, HttpParams, HttpResponse } from '@angular/common/http';
 import { Inject, Injectable } from '@angular/core';
+import { Observable } from 'rxjs';
 import { APP_CONFIG, AppEnvironment } from '../../core/tokens/app-config.token';
 import type { ApiResponse } from '../models/api-response.model';
 
@@ -52,6 +53,16 @@ export class ApiClientService {
     return this.http.delete<ApiResponse<TData>>(resolved, {
       params: this.toHttpParams(options?.params),
       headers: options?.headers,
+    });
+  }
+
+  download(url: string, options?: RequestOptions): Observable<HttpResponse<Blob>> {
+    const resolved = this.resolveUrl(url);
+    return this.http.get(resolved, {
+      params: this.toHttpParams(options?.params),
+      headers: options?.headers,
+      observe: 'response',
+      responseType: 'blob',
     });
   }
 

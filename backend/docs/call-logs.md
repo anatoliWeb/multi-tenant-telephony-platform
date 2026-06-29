@@ -13,11 +13,10 @@ Implemented now:
 - provider call and provider event idempotency;
 - lifecycle reconciliation for created, ringing, answered, held, resumed, completed, failed, and cancelled flows;
 - bounded tenant statistics;
-- tenant-scoped APIs, policies, resources, demo data, and Angular UI.
+- tenant-scoped APIs, policies, resources, demo data, CSV export, and Angular UI.
 
 Deferred:
 
-- CSV export;
 - real provider webhook ingestion;
 - real SIP calls;
 - FreeSWITCH event ingestion;
@@ -126,6 +125,7 @@ Tenant routes under `/api/v1/call-logs`:
 - `GET /`
 - `GET /statistics`
 - `GET /filter-options`
+- `GET /export`
 - `GET /{callLog}`
 - `GET /{callLog}/events`
 

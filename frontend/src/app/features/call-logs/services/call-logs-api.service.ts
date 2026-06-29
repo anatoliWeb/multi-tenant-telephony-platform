@@ -1,4 +1,6 @@
 import { Injectable } from '@angular/core';
+import type { HttpResponse } from '@angular/common/http';
+import { Observable } from 'rxjs';
 import { ApiClientService } from '../../../api/services/api-client.service';
 import type {
   CallEventItem,
@@ -30,6 +32,12 @@ export class CallLogsApiService {
 
   getEvents(callLogId: number) {
     return this.apiClient.get<CallEventItem[]>(`/v1/call-logs/${callLogId}/events`);
+  }
+
+  exportCallLogs(filters: Partial<CallLogFilters>): Observable<HttpResponse<Blob>> {
+    return this.apiClient.download('/v1/call-logs/export', {
+      params: this.toListParams(filters),
+    });
   }
 
   filterOptions() {

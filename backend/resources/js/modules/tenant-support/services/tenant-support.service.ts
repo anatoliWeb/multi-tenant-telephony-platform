@@ -51,4 +51,9 @@ export const tenantSupportService = {
       answer_rate: 0,
     };
   },
+
+  exportCallLogs: async (): Promise<Blob> => {
+    const response = await api.download('/v1/call-logs/export');
+    return response.data;
+  },
 };

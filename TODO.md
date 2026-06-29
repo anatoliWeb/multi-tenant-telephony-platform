@@ -823,25 +823,25 @@ The Laravel domain must not depend directly on FreeSWITCH-specific classes.
 - [x] Filters
 - [x] Search
 - [x] Pagination
-- [ ] Export
+- [x] Export
 - [x] Own/team/tenant visibility
 - [x] API documentation
 - [x] Tests
 
 ## 16.1 Demo Call Data
 
-- [ ] Generate at least 1,000 reproducible call records
-- [ ] Spread records across the previous 30–90 days
-- [ ] Include incoming calls
-- [ ] Include outgoing calls
-- [ ] Include internal calls
-- [ ] Include answered calls
-- [ ] Include missed calls
-- [ ] Include busy calls
-- [ ] Include declined calls
-- [ ] Include failed calls
-- [ ] Include conference calls
-- [ ] Populate all initial call-statistics charts
+- [x] Generate at least 1,000 reproducible call records
+- [x] Spread records across the previous 30–90 days
+- [x] Include incoming calls
+- [x] Include outgoing calls
+- [x] Include internal calls
+- [x] Include answered calls
+- [x] Include missed calls
+- [x] Include busy calls
+- [x] Include declined calls
+- [x] Include failed calls
+- [x] Include conference calls
+- [x] Populate all initial call-statistics charts
 
 ---
 

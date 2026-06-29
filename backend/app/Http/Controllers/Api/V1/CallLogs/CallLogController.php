@@ -9,15 +9,18 @@ use App\Http\Resources\CallEventResource;
 use App\Http\Resources\CallLogResource;
 use App\Models\CallLog;
 use App\Models\User;
+use App\Services\CallLogs\CallExportService;
 use App\Services\CallLogs\CallQueryService;
 use App\Services\CallLogs\CallStatisticsService;
 use Illuminate\Http\JsonResponse;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class CallLogController extends BaseController
 {
     public function __construct(
         private readonly CallQueryService $callQueryService,
         private readonly CallStatisticsService $callStatisticsService,
+        private readonly CallExportService $callExportService,
     ) {
     }
 
@@ -57,6 +60,16 @@ class CallLogController extends BaseController
         return $this->successResponse(
             $this->callStatisticsService->summarize($user, $request->validated())
         );
+    }
+
+    public function export(ListCallLogsRequest $request): StreamedResponse
+    {
+        $this->authorize('export', CallLog::class);
+
+        /** @var User $user */
+        $user = $request->user();
+
+        return $this->callExportService->export($user, $request->validated());
     }
 
     public function events(CallLog $callLog): JsonResponse

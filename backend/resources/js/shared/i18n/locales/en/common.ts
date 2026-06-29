@@ -350,6 +350,8 @@
       totalCalls: 'Total calls',
       answeredCalls: 'Answered',
       missedCalls: 'Missed',
+      export: 'Export CSV',
+      exporting: 'Exporting...',
     },
   },
   loading: 'Loading',

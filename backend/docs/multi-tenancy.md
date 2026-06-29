@@ -33,6 +33,7 @@ Implemented after the initial slice:
 - tenant-aware fake-provider endpoint provisioning and provider-state reads.
 - tenant-owned call logs and call events;
 - tenant-scoped call-history visibility and statistics;
+- tenant-scoped call-log CSV export;
 - tenant-aware telephony lifecycle recording through the fake provider.
 - tenant-scoped navigation permissions returned through `/api/v1/user/tenants`, `/api/v1/user/tenant`, and `/api/v1/user/tenant/switch`.
 

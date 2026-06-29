@@ -20,29 +20,8 @@ class CallQueryService
     public function paginate(User $user, array $filters): LengthAwarePaginator
     {
         $perPage = max(1, min((int) ($filters['per_page'] ?? 15), 100));
-        $sort = (string) ($filters['sort'] ?? 'started_at');
-        $direction = strtolower((string) ($filters['direction_sort'] ?? 'desc')) === 'asc' ? 'asc' : 'desc';
-        $allowedSorts = ['started_at', 'answered_at', 'ended_at', 'status', 'direction', 'talk_seconds', 'total_seconds'];
-        $sort = in_array($sort, $allowedSorts, true) ? $sort : 'started_at';
 
-        $query = $this->visibleQuery($user)
-            ->with([
-                'callerUser',
-                'calleeUser',
-                'callerExtension',
-                'calleeExtension',
-                'callerPhoneNumber',
-                'calleePhoneNumber',
-                'callerContact',
-                'calleeContact',
-            ]);
-
-        $this->applyFilters($query, $filters);
-
-        return $query
-            ->orderBy($sort, $direction)
-            ->orderByDesc('id')
-            ->paginate($perPage);
+        return $this->buildQuery($user, $filters)->paginate($perPage);
     }
 
     public function findVisible(User $user, CallLog $callLog): ?CallLog
@@ -61,6 +40,16 @@ class CallQueryService
             ])
             ->whereKey($callLog->getKey())
             ->first();
+    }
+
+    /**
+     * @return Collection<int, CallLog>
+     */
+    public function exportRows(User $user, array $filters, int $limit): Collection
+    {
+        return $this->buildQuery($user, $filters)
+            ->limit(max(1, $limit))
+            ->get();
     }
 
     /**
@@ -93,6 +82,32 @@ class CallQueryService
             $builder->where('caller_user_id', $user->getKey())
                 ->orWhere('callee_user_id', $user->getKey());
         });
+    }
+
+    public function buildQuery(User $user, array $filters): Builder
+    {
+        $sort = (string) ($filters['sort'] ?? 'started_at');
+        $direction = strtolower((string) ($filters['direction_sort'] ?? 'desc')) === 'asc' ? 'asc' : 'desc';
+        $allowedSorts = ['started_at', 'answered_at', 'ended_at', 'status', 'direction', 'talk_seconds', 'total_seconds'];
+        $sort = in_array($sort, $allowedSorts, true) ? $sort : 'started_at';
+
+        $query = $this->visibleQuery($user)
+            ->with([
+                'callerUser',
+                'calleeUser',
+                'callerExtension',
+                'calleeExtension',
+                'callerPhoneNumber',
+                'calleePhoneNumber',
+                'callerContact',
+                'calleeContact',
+            ]);
+
+        $this->applyFilters($query, $filters);
+
+        return $query
+            ->orderBy($sort, $direction)
+            ->orderByDesc('id');
     }
 
     private function applyFilters(Builder $query, array $filters): void

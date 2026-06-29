@@ -138,6 +138,8 @@ class TenantDemoSeedService
         $counts['phone_numbers'] += $this->seedPhoneNumbers($secondaryTenant, 'tenant-b');
         $counts['call_logs'] += $this->seedCallLogs($defaultTenant, 'tenant-a');
         $counts['call_logs'] += $this->seedCallLogs($secondaryTenant, 'tenant-b');
+        $counts['call_logs'] += $this->seedCallLogVolume($defaultTenant, 'tenant-a', 500);
+        $counts['call_logs'] += $this->seedCallLogVolume($secondaryTenant, 'tenant-b', 500);
 
         return $counts;
     }
@@ -694,6 +696,327 @@ class TenantDemoSeedService
         }
 
         return count($rows);
+    }
+
+    private function seedCallLogVolume(Tenant $tenant, string $tenantPrefix, int $count): int
+    {
+        $owner = User::query()->where('email', sprintf('%s-owner@test.local', $tenantPrefix))->first();
+        $admin = User::query()->where('email', sprintf('%s-admin@test.local', $tenantPrefix))->first();
+        $agent = User::query()->where('email', sprintf('%s-agent@test.local', $tenantPrefix))->first();
+        $telephonyManager = User::query()->where('email', sprintf('%s-telephony@test.local', $tenantPrefix))->first();
+        $analyst = User::query()->where('email', sprintf('%s-analyst@test.local', $tenantPrefix))->first();
+        $teamManager = User::query()->where('email', sprintf('%s-team@test.local', $tenantPrefix))->first();
+        $readOnly = User::query()->where('email', sprintf('%s-readonly@test.local', $tenantPrefix))->first();
+        $supportContact = Contact::query()->where('tenant_id', $tenant->getKey())->where('display_name', Str::title($tenantPrefix).' Support Contact')->first();
+        $archivedVendor = Contact::query()->where('tenant_id', $tenant->getKey())->where('display_name', Str::title($tenantPrefix).' Archived Vendor')->first();
+        $ownerExtension = Extension::query()->where('tenant_id', $tenant->getKey())->where('number', '2001')->first();
+        $agentExtension = Extension::query()->where('tenant_id', $tenant->getKey())->where('number', '2002')->first();
+        $ownerDid = PhoneNumber::query()->where('tenant_id', $tenant->getKey())->where('normalized_number', '+15550001001')->first();
+        $agentDid = PhoneNumber::query()->where('tenant_id', $tenant->getKey())->where('normalized_number', $tenantPrefix === 'tenant-a' ? '+15550001003' : '+15550001001')->first();
+        $secondaryDid = PhoneNumber::query()->where('tenant_id', $tenant->getKey())->where('normalized_number', '+15550001002')->first();
+        $sharedDid = PhoneNumber::query()->where('tenant_id', $tenant->getKey())->where('normalized_number', '+15550001999')->first();
+
+        $users = array_values(array_filter([
+            $owner,
+            $admin,
+            $agent,
+            $telephonyManager,
+            $analyst,
+            $teamManager,
+            $readOnly,
+        ]));
+
+        if ($users === []) {
+            return 0;
+        }
+
+        $contacts = array_values(array_filter([$supportContact, $archivedVendor]));
+        $externalNumbers = $tenantPrefix === 'tenant-a'
+            ? ['+15550007001', '+15550007002', '+15550007003', '+15550007004', '+15550007005', '+15550007006']
+            : ['+15550008001', '+15550008002', '+15550008003', '+15550008004', '+15550008005', '+15550008006'];
+
+        $scenarios = [
+            [
+                'call_type' => 'incoming',
+                'direction' => TelephonyCallDirection::Inbound,
+                'status' => TelephonyCallStatus::Completed,
+                'disposition' => CallDisposition::Answered,
+                'events' => [CallEventType::CallCreated, CallEventType::CallRinging, CallEventType::CallAnswered, CallEventType::CallCompleted],
+                'answerable' => true,
+            ],
+            [
+                'call_type' => 'incoming',
+                'direction' => TelephonyCallDirection::Inbound,
+                'status' => TelephonyCallStatus::Completed,
+                'disposition' => CallDisposition::NoAnswer,
+                'events' => [CallEventType::CallCreated, CallEventType::CallRinging, CallEventType::CallCompleted],
+                'answerable' => false,
+            ],
+            [
+                'call_type' => 'incoming',
+                'direction' => TelephonyCallDirection::Inbound,
+                'status' => TelephonyCallStatus::Completed,
+                'disposition' => CallDisposition::Busy,
+                'events' => [CallEventType::CallCreated, CallEventType::CallRinging, CallEventType::CallCompleted],
+                'answerable' => false,
+            ],
+            [
+                'call_type' => 'declined',
+                'direction' => TelephonyCallDirection::Outbound,
+                'status' => TelephonyCallStatus::Cancelled,
+                'disposition' => CallDisposition::Rejected,
+                'events' => [CallEventType::CallCreated, CallEventType::CallInitiated, CallEventType::CallRinging, CallEventType::CallCancelled],
+                'answerable' => false,
+            ],
+            [
+                'call_type' => 'outgoing',
+                'direction' => TelephonyCallDirection::Outbound,
+                'status' => TelephonyCallStatus::Completed,
+                'disposition' => CallDisposition::Answered,
+                'events' => [CallEventType::CallCreated, CallEventType::CallInitiated, CallEventType::CallRinging, CallEventType::CallAnswered, CallEventType::CallCompleted],
+                'answerable' => true,
+            ],
+            [
+                'call_type' => 'outgoing',
+                'direction' => TelephonyCallDirection::Outbound,
+                'status' => TelephonyCallStatus::Completed,
+                'disposition' => CallDisposition::Busy,
+                'events' => [CallEventType::CallCreated, CallEventType::CallInitiated, CallEventType::CallRinging, CallEventType::CallCompleted],
+                'answerable' => false,
+            ],
+            [
+                'call_type' => 'failed',
+                'direction' => TelephonyCallDirection::Outbound,
+                'status' => TelephonyCallStatus::Failed,
+                'disposition' => CallDisposition::Failed,
+                'events' => [CallEventType::CallCreated, CallEventType::CallInitiated, CallEventType::CallFailed],
+                'answerable' => false,
+            ],
+            [
+                'call_type' => 'internal',
+                'direction' => TelephonyCallDirection::Internal,
+                'status' => TelephonyCallStatus::Completed,
+                'disposition' => CallDisposition::Answered,
+                'events' => [CallEventType::CallCreated, CallEventType::CallRinging, CallEventType::CallAnswered, CallEventType::CallCompleted],
+                'answerable' => true,
+            ],
+            [
+                'call_type' => 'conference',
+                'direction' => TelephonyCallDirection::Internal,
+                'status' => TelephonyCallStatus::Completed,
+                'disposition' => CallDisposition::Answered,
+                'events' => [CallEventType::CallCreated, CallEventType::CallRinging, CallEventType::CallAnswered, CallEventType::CallHeld, CallEventType::CallResumed, CallEventType::CallCompleted],
+                'answerable' => true,
+            ],
+        ];
+
+        $created = 0;
+
+        for ($index = 0; $index < $count; $index++) {
+            $scenario = $scenarios[$index % count($scenarios)];
+            $recordNumber = $index + 1;
+            $recordKey = sprintf('%s-volume-%03d-%s', $tenantPrefix, $recordNumber, $scenario['call_type']);
+            $startedAt = Carbon::now()
+                ->subDays(30 + (($index * 7 + ($tenantPrefix === 'tenant-a' ? 3 : 11)) % 61))
+                ->setTime(8 + ($index % 8), ($index * 13) % 60, ($index * 17) % 60);
+            $ringingSeconds = 3 + ($index % 18);
+            $talkSeconds = $scenario['answerable']
+                ? 35 + (($index * 11) % 240)
+                : 0;
+            $answeredAt = $scenario['answerable']
+                ? $startedAt->copy()->addSeconds($ringingSeconds)
+                : null;
+            $endedAt = $scenario['answerable']
+                ? $answeredAt->copy()->addSeconds($talkSeconds)
+                : $startedAt->copy()->addSeconds(max(6, $ringingSeconds));
+
+            $callerUser = $users[$index % count($users)];
+            $calleeUser = $users[($index + 2) % count($users)];
+            $callerExtension = $ownerExtension ?? $agentExtension;
+            $calleeExtension = $agentExtension ?? $ownerExtension;
+            $callerDid = $ownerDid ?? $secondaryDid;
+            $calleeDid = $agentDid ?? $sharedDid ?? $ownerDid;
+            $contact = $contacts[$index % max(1, count($contacts))] ?? null;
+            $externalNumber = $externalNumbers[$index % count($externalNumbers)];
+
+            $attributes = [
+                'uuid' => $this->stableCallLogUuid($tenant, $recordKey),
+                'correlation_id' => sprintf('seed-%s-%03d', $tenantPrefix, $recordNumber),
+                'direction' => $scenario['direction']->value,
+                'status' => $scenario['status']->value,
+                'disposition' => $scenario['disposition']->value,
+                'from_number' => '',
+                'from_normalized_number' => '',
+                'to_number' => '',
+                'to_normalized_number' => '',
+                'caller_user_id' => null,
+                'callee_user_id' => null,
+                'caller_extension_id' => null,
+                'callee_extension_id' => null,
+                'caller_phone_number_id' => null,
+                'callee_phone_number_id' => null,
+                'caller_contact_id' => null,
+                'callee_contact_id' => null,
+                'started_at' => $startedAt,
+                'ringing_at' => $startedAt,
+                'answered_at' => $answeredAt,
+                'ended_at' => $endedAt,
+                'ringing_seconds' => $scenario['answerable'] ? $ringingSeconds : 0,
+                'talk_seconds' => $scenario['answerable'] ? $talkSeconds : 0,
+                'billable_seconds' => $scenario['direction'] === TelephonyCallDirection::Internal ? 0 : ($scenario['answerable'] ? $talkSeconds : 0),
+                'total_seconds' => max(0, $endedAt->diffInSeconds($startedAt)),
+                'hangup_cause' => null,
+                'failure_code' => null,
+                'failure_message' => null,
+                'billing_status' => $scenario['direction'] === TelephonyCallDirection::Internal
+                    ? CallBillingStatus::NonBillable->value
+                    : ($scenario['status'] === TelephonyCallStatus::Failed ? CallBillingStatus::Failed->value : CallBillingStatus::Unrated->value),
+                'recording_available' => false,
+                'metadata' => [
+                    'seeded' => true,
+                    'scenario' => $scenario['call_type'],
+                    'call_type' => $scenario['call_type'],
+                ],
+            ];
+
+            match ($scenario['call_type']) {
+                'incoming' => [
+                    $attributes['from_number'] = $externalNumber,
+                    $attributes['from_normalized_number'] = $externalNumber,
+                    $attributes['to_number'] = $ownerDid?->display_number ?? $ownerDid?->number ?? $externalNumber,
+                    $attributes['to_normalized_number'] = $ownerDid?->normalized_number ?? $ownerDid?->number ?? $externalNumber,
+                    $attributes['callee_user_id'] = $callerUser->getKey(),
+                    $attributes['callee_extension_id'] = $ownerExtension?->getKey(),
+                    $attributes['callee_phone_number_id'] = $ownerDid?->getKey(),
+                    $attributes['caller_contact_id'] = $contact?->getKey(),
+                    $attributes['hangup_cause'] = $scenario['disposition'] === CallDisposition::Busy ? 'busy' : null,
+                ],
+                'declined' => [
+                    $attributes['from_number'] = $callerDid?->display_number ?? $callerDid?->number ?? '+15550001001',
+                    $attributes['from_normalized_number'] = $callerDid?->normalized_number ?? $callerDid?->number ?? '+15550001001',
+                    $attributes['to_number'] = $externalNumber,
+                    $attributes['to_normalized_number'] = $externalNumber,
+                    $attributes['caller_user_id'] = $callerUser->getKey(),
+                    $attributes['caller_extension_id'] = $callerExtension?->getKey(),
+                    $attributes['caller_phone_number_id'] = $callerDid?->getKey(),
+                    $attributes['callee_contact_id'] = $contact?->getKey(),
+                    $attributes['hangup_cause'] = 'declined',
+                ],
+                'outgoing' => [
+                    $attributes['from_number'] = $callerDid?->display_number ?? $callerDid?->number ?? '+15550001001',
+                    $attributes['from_normalized_number'] = $callerDid?->normalized_number ?? $callerDid?->number ?? '+15550001001',
+                    $attributes['to_number'] = $externalNumber,
+                    $attributes['to_normalized_number'] = $externalNumber,
+                    $attributes['caller_user_id'] = $callerUser->getKey(),
+                    $attributes['caller_extension_id'] = $callerExtension?->getKey(),
+                    $attributes['caller_phone_number_id'] = $callerDid?->getKey(),
+                    $attributes['callee_contact_id'] = $contact?->getKey(),
+                    $attributes['hangup_cause'] = $scenario['status'] === TelephonyCallStatus::Failed ? 'unreachable' : ($scenario['disposition'] === CallDisposition::Busy ? 'busy' : null),
+                ],
+                'failed' => [
+                    $attributes['from_number'] = $callerDid?->display_number ?? $callerDid?->number ?? '+15550001001',
+                    $attributes['from_normalized_number'] = $callerDid?->normalized_number ?? $callerDid?->number ?? '+15550001001',
+                    $attributes['to_number'] = $externalNumber,
+                    $attributes['to_normalized_number'] = $externalNumber,
+                    $attributes['caller_user_id'] = $callerUser->getKey(),
+                    $attributes['caller_extension_id'] = $callerExtension?->getKey(),
+                    $attributes['caller_phone_number_id'] = $callerDid?->getKey(),
+                    $attributes['failure_code'] = 'FAKE_DOWN',
+                    $attributes['failure_message'] = 'Synthetic provider failure.',
+                    $attributes['hangup_cause'] = 'network_error',
+                ],
+                'internal' => [
+                    $attributes['from_number'] = $callerExtension?->number ?? '2001',
+                    $attributes['from_normalized_number'] = $callerExtension?->number ?? '2001',
+                    $attributes['to_number'] = $calleeExtension?->number ?? '2002',
+                    $attributes['to_normalized_number'] = $calleeExtension?->number ?? '2002',
+                    $attributes['caller_user_id'] = $callerUser->getKey(),
+                    $attributes['callee_user_id'] = $calleeUser->getKey(),
+                    $attributes['caller_extension_id'] = $callerExtension?->getKey(),
+                    $attributes['callee_extension_id'] = $calleeExtension?->getKey(),
+                    $attributes['caller_phone_number_id'] = $callerDid?->getKey(),
+                    $attributes['callee_phone_number_id'] = $calleeDid?->getKey(),
+                ],
+                'conference' => [
+                    $attributes['from_number'] = $callerExtension?->number ?? '2001',
+                    $attributes['from_normalized_number'] = $callerExtension?->number ?? '2001',
+                    $attributes['to_number'] = 'conf-'.substr($recordKey, -6),
+                    $attributes['to_normalized_number'] = 'conf-'.substr($recordKey, -6),
+                    $attributes['caller_user_id'] = $callerUser->getKey(),
+                    $attributes['callee_user_id'] = $calleeUser->getKey(),
+                    $attributes['caller_extension_id'] = $callerExtension?->getKey(),
+                    $attributes['callee_extension_id'] = $calleeExtension?->getKey(),
+                    $attributes['caller_phone_number_id'] = $callerDid?->getKey(),
+                    $attributes['callee_phone_number_id'] = $calleeDid?->getKey(),
+                    $attributes['metadata'] = [
+                        'seeded' => true,
+                        'scenario' => 'conference',
+                        'call_type' => 'conference',
+                        'participant_count' => 3,
+                    ],
+                ],
+                default => [],
+            };
+
+            $callLog = CallLog::query()->updateOrCreate(
+                [
+                    'tenant_id' => $tenant->getKey(),
+                    'provider_id' => 'fake',
+                    'provider_call_id' => $recordKey,
+                ],
+                array_merge($attributes, [
+                    'uuid' => $this->stableCallLogUuid($tenant, $recordKey),
+                ])
+            );
+
+            CallLog::query()
+                ->whereKey($callLog->getKey())
+                ->update([
+                    'created_at' => $startedAt,
+                    'updated_at' => $endedAt,
+                ]);
+
+            foreach ($scenario['events'] as $sequence => $eventType) {
+                $occurredAt = match ($eventType) {
+                    CallEventType::CallCreated => $startedAt,
+                    CallEventType::CallInitiated => $startedAt->copy()->addSeconds(1),
+                    CallEventType::CallRinging => $startedAt->copy()->addSeconds($ringingSeconds),
+                    CallEventType::CallAnswered => $answeredAt ?? $startedAt->copy()->addSeconds($ringingSeconds),
+                    CallEventType::CallHeld => $answeredAt ? $answeredAt->copy()->addSeconds(15) : $startedAt->copy()->addSeconds($ringingSeconds + 15),
+                    CallEventType::CallResumed => $answeredAt ? $answeredAt->copy()->addSeconds(35) : $startedAt->copy()->addSeconds($ringingSeconds + 35),
+                    CallEventType::CallCompleted => $endedAt,
+                    CallEventType::CallFailed => $endedAt,
+                    CallEventType::CallCancelled => $endedAt,
+                };
+
+                CallEvent::query()->updateOrCreate(
+                    [
+                        'tenant_id' => $tenant->getKey(),
+                        'provider_id' => 'fake',
+                        'provider_event_id' => sprintf('%s:%s', $recordKey, $eventType->value),
+                    ],
+                    [
+                        'uuid' => $this->stableCallEventUuid($tenant, sprintf('%s:%s', $recordKey, $eventType->value)),
+                        'call_log_id' => $callLog->getKey(),
+                        'type' => $eventType->value,
+                        'occurred_at' => $occurredAt,
+                        'sequence' => $sequence + 1,
+                        'payload' => [
+                            'seeded' => true,
+                            'scenario' => $scenario['call_type'],
+                            'status' => $callLog->status?->value ?? $callLog->status,
+                            'disposition' => $callLog->disposition?->value ?? $callLog->disposition,
+                            'hangup_cause' => $callLog->hangup_cause,
+                        ],
+                        'created_at' => $occurredAt,
+                    ]
+                );
+            }
+
+            $created++;
+        }
+
+        return $created;
     }
 
     private function stableCallLogUuid(Tenant $tenant, string $key): string

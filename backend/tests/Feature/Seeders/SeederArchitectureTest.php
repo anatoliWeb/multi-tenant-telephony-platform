@@ -106,10 +106,27 @@ class SeederArchitectureTest extends TestCase
         $this->assertSame(1, PhoneNumber::query()->where('tenant_id', $secondaryTenant->id)->where('normalized_number', '+15550001001')->count());
         $this->assertGreaterThanOrEqual(4, PhoneNumber::query()->where('tenant_id', $defaultTenant->id)->count());
         $this->assertGreaterThanOrEqual(2, PhoneNumber::query()->where('tenant_id', $defaultTenant->id)->where('is_primary', true)->count());
-        $this->assertGreaterThanOrEqual(5, CallLog::query()->where('tenant_id', $defaultTenant->id)->count());
-        $this->assertGreaterThanOrEqual(2, CallLog::query()->where('tenant_id', $secondaryTenant->id)->count());
+        $this->assertGreaterThanOrEqual(1000, CallLog::count());
+        $this->assertSame(500, CallLog::query()->where('tenant_id', $defaultTenant->id)->where('provider_call_id', 'like', 'tenant-a-volume-%')->count());
+        $this->assertSame(500, CallLog::query()->where('tenant_id', $secondaryTenant->id)->where('provider_call_id', 'like', 'tenant-b-volume-%')->count());
+        $this->assertGreaterThanOrEqual(500, CallLog::query()->where('tenant_id', $defaultTenant->id)->count());
+        $this->assertGreaterThanOrEqual(500, CallLog::query()->where('tenant_id', $secondaryTenant->id)->count());
         $this->assertSame(1, CallLog::query()->where('tenant_id', $defaultTenant->id)->where('provider_call_id', 'shared-provider-call')->count());
         $this->assertSame(1, CallLog::query()->where('tenant_id', $secondaryTenant->id)->where('provider_call_id', 'shared-provider-call')->count());
+
+        $volumeStartedAt = CallLog::query()
+            ->where('tenant_id', $defaultTenant->id)
+            ->where('provider_call_id', 'like', 'tenant-a-volume-%')
+            ->min('started_at');
+        $volumeEndedAt = CallLog::query()
+            ->where('tenant_id', $defaultTenant->id)
+            ->where('provider_call_id', 'like', 'tenant-a-volume-%')
+            ->max('started_at');
+
+        $this->assertNotNull($volumeStartedAt);
+        $this->assertNotNull($volumeEndedAt);
+        $this->assertGreaterThanOrEqual(30, \Illuminate\Support\Carbon::parse($volumeStartedAt)->diffInDays(now()));
+        $this->assertLessThanOrEqual(90, \Illuminate\Support\Carbon::parse($volumeEndedAt)->diffInDays(now()));
 
         $tenantOwnerRoles = Role::query()
             ->where('scope', 'tenant')

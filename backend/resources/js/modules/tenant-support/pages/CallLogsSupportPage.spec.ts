@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const listCallLogsMock = vi.fn();
 const getStatisticsMock = vi.fn();
+const exportCallLogsMock = vi.fn();
 const activeTenantIdRef = ref<string | null>(null);
 
 vi.mock('pinia', () => ({
@@ -39,10 +40,17 @@ vi.mock('../../../stores/tenant.store', () => ({
   useTenantStore: () => ({}),
 }));
 
+vi.mock('../../../stores/auth.store', () => ({
+  useAuthStore: () => ({
+    hasPlatformPermission: vi.fn(() => true),
+  }),
+}));
+
 vi.mock('../services/tenant-support.service', () => ({
   tenantSupportService: {
     listCallLogs: listCallLogsMock,
     getCallLogStatistics: getStatisticsMock,
+    exportCallLogs: exportCallLogsMock,
   },
 }));
 
@@ -60,6 +68,7 @@ describe('CallLogsSupportPage', () => {
       missed_calls: 0,
       answer_rate: 0,
     });
+    exportCallLogsMock.mockResolvedValue(new Blob(['call_id\n1'], { type: 'text/csv' }));
   });
 
   it('shows a translated tenant-selection prompt before a tenant is selected', async () => {
@@ -83,5 +92,52 @@ describe('CallLogsSupportPage', () => {
     expect(getStatisticsMock).toHaveBeenCalled();
     expect(wrapper.text()).toContain('Call Logs');
     expect(wrapper.text()).toContain('No data yet');
+  });
+
+  it('exports call logs when the action is available', async () => {
+    activeTenantIdRef.value = 'tenant-a';
+    const originalCreateObjectURL = URL.createObjectURL;
+    const originalRevokeObjectURL = URL.revokeObjectURL;
+    const createObjectURLMock = vi.fn(() => 'blob:call-logs');
+    const revokeObjectURLMock = vi.fn(() => undefined);
+    Object.defineProperty(URL, 'createObjectURL', { configurable: true, value: createObjectURLMock });
+    Object.defineProperty(URL, 'revokeObjectURL', { configurable: true, value: revokeObjectURLMock });
+    const clickMock = vi.fn();
+    const originalCreateElement = document.createElement.bind(document);
+    const createElementSpy = vi.spyOn(document, 'createElement').mockImplementation((tagName: string) => {
+      const element = originalCreateElement(tagName);
+      if (tagName === 'a') {
+        return Object.assign(element, { click: clickMock });
+      }
+
+      return element;
+    });
+
+    const { default: CallLogsSupportPage } = await import('./CallLogsSupportPage.vue');
+    const wrapper = mount(CallLogsSupportPage);
+
+    await flushPromises();
+    await wrapper.find('button[type="button"]').trigger('click');
+    await flushPromises();
+
+    expect(exportCallLogsMock).toHaveBeenCalled();
+    expect(clickMock).toHaveBeenCalled();
+    expect(createObjectURLMock).toHaveBeenCalled();
+    expect(revokeObjectURLMock).toHaveBeenCalled();
+    createElementSpy.mockRestore();
+
+    if (originalCreateObjectURL) {
+      Object.defineProperty(URL, 'createObjectURL', { configurable: true, value: originalCreateObjectURL });
+    } else {
+      // @ts-expect-error cleanup for jsdom test env
+      delete URL.createObjectURL;
+    }
+
+    if (originalRevokeObjectURL) {
+      Object.defineProperty(URL, 'revokeObjectURL', { configurable: true, value: originalRevokeObjectURL });
+    } else {
+      // @ts-expect-error cleanup for jsdom test env
+      delete URL.revokeObjectURL;
+    }
   });
 });

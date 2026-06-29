@@ -350,6 +350,8 @@
       totalCalls: 'Gesamtanrufe',
       answeredCalls: 'Beantwortet',
       missedCalls: 'Verpasst',
+      export: 'CSV exportieren',
+      exporting: 'Wird exportiert...',
     },
   },
   loading: 'Wird geladen',

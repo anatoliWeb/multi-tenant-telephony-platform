@@ -32,10 +32,16 @@
   align-items: center;
   text-align: left;
   padding: 0.875rem 1rem;
+  border: 1px solid rgba(71, 85, 105, 0.55);
+  border-radius: 1rem;
+  background: rgba(15, 23, 42, 0.72);
+  color: #e2e8f0;
 }
 
 .phone-number-row.active {
-  outline: 2px solid currentColor;
+  outline: 2px solid rgba(59, 130, 246, 0.55);
+  outline-offset: 2px;
+  background: rgba(30, 41, 59, 0.95);
 }
 
 .meta {
@@ -54,7 +60,7 @@
 }
 
 .state.error {
-  color: #b42318;
+  color: #fda4af;
 }
 
 select {

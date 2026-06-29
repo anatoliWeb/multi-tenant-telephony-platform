@@ -108,6 +108,8 @@ It includes:
 - contact-linked and unknown external-party scenarios;
 - append-only lifecycle events for seeded calls;
 - the same provider call id reused safely across two tenants for isolation coverage.
+- reproducible high-volume volume fixtures that generate at least 1,000 total call logs for Stage 12 validation;
+- deterministic timestamps spread across the previous 30-90 days so exports and charts remain stable on rerun.
 
 ### TestSeeder
 

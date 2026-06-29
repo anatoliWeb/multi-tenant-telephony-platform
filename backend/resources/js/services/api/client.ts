@@ -1,4 +1,4 @@
-import type { AxiosRequestConfig } from 'axios';
+import type { AxiosRequestConfig, AxiosResponse } from 'axios';
 
 import { http } from './http';
 import type { ApiRequestOptions, BackendResponse } from '../../types/api.types';
@@ -61,5 +61,14 @@ export const api = {
     const response = await http.delete<BackendResponse<TData>>(url, toConfig(options));
     return response.data;
   },
-};
 
+  download: async (
+    url: string,
+    options?: ApiRequestOptions,
+  ): Promise<AxiosResponse<Blob>> => {
+    return http.get<Blob>(url, {
+      ...toConfig(options),
+      responseType: 'blob',
+    });
+  },
+};

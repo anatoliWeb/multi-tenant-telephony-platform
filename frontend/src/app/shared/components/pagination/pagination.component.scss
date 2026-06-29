@@ -26,6 +26,12 @@ small {
   cursor: pointer;
 }
 
+.pagination__controls button:hover:not(:disabled),
+.pagination__controls button:focus-visible:not(:disabled) {
+  border-color: rgba(96, 165, 250, 0.7);
+  background: rgba(30, 41, 59, 0.95);
+}
+
 .pagination__controls button:disabled {
   opacity: 0.5;
   cursor: not-allowed;

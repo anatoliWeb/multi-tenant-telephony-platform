@@ -338,6 +338,9 @@ Verified:
   - tests passed with `22` files and `142` tests;
   - the existing Angular initial bundle budget warning remains;
   - the existing `pusher-js` CommonJS warning remains.
+- Stage 12 follow-up:
+  - call-log CSV export is available through the tenant API and the Angular/Vue support surfaces;
+  - deterministic demo call data now includes at least `1,000` reproducible rows across the previous 30-90 days.
 - full backend verification after the call-log slice:
   - `562` passed
   - `0` failed

@@ -203,4 +203,38 @@ class CallLogApiTest extends TestCase
         $this->getJson("/api/v1/call-logs/{$callLog->id}", ['X-Tenant-ID' => $tenant->id])
             ->assertForbidden();
     }
+
+    public function test_call_log_export_is_tenant_scoped_and_escapes_formula_values(): void
+    {
+        $tenantA = $this->createTenant('call-export-a');
+        $tenantB = $this->createTenant('call-export-b');
+        $user = $this->actingAsTenantUser($this->createUser('call-export-user'));
+
+        $this->createMembership($tenantA, $user);
+        $this->createMembership($tenantB, $user);
+        $this->assignTenantPermissions($user, $tenantA, ['call_logs.view', 'call_logs.view_own', 'call_logs.export']);
+        $this->assignTenantPermissions($user, $tenantB, ['call_logs.view', 'call_logs.view_own', 'call_logs.export']);
+
+        $tenantACall = $this->createCallLogFixture($tenantA, $user, [
+            'provider_call_id' => '=tenant-a-export',
+            'from_number' => '=15550001001',
+            'to_number' => '+15550009999',
+        ]);
+        $this->createCallEventFixture($tenantACall, CallEventType::CallCompleted, ['disposition' => 'answered'], '=tenant-a-export:completed');
+
+        $this->createCallLogFixture($tenantB, $user, [
+            'provider_call_id' => 'tenant-b-export',
+            'from_number' => '+15550002002',
+            'to_number' => '+15550009998',
+        ]);
+
+        $response = $this->get('/api/v1/call-logs/export', ['X-Tenant-ID' => $tenantA->id])
+            ->assertOk();
+
+        $content = $response->streamedContent();
+        $this->assertStringContainsString('"Call ID","External Call ID",Direction,Status,Disposition,Source,Destination', $content);
+        $this->assertStringContainsString("'=tenant-a-export", $content);
+        $this->assertStringContainsString("'=15550001001", $content);
+        $this->assertStringNotContainsString('tenant-b-export', $content);
+    }
 }
