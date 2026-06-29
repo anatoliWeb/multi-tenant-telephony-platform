@@ -1,10 +1,13 @@
 import { flushPromises, shallowMount } from '@vue/test-utils';
+import { ref } from 'vue';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const hydrateSessionMock = vi.fn();
 const hasPlatformPermissionMock = vi.fn(() => true);
 const hasAnyPermissionMock = vi.fn(() => true);
 const hasAnyPlatformPermissionMock = vi.fn(() => true);
+const switchTenantMock = vi.fn(() => Promise.resolve());
+const clearSelectionMock = vi.fn();
 const routerReplaceMock = vi.fn();
 const loadUnreadCountMock = vi.fn(() => Promise.resolve());
 const getUnreadConversationsCountMock = vi.fn(() => Promise.resolve(3));
@@ -25,6 +28,10 @@ const getDiagnosticsMock = vi.fn(() => ({
   forceTLS: false,
   lastConnectionStatus: 'connected',
   lastJoinedChannels: [],
+}));
+
+vi.mock('pinia', () => ({
+  storeToRefs: (store: Record<string, unknown>) => store,
 }));
 
 vi.mock('vue-router', () => ({
@@ -64,6 +71,30 @@ vi.mock('../stores/translation.store', () => ({
   useTranslationStore: () => ({
     locale: 'en',
     switchLocale: vi.fn(() => Promise.resolve()),
+  }),
+}));
+
+vi.mock('../stores/tenant.store', () => ({
+  useTenantStore: () => ({
+    memberships: ref([
+      {
+        id: '11111111-1111-1111-1111-111111111111',
+        uuid: '11111111-1111-1111-1111-111111111111',
+        name: 'Tenant A',
+        slug: 'tenant-a',
+        status: 'active',
+      },
+      {
+        id: '22222222-2222-2222-2222-222222222222',
+        uuid: '22222222-2222-2222-2222-222222222222',
+        name: 'Tenant B',
+        slug: 'tenant-b',
+        status: 'active',
+      },
+    ]),
+    activeTenantId: ref(null),
+    switchTenant: switchTenantMock,
+    clearSelection: clearSelectionMock,
   }),
 }));
 
@@ -333,6 +364,7 @@ describe('AdminLayout auth bootstrap guard', () => {
     expect(wrapper.text()).toContain('common.users');
     expect(wrapper.text()).toContain('common.roles');
     expect(wrapper.text()).toContain('common.permissions');
+    expect(wrapper.text()).not.toContain('common.tenants');
     expect(wrapper.text()).not.toContain('common.chat');
     expect(wrapper.find('[data-testid="api-docs-sidebar-link"]').exists()).toBe(false);
   });
@@ -364,8 +396,89 @@ describe('AdminLayout auth bootstrap guard', () => {
     expect(wrapper.text()).not.toContain('common.users');
     expect(wrapper.text()).not.toContain('common.roles');
     expect(wrapper.text()).not.toContain('common.permissions');
+    expect(wrapper.text()).not.toContain('common.tenants');
     expect(wrapper.text()).not.toContain('common.chat');
     expect(wrapper.find('[data-testid="api-docs-sidebar-link"]').exists()).toBe(false);
+  });
+
+  it('shows telephony support navigation when platform permissions are present', async () => {
+    hydrateSessionMock.mockResolvedValue(true);
+    hasPlatformPermissionMock.mockImplementation((permission: string) => {
+      return [
+        'tenants.view',
+        'contacts.view',
+        'extensions.view',
+        'phone_numbers.view',
+        'call_logs.view',
+      ].includes(permission);
+    });
+    hasAnyPlatformPermissionMock.mockReturnValue(false);
+
+    const { default: AdminLayout } = await import('./AdminLayout.vue');
+    const wrapper = shallowMount(AdminLayout, {
+      global: {
+        stubs: {
+          BaseIconButton: true,
+          BaseLanguageSwitcher: true,
+          BaseRealtimeStatus: true,
+          BaseTopbarSearch: true,
+          BaseUserDropdown: true,
+          RouterView: true,
+          'router-link': {
+            template: '<a><slot /></a>',
+          },
+        },
+      },
+    });
+
+    await flushPromises();
+
+    expect(wrapper.text()).toContain('common.tenants');
+    expect(wrapper.text()).toContain('common.contacts');
+    expect(wrapper.text()).toContain('common.extensions');
+    expect(wrapper.text()).toContain('common.phoneNumbers');
+    expect(wrapper.text()).toContain('common.callLogs');
+    expect(wrapper.find('[data-testid="admin-tenant-select"]').exists()).toBe(true);
+  });
+
+  it('switches the shared support tenant selector through the tenant store', async () => {
+    hydrateSessionMock.mockResolvedValue(true);
+    hasPlatformPermissionMock.mockImplementation((permission: string) => {
+      return [
+        'tenants.view',
+        'contacts.view',
+        'extensions.view',
+        'phone_numbers.view',
+        'call_logs.view',
+      ].includes(permission);
+    });
+    hasAnyPlatformPermissionMock.mockReturnValue(false);
+
+    const { default: AdminLayout } = await import('./AdminLayout.vue');
+    const wrapper = shallowMount(AdminLayout, {
+      global: {
+        stubs: {
+          BaseIconButton: true,
+          BaseLanguageSwitcher: true,
+          BaseRealtimeStatus: true,
+          BaseTopbarSearch: true,
+          BaseUserDropdown: true,
+          RouterView: true,
+          'router-link': {
+            template: '<a><slot /></a>',
+          },
+        },
+      },
+    });
+
+    await flushPromises();
+
+    const tenantSelect = wrapper.find('[data-testid="admin-tenant-select"]');
+    expect(tenantSelect.exists()).toBe(true);
+
+    await tenantSelect.setValue('22222222-2222-2222-2222-222222222222');
+
+    expect(switchTenantMock).toHaveBeenCalledWith('22222222-2222-2222-2222-222222222222');
   });
 
   it('renders realtime diagnostics counters for WS EV ON PG', async () => {

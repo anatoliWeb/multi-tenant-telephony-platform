@@ -30,6 +30,7 @@ vi.mock('../../../shared/services/realtime/realtime.client', () => ({
 vi.mock('../../../stores/auth.store', () => ({
   useAuthStore: () => ({
     hasPermission: hasPermissionMock,
+    hasPlatformPermission: hasPermissionMock,
   }),
 }));
 

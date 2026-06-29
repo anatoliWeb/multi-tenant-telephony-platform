@@ -84,6 +84,19 @@
           </div>
 
           <div class="topbar-shell__right">
+            <select
+              v-if="tenantOptions.length > 0"
+              v-model="selectedTenantId"
+              class="topbar-shell__tenant-select"
+              :aria-label="t('common.tenantSupport.selectTenant')"
+              data-testid="admin-tenant-select"
+            >
+              <option value="">{{ t('common.tenantSupport.selectTenant') }}</option>
+              <option v-for="tenant in tenantOptions" :key="tenant.id" :value="tenant.id">
+                {{ tenant.name }}
+              </option>
+            </select>
+
             <div class="topbar-shell__metrics" :aria-label="t('common.topbar.realtimeCounters')">
               <BaseRealtimeStatus
                 v-for="metric in realtimeMetrics"
@@ -135,6 +148,7 @@
 
 <script setup lang="ts">
 import { computed, defineComponent, h, onMounted, onUnmounted, ref, type Component } from 'vue';
+import { storeToRefs } from 'pinia';
 import { useRoute } from 'vue-router';
 import { useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
@@ -152,13 +166,17 @@ import type { RealtimeStatusMetric } from '../shared/services/realtime/realtime.
 import { notificationsService } from '../modules/notifications/services/notifications.service';
 import { chatAdminService } from '../modules/chat-admin/services/chat-admin.service';
 import { useAuthStore } from '../stores/auth.store';
+import { useTenantStore } from '../stores/tenant.store';
 import { useTranslationStore } from '../stores/translation.store';
+import type { TenantMembershipSummary, TenantSummary } from '../types/tenant.types';
 
 const route = useRoute();
 const router = useRouter();
 const { t } = useI18n({ useScope: 'global' });
 const translationStore = useTranslationStore();
 const authStore = useAuthStore();
+const tenantStore = useTenantStore();
+const { memberships, activeTenantId } = storeToRefs(tenantStore);
 
 const isSidebarCollapsed = ref(false);
 const enabledLocales = getEnabledLocales();
@@ -201,6 +219,11 @@ const routeTitleMap: Record<string, string> = {
   translations: 'common.translations',
   notifications: 'common.notifications',
   'chat-admin-monitoring': 'common.chat',
+  tenants: 'common.tenants',
+  contacts: 'common.contacts',
+  extensions: 'common.extensions',
+  'phone-numbers': 'common.phoneNumbers',
+  'call-logs': 'common.callLogs',
 };
 
 const IconGrid = defineIcon('M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z');
@@ -212,6 +235,11 @@ const IconDocs = defineIcon('M6 2h8l4 4v16H6V2zm8 1.5V7h3.5L14 3.5zM8 10h8v1.5H8
 const IconTranslate = defineIcon('M5 4h10v2H9.6l-.1.4c-.4 1.4-1 2.8-1.8 4a18 18 0 0 0 2.6 2.5l-1.4 1.4a20 20 0 0 1-2.3-2.2 14 14 0 0 1-3.2 2.4L2.5 13A11.4 11.4 0 0 0 5.2 11a13 13 0 0 1-1.8-3.8H1V5h4V4zm2.3 3.2h-2a10.2 10.2 0 0 0 1.3 2.4 9.6 9.6 0 0 0 .7-2.4zM17 10l5 12h-2.2l-1.2-3h-5.2l-1.2 3H10l5-12h2zm-2.9 7h3.8L16 12.2 14.1 17z');
 const IconBell = defineIcon('M12 22a2.5 2.5 0 0 0 2.45-2h-4.9A2.5 2.5 0 0 0 12 22zm6-6v-5a6 6 0 1 0-12 0v5l-2 2v1h16v-1l-2-2z');
 const IconChat = defineIcon('M4 4h16a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H8l-4 3v-3H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z');
+const IconBuilding = defineIcon('M4 20h16V8l-4-4H4v16zm4-2H6v-2h2v2zm0-4H6v-2h2v2zm0-4H6V8h2v2zm4 8h-2v-2h2v2zm0-4h-2v-2h2v2zm0-4h-2V8h2v2zm4 8h-2v-6h2v6z');
+const IconBook = defineIcon('M5 5.5A2.5 2.5 0 0 1 7.5 3H20v16H7.5A2.5 2.5 0 0 0 5 21.5V5.5zm2.5-.5A1.5 1.5 0 0 0 6 6.5v11A3.5 3.5 0 0 1 7.5 17H18V5H7.5z');
+const IconPhone = defineIcon('M6.6 10.8a15 15 0 0 0 6.6 6.6l2.2-2.2a1 1 0 0 1 1-.24 11 11 0 0 0 3.46.55 1 1 0 0 1 1 1V20a1 1 0 0 1-1 1C10.3 21 3 13.7 3 4a1 1 0 0 1 1-1h3.49a1 1 0 0 1 1 1c0 1.2.19 2.36.55 3.46a1 1 0 0 1-.24 1l-2.2 2.34z');
+const IconPhoneNumbers = defineIcon('M6 4h12v16H6V4zm2 2v3h8V6H8zm0 5v2h8v-2H8zm0 4v2h5v-2H8z');
+const IconWave = defineIcon('M4 12a8 8 0 0 1 16 0h-2a6 6 0 1 0-12 0H4zm4 0a4 4 0 0 1 8 0h-2a2 2 0 1 0-4 0H8zm4 0h.01');
 
 const overviewLinks: NavItem[] = [
   {
@@ -258,6 +286,36 @@ const managementLinks: NavItem[] = [
     icon: IconChat,
     permissions: ['chat.admin.view', 'chat.admin.view_metadata'],
   },
+  {
+    to: '/tenants',
+    labelKey: 'common.tenants',
+    icon: IconBuilding,
+    permission: 'tenants.view',
+  },
+  {
+    to: '/contacts',
+    labelKey: 'common.contacts',
+    icon: IconBook,
+    permission: 'contacts.view',
+  },
+  {
+    to: '/extensions',
+    labelKey: 'common.extensions',
+    icon: IconPhone,
+    permission: 'extensions.view',
+  },
+  {
+    to: '/phone-numbers',
+    labelKey: 'common.phoneNumbers',
+    icon: IconPhoneNumbers,
+    permission: 'phone_numbers.view',
+  },
+  {
+    to: '/call-logs',
+    labelKey: 'common.callLogs',
+    icon: IconWave,
+    permission: 'call_logs.view',
+  },
 ];
 
 const apiLinks: NavItem[] = [
@@ -290,6 +348,24 @@ const canAccessNavItem = (item: NavItem): boolean => {
 const visibleOverviewLinks = computed(() => overviewLinks.filter(canAccessNavItem));
 const visibleManagementLinks = computed(() => managementLinks.filter(canAccessNavItem));
 const visibleApiLinks = computed(() => apiLinks.filter(canAccessNavItem));
+const tenantOptions = computed(() => memberships.value.map((item) => {
+  if (isTenantMembership(item)) {
+    return item.tenant;
+  }
+
+  return item;
+}).filter((item): item is TenantSummary => Boolean(item)));
+const selectedTenantId = computed({
+  get: () => activeTenantId.value ?? '',
+  set: (value: string) => {
+    if (!value) {
+      tenantStore.clearSelection();
+      return;
+    }
+
+    void tenantStore.switchTenant(value);
+  },
+});
 
 const pageTitle = computed(() => {
   const routeName = String(route.name ?? 'dashboard');
@@ -380,7 +456,7 @@ const handleLogout = async (): Promise<void> => {
 };
 
 const openNotifications = async (): Promise<void> => {
-  if (!authStore.hasPermission('notifications.view')) {
+  if (!authStore.hasPlatformPermission('notifications.view')) {
     return;
   }
 
@@ -388,7 +464,7 @@ const openNotifications = async (): Promise<void> => {
 };
 
 const loadChatUnreadCount = async (): Promise<void> => {
-  if (!authStore.hasAnyPermission(['chat.view', 'chat.conversations.view', 'chat.admin.view'])) {
+  if (!authStore.hasAnyPlatformPermission(['chat.view', 'chat.conversations.view', 'chat.admin.view'])) {
     chatUnreadCount.value = null;
     return;
   }
@@ -407,6 +483,10 @@ function defineIcon(path: string) {
       return () => h('svg', { viewBox: '0 0 24 24' }, [h('path', { d: path })]);
     },
   });
+}
+
+function isTenantMembership(item: TenantMembershipSummary | TenantSummary): item is TenantMembershipSummary {
+  return Object.prototype.hasOwnProperty.call(item, 'tenant');
 }
 </script>
 
@@ -456,6 +536,7 @@ svg {
   align-items: center;
   justify-content: flex-end;
   gap: 10px;
+  flex-wrap: wrap;
 }
 
 .topbar-shell__metrics,
@@ -463,6 +544,15 @@ svg {
   display: inline-flex;
   align-items: center;
   gap: 8px;
+}
+
+.topbar-shell__tenant-select {
+  min-width: 180px;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  border-radius: 10px;
+  background: rgba(15, 23, 42, 0.75);
+  color: #e2e8f0;
+  padding: 8px 10px;
 }
 
 .topbar-notification-btn {

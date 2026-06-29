@@ -31,8 +31,10 @@ export interface TenantMembershipSummary {
   updated_at: string | null;
 }
 
+export type TenantSelectionItem = TenantMembershipSummary | TenantSummary;
+
 export interface TenantMembershipListPayload {
-  tenants: TenantMembershipSummary[];
+  tenants: TenantSelectionItem[];
   current_tenant_id: string | null;
   platform_permissions: string[];
   tenant_permissions: string[];

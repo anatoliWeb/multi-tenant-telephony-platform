@@ -135,7 +135,7 @@ const isLoading = computed(() => notificationsService.isLoading.value);
 const isRefreshing = computed(() => notificationsService.isRefreshing.value);
 const errorMessage = computed(() => notificationsService.errorMessage.value);
 const unreadCount = computed(() => notificationsService.unreadCount.value);
-const canDelete = computed(() => authStore.hasPermission('notifications.delete'));
+const canDelete = computed(() => authStore.hasPlatformPermission('notifications.delete'));
 const preferences = computed(() => notificationsService.preferences.value);
 const draftPreferences = ref<NotificationPreferences>({
   'system.enabled': true,

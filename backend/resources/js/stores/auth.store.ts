@@ -24,7 +24,7 @@ export const useAuthStore = defineStore('auth', () => {
   const isHydrated = ref(false);
 
   const isAuthenticated = computed(() => Boolean(user.value));
-  const hasPermission = (permission: string): boolean => permissions.value.includes(permission);
+  const hasPermission = (permission: string): boolean => platformPermissions.value.includes(permission);
   const hasPlatformPermission = (permission: string): boolean => platformPermissions.value.includes(permission);
   const hasTenantPermission = (permission: string): boolean => tenantPermissions.value.includes(permission);
   const hasAnyPermission = (requiredPermissions: string[]): boolean => {
@@ -32,6 +32,9 @@ export const useAuthStore = defineStore('auth', () => {
   };
   const hasAnyPlatformPermission = (requiredPermissions: string[]): boolean => {
     return requiredPermissions.some((permission) => hasPlatformPermission(permission));
+  };
+  const hasAnyTenantPermission = (requiredPermissions: string[]): boolean => {
+    return requiredPermissions.some((permission) => hasTenantPermission(permission));
   };
 
   const setSession = (payload: { user: AuthUser | null; permissions: string[]; platform_permissions?: string[]; tenant_permissions?: string[] }): void => {
@@ -43,9 +46,13 @@ export const useAuthStore = defineStore('auth', () => {
   };
 
   const setPermissionScopes = (payload: { platform_permissions: string[]; tenant_permissions: string[]; current_tenant_id: string | null }): void => {
-    platformPermissions.value = payload.platform_permissions ?? [];
+    const nextPlatformPermissions = payload.platform_permissions?.length > 0
+      ? payload.platform_permissions
+      : platformPermissions.value;
+
+    platformPermissions.value = nextPlatformPermissions;
     tenantPermissions.value = payload.tenant_permissions ?? [];
-    permissions.value = platformPermissions.value;
+    permissions.value = nextPlatformPermissions;
   };
 
   const clearTenantPermissions = (): void => {
@@ -117,6 +124,7 @@ export const useAuthStore = defineStore('auth', () => {
     hasTenantPermission,
     hasAnyPermission,
     hasAnyPlatformPermission,
+    hasAnyTenantPermission,
     setSession,
     setPermissionScopes,
     clearTenantPermissions,

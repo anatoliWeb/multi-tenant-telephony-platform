@@ -253,7 +253,7 @@ const recentActivity = computed(() => stats.value?.recent_activity ?? []);
 const rolesCount = computed(() => meta.value?.current_user?.roles?.length ?? 0);
 const permissionsCount = computed(() => meta.value?.current_user_permissions?.length ?? 0);
 const currentUserPermissionsCount = computed(() => meta.value?.current_user_permissions?.length ?? 0);
-const canViewApiDocs = computed(() => authStore.hasPermission('api.docs.view'));
+const canViewApiDocs = computed(() => authStore.hasPlatformPermission('api.docs.view'));
 
 void rolesCount;
 void permissionsCount;

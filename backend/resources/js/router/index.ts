@@ -18,6 +18,11 @@ import BillingPage from '../modules/billing/pages/BillingPage.vue';
 import TranslationsPage from '../modules/translations/pages/TranslationsPage.vue';
 import NotificationsPage from '../modules/notifications/pages/NotificationsPage.vue';
 import ChatAdminMonitoringPage from '../modules/chat-admin/pages/ChatAdminMonitoringPage.vue';
+import TenantsPage from '../modules/tenant-support/pages/TenantsPage.vue';
+import ContactsSupportPage from '../modules/tenant-support/pages/ContactsSupportPage.vue';
+import ExtensionsSupportPage from '../modules/tenant-support/pages/ExtensionsSupportPage.vue';
+import PhoneNumbersSupportPage from '../modules/tenant-support/pages/PhoneNumbersSupportPage.vue';
+import CallLogsSupportPage from '../modules/tenant-support/pages/CallLogsSupportPage.vue';
 import NotFoundView from '../shared/components/NotFoundView.vue';
 
 /**
@@ -160,6 +165,56 @@ const routes: RouteRecordRaw[] = [
           title: 'Chat Monitoring',
           subtitle: 'Admin conversation monitoring',
           permissions: ['chat.admin.view', 'chat.admin.view_metadata'],
+        },
+      },
+      {
+        path: 'tenants',
+        name: 'tenants',
+        component: TenantsPage,
+        meta: {
+          title: 'Tenants',
+          subtitle: 'Tenant support selector',
+          permission: 'tenants.view',
+        },
+      },
+      {
+        path: 'contacts',
+        name: 'contacts',
+        component: ContactsSupportPage,
+        meta: {
+          title: 'Contacts',
+          subtitle: 'Tenant support contacts',
+          permission: 'contacts.view',
+        },
+      },
+      {
+        path: 'extensions',
+        name: 'extensions',
+        component: ExtensionsSupportPage,
+        meta: {
+          title: 'Extensions',
+          subtitle: 'Tenant support extensions',
+          permission: 'extensions.view',
+        },
+      },
+      {
+        path: 'phone-numbers',
+        name: 'phone-numbers',
+        component: PhoneNumbersSupportPage,
+        meta: {
+          title: 'Phone Numbers',
+          subtitle: 'Tenant support phone numbers',
+          permission: 'phone_numbers.view',
+        },
+      },
+      {
+        path: 'call-logs',
+        name: 'call-logs',
+        component: CallLogsSupportPage,
+        meta: {
+          title: 'Call Logs',
+          subtitle: 'Tenant support call logs',
+          permission: 'call_logs.view',
         },
       },
       {

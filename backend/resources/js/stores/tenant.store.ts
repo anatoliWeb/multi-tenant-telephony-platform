@@ -3,11 +3,11 @@ import { defineStore } from 'pinia';
 
 import { tenantService } from '../services/tenant/tenant.service';
 import { clearActiveTenantId, getActiveTenantId, setActiveTenantId } from '../services/tenant/tenant.storage';
-import type { TenantMembershipSummary, TenantSummary } from '../types/tenant.types';
+import type { TenantMembershipSummary, TenantSelectionItem, TenantSummary } from '../types/tenant.types';
 import { useAuthStore } from './auth.store';
 
 export const useTenantStore = defineStore('tenant', () => {
-  const memberships = ref<TenantMembershipSummary[]>([]);
+  const memberships = ref<TenantSelectionItem[]>([]);
   const activeTenant = ref<TenantSummary | null>(null);
   const activeTenantId = ref<string | null>(getActiveTenantId());
   const isHydrated = ref(false);
@@ -26,6 +26,11 @@ export const useTenantStore = defineStore('tenant', () => {
     clearActiveTenantId();
   };
 
+  const clearSelection = (): void => {
+    setSelection(null);
+    useAuthStore().clearTenantPermissions();
+  };
+
   const clearTenantContext = (): void => {
     memberships.value = [];
     activeTenant.value = null;
@@ -40,22 +45,36 @@ export const useTenantStore = defineStore('tenant', () => {
       const payload = await tenantService.listTenants();
       memberships.value = payload.tenants;
 
+      const tenantSummaries = payload.tenants.filter((item): item is TenantSummary => !isTenantMembership(item));
+      const tenantMemberships = payload.tenants.filter((item): item is TenantMembershipSummary => isTenantMembership(item));
       const currentMembership = payload.current_tenant_id
-        ? payload.tenants.find((membership) => membership.tenant?.id === payload.current_tenant_id) ?? null
+        ? tenantMemberships.find((membership) => membership.tenant?.id === payload.current_tenant_id) ?? null
         : null;
       const storedTenantId = getActiveTenantId();
       const storedMembership = storedTenantId
-        ? payload.tenants.find((membership) => membership.tenant?.id === storedTenantId) ?? null
+        ? tenantMemberships.find((membership) => membership.tenant?.id === storedTenantId) ?? null
         : null;
-      const fallbackMembership = payload.tenants[0] ?? null;
+      const currentSummary = payload.current_tenant_id
+        ? tenantSummaries.find((tenant) => tenant.id === payload.current_tenant_id) ?? null
+        : null;
+      const storedSummary = storedTenantId
+        ? tenantSummaries.find((tenant) => tenant.id === storedTenantId) ?? null
+        : null;
+      const fallbackMembership = tenantMemberships[0] ?? null;
       const selected = currentMembership ?? storedMembership ?? fallbackMembership;
+      const selectedTenant = selected?.tenant ?? currentSummary ?? storedSummary ?? null;
 
-      setSelection(selected?.tenant ?? null);
-      useAuthStore().setPermissionScopes({
-        platform_permissions: payload.platform_permissions ?? [],
-        tenant_permissions: payload.tenant_permissions ?? [],
-        current_tenant_id: selected?.tenant?.id ?? payload.current_tenant_id,
-      });
+      setSelection(selectedTenant);
+      if (selectedTenant?.id) {
+        await refreshCurrentTenant();
+      } else {
+        useAuthStore().setPermissionScopes({
+          platform_permissions: payload.platform_permissions ?? [],
+          tenant_permissions: [],
+          current_tenant_id: null,
+        });
+      }
+
       isHydrated.value = true;
     } catch {
       clearTenantContext();
@@ -70,7 +89,7 @@ export const useTenantStore = defineStore('tenant', () => {
       tenant_permissions: payload.tenant_permissions ?? [],
       current_tenant_id: payload.current_tenant_id,
     });
-    await hydrateTenantContext();
+    await refreshTenantList();
   };
 
   const refreshCurrentTenant = async (): Promise<void> => {
@@ -80,11 +99,38 @@ export const useTenantStore = defineStore('tenant', () => {
       useAuthStore().setPermissionScopes({
         platform_permissions: payload.platform_permissions ?? [],
         tenant_permissions: payload.tenant_permissions ?? [],
-        current_tenant_id: activeTenantId.value,
+        current_tenant_id: payload.current_tenant_id ?? activeTenantId.value,
       });
     } catch {
-      clearTenantContext();
+      clearSelection();
+      await refreshTenantList();
     }
+  };
+
+  const refreshTenantList = async (): Promise<void> => {
+    const payload = await tenantService.listTenants();
+    memberships.value = payload.tenants;
+
+    const tenantSummaries = payload.tenants.filter((item): item is TenantSummary => !isTenantMembership(item));
+    const tenantMemberships = payload.tenants.filter((item): item is TenantMembershipSummary => isTenantMembership(item));
+    const currentMembership = payload.current_tenant_id
+      ? tenantMemberships.find((membership) => membership.tenant?.id === payload.current_tenant_id) ?? null
+      : null;
+    const storedTenantId = getActiveTenantId();
+    const storedMembership = storedTenantId
+      ? tenantMemberships.find((membership) => membership.tenant?.id === storedTenantId) ?? null
+      : null;
+    const currentSummary = payload.current_tenant_id
+      ? tenantSummaries.find((tenant) => tenant.id === payload.current_tenant_id) ?? null
+      : null;
+    const storedSummary = storedTenantId
+      ? tenantSummaries.find((tenant) => tenant.id === storedTenantId) ?? null
+      : null;
+    const fallbackMembership = tenantMemberships[0] ?? null;
+    const selected = currentMembership ?? storedMembership ?? fallbackMembership;
+    const selectedTenant = selected?.tenant ?? currentSummary ?? storedSummary ?? null;
+
+    setSelection(selectedTenant);
   };
 
   return {
@@ -94,9 +140,15 @@ export const useTenantStore = defineStore('tenant', () => {
     isHydrated,
     hasTenant,
     setSelection,
+    clearSelection,
     clearTenantContext,
     hydrateTenantContext,
     switchTenant,
     refreshCurrentTenant,
+    refreshTenantList,
   };
 });
+
+function isTenantMembership(item: TenantSelectionItem): item is TenantMembershipSummary {
+  return Object.prototype.hasOwnProperty.call(item, 'tenant');
+}
