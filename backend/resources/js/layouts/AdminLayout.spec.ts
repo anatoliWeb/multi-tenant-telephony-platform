@@ -408,6 +408,7 @@ describe('AdminLayout auth bootstrap guard', () => {
         'tenants.view',
         'contacts.view',
         'extensions.view',
+        'ring_groups.view',
         'phone_numbers.view',
         'call_logs.view',
       ].includes(permission);
@@ -436,6 +437,7 @@ describe('AdminLayout auth bootstrap guard', () => {
     expect(wrapper.text()).toContain('common.tenants');
     expect(wrapper.text()).toContain('common.contacts');
     expect(wrapper.text()).toContain('common.extensions');
+    expect(wrapper.text()).toContain('common.ringGroups');
     expect(wrapper.text()).toContain('common.phoneNumbers');
     expect(wrapper.text()).toContain('common.callLogs');
     expect(wrapper.find('[data-testid="admin-tenant-select"]').exists()).toBe(true);
@@ -448,6 +450,7 @@ describe('AdminLayout auth bootstrap guard', () => {
         'tenants.view',
         'contacts.view',
         'extensions.view',
+        'ring_groups.view',
         'phone_numbers.view',
         'call_logs.view',
       ].includes(permission);

@@ -9,6 +9,9 @@ use App\Enums\Contacts\ContactStatus;
 use App\Enums\PhoneNumbers\PhoneNumberAssignmentStatus;
 use App\Enums\PhoneNumbers\PhoneNumberStatus;
 use App\Enums\PhoneNumbers\PhoneNumberType;
+use App\Enums\RingGroups\RingGroupMemberType;
+use App\Enums\RingGroups\RingGroupStatus;
+use App\Enums\RingGroups\RingGroupStrategy;
 use App\Enums\TenantMembershipStatus;
 use App\Enums\Telephony\TelephonyCallDirection;
 use App\Enums\Telephony\TelephonyCallStatus;
@@ -17,6 +20,8 @@ use App\Models\CallLog;
 use App\Models\Contact;
 use App\Models\Extension;
 use App\Models\ExtensionCredential;
+use App\Models\RingGroup;
+use App\Models\RingGroupMember;
 use App\Models\PhoneNumber;
 use App\Models\Tenant;
 use App\Models\TenantMembership;
@@ -67,6 +72,8 @@ class TenantDemoSeedService
             'role_assignments' => 0,
             'contacts' => 0,
             'extensions' => 0,
+            'ring_groups' => 0,
+            'ring_group_members' => 0,
             'phone_numbers' => 0,
             'call_logs' => 0,
         ];
@@ -134,6 +141,12 @@ class TenantDemoSeedService
         $counts['contacts'] += $this->contactDemoSeedService->seed($secondaryTenant, $this->contactRows('tenant-b'))['contacts'];
         $counts['extensions'] += $this->seedExtensions($defaultTenant, 'tenant-a');
         $counts['extensions'] += $this->seedExtensions($secondaryTenant, 'tenant-b');
+        $ringGroupCounts = $this->seedRingGroups($defaultTenant, 'tenant-a');
+        $counts['ring_groups'] += $ringGroupCounts['ring_groups'];
+        $counts['ring_group_members'] += $ringGroupCounts['ring_group_members'];
+        $ringGroupCounts = $this->seedRingGroups($secondaryTenant, 'tenant-b');
+        $counts['ring_groups'] += $ringGroupCounts['ring_groups'];
+        $counts['ring_group_members'] += $ringGroupCounts['ring_group_members'];
         $counts['phone_numbers'] += $this->seedPhoneNumbers($defaultTenant, 'tenant-a');
         $counts['phone_numbers'] += $this->seedPhoneNumbers($secondaryTenant, 'tenant-b');
         $counts['call_logs'] += $this->seedCallLogs($defaultTenant, 'tenant-a');
@@ -388,6 +401,175 @@ class TenantDemoSeedService
     private function stableExtensionUuid(Tenant $tenant, string $number): string
     {
         $hash = substr(sha1((string) $tenant->getKey().':extension:'.$number), 0, 32);
+
+        return sprintf(
+            '%s-%s-%s-%s-%s',
+            substr($hash, 0, 8),
+            substr($hash, 8, 4),
+            substr($hash, 12, 4),
+            substr($hash, 16, 4),
+            substr($hash, 20, 12),
+        );
+    }
+
+    /**
+     * @return array{ring_groups:int, ring_group_members:int}
+     */
+    private function seedRingGroups(Tenant $tenant, string $tenantPrefix): array
+    {
+        $owner = User::query()->where('email', sprintf('%s-owner@test.local', $tenantPrefix))->first();
+        $agent = User::query()->where('email', sprintf('%s-agent@test.local', $tenantPrefix))->first();
+
+        if (! $owner instanceof User || ! $agent instanceof User) {
+            return [
+                'ring_groups' => 0,
+                'ring_group_members' => 0,
+            ];
+        }
+
+        $created = [
+            'ring_groups' => 0,
+            'ring_group_members' => 0,
+        ];
+
+        $groups = [
+            [
+                'slug' => 'sales-ring-group',
+                'name' => Str::title($tenantPrefix).' Sales Ring Group',
+                'description' => 'Simultaneous sales routing group.',
+                'strategy' => RingGroupStrategy::Simultaneous->value,
+                'status' => RingGroupStatus::Active->value,
+                'members' => [
+                    ['member_type' => RingGroupMemberType::Extension->value, 'extension_number' => '2001', 'priority' => 1, 'delay_seconds' => 0, 'timeout_seconds' => 20],
+                    ['member_type' => RingGroupMemberType::User->value, 'user_email' => sprintf('%s-agent@test.local', $tenantPrefix), 'priority' => 1, 'delay_seconds' => 0, 'timeout_seconds' => 20],
+                ],
+            ],
+            [
+                'slug' => 'support-ring-group',
+                'name' => Str::title($tenantPrefix).' Support Ring Group',
+                'description' => 'Sequential support routing group.',
+                'strategy' => RingGroupStrategy::Sequential->value,
+                'status' => RingGroupStatus::Active->value,
+                'members' => [
+                    ['member_type' => RingGroupMemberType::User->value, 'user_email' => sprintf('%s-owner@test.local', $tenantPrefix), 'priority' => 1, 'delay_seconds' => 0, 'timeout_seconds' => 20],
+                    ['member_type' => RingGroupMemberType::Extension->value, 'extension_number' => '2002', 'priority' => 2, 'delay_seconds' => 5, 'timeout_seconds' => 25],
+                ],
+            ],
+            [
+                'slug' => 'after-hours-ring-group',
+                'name' => Str::title($tenantPrefix).' After Hours Ring Group',
+                'description' => 'Inactive placeholder group for empty-state testing.',
+                'strategy' => RingGroupStrategy::Random->value,
+                'status' => RingGroupStatus::Suspended->value,
+                'members' => [],
+            ],
+        ];
+
+        $this->tenantContext->setTenant($tenant);
+
+        try {
+            foreach ($groups as $groupRow) {
+                $ringGroup = RingGroup::query()->updateOrCreate(
+                    [
+                        'tenant_id' => $tenant->getKey(),
+                        'slug' => $groupRow['slug'],
+                    ],
+                    [
+                        'uuid' => $this->stableRingGroupUuid($tenant, $groupRow['slug']),
+                        'name' => $groupRow['name'],
+                        'description' => $groupRow['description'],
+                        'strategy' => $groupRow['strategy'],
+                        'status' => $groupRow['status'],
+                        'ring_timeout_seconds' => $groupRow['strategy'] === RingGroupStrategy::Sequential->value ? 15 : 20,
+                        'max_ring_duration_seconds' => 90,
+                        'failover_destination_type' => null,
+                        'failover_destination_id' => null,
+                        'settings' => [
+                            'demo' => true,
+                            'inventory_source' => 'demo_seeder',
+                        ],
+                        'metadata' => [
+                            'inventory_source' => 'demo_seeder',
+                        ],
+                        'created_by' => $owner->getKey(),
+                        'updated_by' => $owner->getKey(),
+                    ]
+                );
+
+                $created['ring_groups']++;
+
+                foreach ($groupRow['members'] as $index => $memberRow) {
+                    $extension = null;
+                    $memberUser = null;
+
+                    if ($memberRow['member_type'] === RingGroupMemberType::Extension->value) {
+                        $extension = Extension::query()
+                            ->where('tenant_id', $tenant->getKey())
+                            ->where('number', $memberRow['extension_number'])
+                            ->first();
+                    } else {
+                        $memberUser = User::query()->where('email', $memberRow['user_email'])->first();
+                    }
+
+                    if ($memberRow['member_type'] === RingGroupMemberType::Extension->value && ! $extension instanceof Extension) {
+                        continue;
+                    }
+
+                    if ($memberRow['member_type'] === RingGroupMemberType::User->value && ! $memberUser instanceof User) {
+                        continue;
+                    }
+
+                    RingGroupMember::query()->updateOrCreate(
+                        [
+                            'tenant_id' => $tenant->getKey(),
+                            'ring_group_id' => $ringGroup->getKey(),
+                            'member_type' => $memberRow['member_type'],
+                            'extension_id' => $extension?->getKey(),
+                            'user_id' => $memberUser?->getKey(),
+                        ],
+                        [
+                            'uuid' => $this->stableRingGroupMemberUuid(
+                                $tenant,
+                                $groupRow['slug'],
+                                $memberRow['member_type'].':'.($extension?->number ?? $memberUser?->email ?? (string) $index)
+                            ),
+                            'priority' => $memberRow['priority'],
+                            'delay_seconds' => $memberRow['delay_seconds'],
+                            'timeout_seconds' => $memberRow['timeout_seconds'],
+                            'is_active' => true,
+                            'metadata' => [
+                                'inventory_source' => 'demo_seeder',
+                            ],
+                        ]
+                    );
+
+                    $created['ring_group_members']++;
+                }
+            }
+        } finally {
+            $this->tenantContext->clear();
+        }
+
+        return $created;
+    }
+
+    private function stableRingGroupUuid(Tenant $tenant, string $slug): string
+    {
+        $hash = substr(sha1((string) $tenant->getKey().':ring-group:'.$slug), 0, 32);
+
+        return sprintf(
+            '%s-%s-%s-%s-%s',
+            substr($hash, 0, 8),
+            substr($hash, 8, 4),
+            substr($hash, 12, 4),
+            substr($hash, 16, 4),
+            substr($hash, 20, 12),
+        );
+    }
+
+    private function stableRingGroupMemberUuid(Tenant $tenant, string $slug, string $memberKey): string
+    {
+        $hash = substr(sha1((string) $tenant->getKey().':ring-group-member:'.$slug.':'.$memberKey), 0, 32);
 
         return sprintf(
             '%s-%s-%s-%s-%s',

@@ -34,6 +34,33 @@ export interface SupportExtension {
   provider_state?: { endpoint_status?: string | null; registration_status?: string | null } | null;
 }
 
+export interface SupportRingGroupMember {
+  id: number;
+  uuid: string;
+  member_type: string;
+  priority: number;
+  delay_seconds: number;
+  timeout_seconds: number;
+  is_active: boolean;
+  extension?: { id: number; number: string; label: string | null } | null;
+  user?: { id: number; name: string; email: string } | null;
+}
+
+export interface SupportRingGroup {
+  id: number;
+  uuid: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  strategy: string;
+  status: string;
+  ring_timeout_seconds: number;
+  max_ring_duration_seconds: number;
+  members_count?: number | null;
+  active_members_count?: number | null;
+  members?: SupportRingGroupMember[];
+}
+
 export interface SupportPhoneNumber {
   id: number;
   uuid: string;

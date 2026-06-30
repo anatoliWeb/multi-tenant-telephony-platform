@@ -1,0 +1,91 @@
+.ring-groups-page {
+  display: grid;
+  gap: 18px;
+}
+
+.layout {
+  display: grid;
+  gap: 18px;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+}
+
+.hero {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.hero-actions,
+.detail__actions,
+.inline-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.state {
+  padding: 18px 0;
+}
+
+.state.error {
+  color: #fca5a5;
+}
+
+.ring-group-list,
+.member-list {
+  display: grid;
+  gap: 10px;
+}
+
+.ring-group-row,
+.member-row {
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  background: rgba(15, 23, 42, 0.35);
+  border-radius: 14px;
+  padding: 14px;
+  display: grid;
+  gap: 10px;
+  text-align: left;
+}
+
+.ring-group-row.active {
+  border-color: rgba(59, 130, 246, 0.6);
+}
+
+.meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+.badge {
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: rgba(37, 99, 235, 0.18);
+  color: #dbeafe;
+}
+
+.detail {
+  display: grid;
+  gap: 18px;
+}
+
+.detail__header {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.detail-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.route-plan {
+  padding-top: 8px;
+  border-top: 1px solid rgba(148, 163, 184, 0.15);
+}

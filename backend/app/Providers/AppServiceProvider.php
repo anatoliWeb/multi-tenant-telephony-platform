@@ -8,6 +8,7 @@ use App\Models\ContactTag;
 use App\Models\CallLog;
 use App\Models\Extension;
 use App\Models\PhoneNumber;
+use App\Models\RingGroup;
 use App\Models\ActivityLog;
 use App\Models\User;
 use App\Models\SystemTranslation;
@@ -16,6 +17,7 @@ use App\Policies\ContactTagPolicy;
 use App\Policies\CallLogPolicy;
 use App\Policies\ExtensionPolicy;
 use App\Policies\PhoneNumberPolicy;
+use App\Policies\RingGroupPolicy;
 use App\Services\Rbac\PermissionCacheService;
 use App\Services\Tenancy\TenantContext;
 use App\Observers\PersonalAccessTokenObserver;
@@ -707,6 +709,7 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(ContactTag::class, ContactTagPolicy::class);
         Gate::policy(Extension::class, ExtensionPolicy::class);
         Gate::policy(PhoneNumber::class, PhoneNumberPolicy::class);
+        Gate::policy(RingGroup::class, RingGroupPolicy::class);
         Gate::policy(CallLog::class, CallLogPolicy::class);
 
         /*

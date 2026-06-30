@@ -25,6 +25,7 @@ export class SidebarComponent {
     { route: '/chat', labelKey: 'layout.nav.chat', permissions: ['chat.view', 'chat.conversations.view'], scope: 'tenant' },
     { route: '/contacts', labelKey: 'layout.nav.contacts', permissions: ['contacts.view'], scope: 'tenant' },
     { route: '/extensions', labelKey: 'layout.nav.extensions', permissions: ['extensions.view'], scope: 'tenant' },
+    { route: '/ring-groups', labelKey: 'layout.nav.ringGroups', permissions: ['ring_groups.view'], scope: 'tenant' },
     { route: '/phone-numbers', labelKey: 'layout.nav.phoneNumbers', permissions: ['phone_numbers.view'], scope: 'tenant' },
     { route: '/call-logs', labelKey: 'layout.nav.callLogs', permissions: ['call_logs.view'], scope: 'tenant' },
   ];

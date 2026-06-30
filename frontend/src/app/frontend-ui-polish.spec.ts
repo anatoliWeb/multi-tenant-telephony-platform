@@ -30,6 +30,9 @@ describe('Frontend UI polish contracts', () => {
       'dashboard.realtime.activityEvents',
       'dashboard.realtime.onlineUsers',
       'dashboard.realtime.dashboardPresence',
+      'ringGroups.title',
+      'ringGroups.fields.members',
+      'ringGroups.memberModal.subtitle',
     ];
 
     for (const key of requiredKeys) {

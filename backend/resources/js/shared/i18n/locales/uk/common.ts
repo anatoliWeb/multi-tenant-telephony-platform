@@ -294,6 +294,7 @@
   tenants: 'Тенанти',
   contacts: 'Контакти',
   extensions: 'Внутрішні номери',
+  ringGroups: 'Групи дзвінка',
   phoneNumbers: 'Телефонні номери',
   callLogs: 'Журнал дзвінків',
   apiDocumentation: 'API документація',
@@ -308,6 +309,7 @@
     fields: {
       total: 'Всього',
       status: 'Статус',
+      strategy: 'Стратегія',
       name: 'Імʼя',
       company: 'Компанія',
       phone: 'Телефон',
@@ -339,6 +341,14 @@
     extensions: {
       title: 'Внутрішні номери',
       subtitle: 'Tenant-scoped support перегляд внутрішніх номерів.',
+    },
+    ringGroups: {
+      title: 'Групи дзвінка',
+      subtitle: 'Tenant-scoped support перегляд конфігурації груп дзвінка та їхніх учасників.',
+      fields: {
+        members: 'Учасники',
+        activeMembers: 'Активні учасники',
+      },
     },
     phoneNumbers: {
       title: 'Телефонні номери',

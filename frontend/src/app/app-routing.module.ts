@@ -47,6 +47,10 @@ const routes: Routes = [
         loadChildren: () => import('./features/extensions/extensions.module').then((m) => m.ExtensionsModule),
       },
       {
+        path: 'ring-groups',
+        loadChildren: () => import('./features/ring-groups/ring-groups.module').then((m) => m.RingGroupsModule),
+      },
+      {
         path: 'phone-numbers',
         loadChildren: () => import('./features/phone-numbers/phone-numbers.module').then((m) => m.PhoneNumbersModule),
       },

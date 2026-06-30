@@ -1,0 +1,176 @@
+<section class="ring-groups-page">
+  <ui-card>
+    <div class="hero">
+      <div>
+        <h2>{{ 'ringGroups.title' | t }}</h2>
+        <p>{{ 'ringGroups.subtitle' | t }}</p>
+      </div>
+      <div class="hero-actions">
+        <app-button *ngIf="canCreate" (click)="openCreateRingGroup()">{{ 'ringGroups.actions.create' | t }}</app-button>
+      </div>
+    </div>
+
+    <div class="state" *ngIf="!tenantContext.hasTenant()">
+      {{ 'ringGroups.tenantSelection' | t }}
+    </div>
+
+    <div class="filters" *ngIf="tenantContext.hasTenant() && (filters$ | async) as filters">
+      <app-search-input
+        [value]="filters.search"
+        [placeholderKey]="'ringGroups.filters.searchPlaceholder'"
+        (valueChange)="onSearchChange($event)"
+      />
+      <app-select-filter
+        [labelKey]="'ringGroups.fields.status'"
+        [value]="filters.status"
+        [options]="[
+          { value: '', labelKey: 'common.filters.all' },
+          { value: 'active', labelKey: 'ringGroups.status.active' },
+          { value: 'suspended', labelKey: 'ringGroups.status.suspended' },
+          { value: 'archived', labelKey: 'ringGroups.status.archived' }
+        ]"
+        (valueChange)="onStatusChange($event)"
+      />
+      <app-select-filter
+        [labelKey]="'ringGroups.fields.strategy'"
+        [value]="filters.strategy"
+        [options]="[
+          { value: '', labelKey: 'common.filters.all' },
+          { value: 'simultaneous', labelKey: 'ringGroups.strategy.simultaneous' },
+          { value: 'sequential', labelKey: 'ringGroups.strategy.sequential' },
+          { value: 'random', labelKey: 'ringGroups.strategy.random' }
+        ]"
+        (valueChange)="onStrategyChange($event)"
+      />
+    </div>
+  </ui-card>
+
+  <div class="layout" *ngIf="tenantContext.hasTenant()">
+    <ui-card>
+      <div *ngIf="loading$ | async" class="state">{{ 'ringGroups.loading' | t }}</div>
+      <div *ngIf="!(loading$ | async) && (error$ | async) as error" class="state error">{{ error }}</div>
+      <div *ngIf="!(loading$ | async) && !(error$ | async) && ((ringGroups$ | async)?.length ?? 0) === 0" class="state">
+        {{ 'ringGroups.empty' | t }}
+      </div>
+
+      <div class="ring-group-list" *ngIf="!(loading$ | async) && ((ringGroups$ | async)?.length ?? 0) > 0">
+        <button
+          type="button"
+          class="ring-group-row"
+          *ngFor="let ringGroup of (ringGroups$ | async); trackBy: trackRingGroup"
+          [class.active]="(activeRingGroup$ | async)?.id === ringGroup.id"
+          (click)="selectRingGroup(ringGroup)"
+          data-testid="ring-group-row"
+        >
+          <div>
+            <strong>{{ ringGroup.name }}</strong>
+            <p>{{ ringGroup.slug }}</p>
+          </div>
+          <div class="meta">
+            <span class="badge">{{ ('ringGroups.strategy.' + ringGroup.strategy) | t }}</span>
+            <small>{{ ringGroup.active_members_count ?? 0 }} / {{ ringGroup.members_count ?? 0 }}</small>
+          </div>
+        </button>
+      </div>
+
+      <app-pagination
+        *ngIf="pagination$ | async as pagination"
+        [currentPage]="pagination.current_page ?? 1"
+        [lastPage]="pagination.last_page ?? 1"
+        [perPage]="pagination.per_page ?? 15"
+        [total]="pagination.total ?? 0"
+        (pageChange)="onPageChange($event)"
+      />
+    </ui-card>
+
+    <ui-card>
+      <div *ngIf="detailLoading$ | async" class="state">{{ 'ringGroups.detailLoading' | t }}</div>
+      <div *ngIf="!(detailLoading$ | async) && !(activeRingGroup$ | async)" class="state">
+        {{ 'ringGroups.detailEmpty' | t }}
+      </div>
+
+      <div *ngIf="!(detailLoading$ | async) && (activeRingGroup$ | async) as ringGroup" class="detail" data-testid="ring-group-detail">
+        <div class="detail__header">
+          <div>
+            <h3>{{ ringGroup.name }}</h3>
+            <p>{{ ringGroup.description || ringGroup.slug }}</p>
+          </div>
+          <div class="detail__actions">
+            <app-button *ngIf="canUpdate" (click)="openEditRingGroup(ringGroup)">{{ 'common.actions.edit' | t }}</app-button>
+            <app-button *ngIf="canManageMembers" (click)="openCreateMember()">{{ 'ringGroups.actions.addMember' | t }}</app-button>
+            <app-button *ngIf="canTestRoute" (click)="testRoute(ringGroup)">{{ 'ringGroups.actions.testRoute' | t }}</app-button>
+            <app-button *ngIf="canDelete" (click)="deleteRingGroup(ringGroup)">{{ 'common.actions.delete' | t }}</app-button>
+          </div>
+        </div>
+
+        <div class="detail-grid">
+          <section>
+            <h4>{{ 'ringGroups.fields.strategy' | t }}</h4>
+            <p>{{ ('ringGroups.strategy.' + ringGroup.strategy) | t }}</p>
+          </section>
+          <section>
+            <h4>{{ 'ringGroups.fields.status' | t }}</h4>
+            <p>{{ ('ringGroups.status.' + ringGroup.status) | t }}</p>
+          </section>
+          <section>
+            <h4>{{ 'ringGroups.fields.ringTimeout' | t }}</h4>
+            <p>{{ ringGroup.ring_timeout_seconds }}s</p>
+          </section>
+          <section>
+            <h4>{{ 'ringGroups.fields.maxRingDuration' | t }}</h4>
+            <p>{{ ringGroup.max_ring_duration_seconds }}s</p>
+          </section>
+        </div>
+
+        <section>
+          <h4>{{ 'ringGroups.fields.members' | t }}</h4>
+          <p>{{ renderMembers(activeRingGroupMembers$ | async) }}</p>
+        </section>
+
+        <section *ngIf="((activeRingGroupMembers$ | async)?.length ?? 0) > 0" class="member-list">
+          <div class="member-row" *ngFor="let member of (activeRingGroupMembers$ | async); trackBy: trackMember" data-testid="ring-group-member-row">
+            <div>
+              <strong>{{ member.member_type === 'extension' ? (member.extension?.number || '-') : (member.user?.name || '-') }}</strong>
+              <p>{{ ('ringGroups.memberType.' + member.member_type) | t }}</p>
+            </div>
+            <div class="meta">
+              <small>#{{ member.priority }} - {{ member.timeout_seconds }}s</small>
+              <small>{{ member.is_active ? ('common.status.active' | t) : ('common.status.inactive' | t) }}</small>
+            </div>
+            <div class="inline-actions" *ngIf="canManageMembers">
+              <app-button (click)="openEditMember(member)">{{ 'common.actions.edit' | t }}</app-button>
+              <app-button (click)="deleteMember(member)">{{ 'common.actions.delete' | t }}</app-button>
+            </div>
+          </div>
+        </section>
+
+        <section *ngIf="(routePlan$ | async) as routePlan" class="route-plan">
+          <h4>{{ 'ringGroups.routePlan.title' | t }}</h4>
+          <p>{{ routePlan.active_member_count }} {{ 'ringGroups.routePlan.activeMembers' | t }}</p>
+        </section>
+      </div>
+    </ui-card>
+  </div>
+
+  <app-ring-group-upsert-modal
+    [open]="isRingGroupModalOpen"
+    [mode]="ringGroupModalMode"
+    [ringGroup]="ringGroupModalItem"
+    [strategies]="strategyOptions((options$ | async) ?? null)"
+    [statuses]="statusOptions((options$ | async) ?? null)"
+    [saving]="(saving$ | async) ?? false"
+    (close)="closeRingGroupModal()"
+    (save)="saveRingGroup($event)"
+  />
+
+  <app-ring-group-member-upsert-modal
+    [open]="isMemberModalOpen"
+    [ringGroup]="(activeRingGroup$ | async) ?? null"
+    [member]="memberModalItem"
+    [extensions]="((options$ | async)?.extensions) ?? []"
+    [users]="((options$ | async)?.users) ?? []"
+    [saving]="(saving$ | async) ?? false"
+    (close)="closeMemberModal()"
+    (save)="saveMember($event)"
+  />
+</section>

@@ -1,0 +1,16 @@
+.grid {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.grid label {
+  display: grid;
+  gap: 6px;
+}
+
+.inline-checkbox {
+  align-items: center;
+  grid-column: 1 / -1;
+  grid-template-columns: auto 1fr;
+}

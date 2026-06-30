@@ -1,0 +1,60 @@
+<app-modal-shell [open]="open" (close)="close.emit()">
+  <header class="panel__header">
+    <div>
+      <h3>{{ titleKey | t }}</h3>
+      <p>{{ 'ringGroups.memberModal.subtitle' | t }}</p>
+    </div>
+    <button type="button" class="close-button" (click)="close.emit()">&times;</button>
+  </header>
+
+  <div class="panel__body">
+    <div class="grid">
+      <label>
+        <span>{{ 'ringGroups.fields.memberType' | t }}</span>
+        <select [(ngModel)]="draft.member_type">
+          <option value="extension">{{ 'ringGroups.memberType.extension' | t }}</option>
+          <option value="user">{{ 'ringGroups.memberType.user' | t }}</option>
+        </select>
+      </label>
+      <label *ngIf="draft.member_type === 'extension'">
+        <span>{{ 'ringGroups.fields.extension' | t }}</span>
+        <select [(ngModel)]="draft.extension_id">
+          <option [ngValue]="null">{{ 'ringGroups.fields.selectOption' | t }}</option>
+          <option *ngFor="let extension of extensions" [ngValue]="extension.id">
+            {{ extension.number }}<ng-container *ngIf="extension.label"> - {{ extension.label }}</ng-container>
+          </option>
+        </select>
+      </label>
+      <label *ngIf="draft.member_type === 'user'">
+        <span>{{ 'ringGroups.fields.user' | t }}</span>
+        <select [(ngModel)]="draft.user_id">
+          <option [ngValue]="null">{{ 'ringGroups.fields.selectOption' | t }}</option>
+          <option *ngFor="let user of users" [ngValue]="user.id">{{ user.name }}</option>
+        </select>
+      </label>
+      <label>
+        <span>{{ 'ringGroups.fields.priority' | t }}</span>
+        <input type="number" [(ngModel)]="draft.priority" min="1" max="1000" />
+      </label>
+      <label>
+        <span>{{ 'ringGroups.fields.delaySeconds' | t }}</span>
+        <input type="number" [(ngModel)]="draft.delay_seconds" min="0" max="3600" />
+      </label>
+      <label>
+        <span>{{ 'ringGroups.fields.timeoutSeconds' | t }}</span>
+        <input type="number" [(ngModel)]="draft.timeout_seconds" min="1" max="3600" />
+      </label>
+      <label class="inline-checkbox">
+        <input type="checkbox" [(ngModel)]="draft.is_active" />
+        <span>{{ 'ringGroups.fields.active' | t }}</span>
+      </label>
+    </div>
+  </div>
+
+  <footer class="panel__footer">
+    <app-button (click)="close.emit()">{{ 'common.actions.close' | t }}</app-button>
+    <app-button [disabled]="saving" (click)="emitSave()">
+      {{ saving ? ('common.states.saving' | t) : ('common.actions.save' | t) }}
+    </app-button>
+  </footer>
+</app-modal-shell>

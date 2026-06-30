@@ -12,6 +12,8 @@ use App\Models\Contact;
 use App\Models\ContactPhone;
 use App\Models\ContactTag;
 use App\Models\CallLog;
+use App\Models\RingGroup;
+use App\Models\RingGroupMember;
 use App\Models\PhoneNumber;
 use App\Models\User;
 use App\Services\Seeding\PerformanceSeedService;
@@ -21,14 +23,14 @@ use Illuminate\Support\Collection;
 use Database\Seeders\CoreSeeder;
 use Database\Seeders\DemoSeeder;
 use Database\Seeders\TestSeeder;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\DatabaseMigrations;
 use Illuminate\Support\Facades\Hash;
 use RuntimeException;
 use Tests\TestCase;
 
 class SeederArchitectureTest extends TestCase
 {
-    use RefreshDatabase;
+    use DatabaseMigrations;
 
     public function test_core_seeder_is_idempotent_and_does_not_create_demo_data(): void
     {
@@ -107,6 +109,8 @@ class SeederArchitectureTest extends TestCase
         $this->assertGreaterThanOrEqual(4, PhoneNumber::query()->where('tenant_id', $defaultTenant->id)->count());
         $this->assertGreaterThanOrEqual(2, PhoneNumber::query()->where('tenant_id', $defaultTenant->id)->where('is_primary', true)->count());
         $this->assertGreaterThanOrEqual(1000, CallLog::count());
+        $this->assertGreaterThanOrEqual(6, RingGroup::count());
+        $this->assertGreaterThanOrEqual(8, RingGroupMember::count());
         $this->assertSame(500, CallLog::query()->where('tenant_id', $defaultTenant->id)->where('provider_call_id', 'like', 'tenant-a-volume-%')->count());
         $this->assertSame(500, CallLog::query()->where('tenant_id', $secondaryTenant->id)->where('provider_call_id', 'like', 'tenant-b-volume-%')->count());
         $this->assertGreaterThanOrEqual(500, CallLog::query()->where('tenant_id', $defaultTenant->id)->count());
@@ -222,6 +226,8 @@ class SeederArchitectureTest extends TestCase
             'memberships' => TenantMembership::count(),
             'roles' => Role::count(),
             'permissions' => Permission::count(),
+            'ring_groups' => RingGroup::count(),
+            'ring_group_members' => RingGroupMember::count(),
         ];
     }
 

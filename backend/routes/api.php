@@ -31,6 +31,8 @@ use App\Http\Controllers\Api\V1\Contacts\ContactImportController;
 use App\Http\Controllers\Api\V1\Contacts\ContactTagController;
 use App\Http\Controllers\Api\V1\CallLogs\CallLogController;
 use App\Http\Controllers\Api\V1\Extensions\ExtensionController;
+use App\Http\Controllers\Api\V1\RingGroups\RingGroupController;
+use App\Http\Controllers\Api\V1\RingGroups\RingGroupMemberController;
 use App\Http\Controllers\Api\V1\PhoneNumbers\PhoneNumberController;
 use Illuminate\Support\Facades\Route;
 
@@ -778,6 +780,45 @@ Route::prefix('v1')
                     Route::delete('/{extension}', [ExtensionController::class, 'destroy'])
                         ->name('destroy')
                         ->middleware('permission:extensions.delete');
+                });
+
+                Route::prefix('ring-groups')
+                    ->as('ring-groups.')
+                    ->middleware('resolve.tenant')
+                    ->group(function (): void {
+                    Route::get('/', [RingGroupController::class, 'index'])
+                        ->name('index')
+                        ->middleware('permission:ring_groups.view');
+                    Route::get('/options', [RingGroupController::class, 'options'])
+                        ->name('options')
+                        ->middleware('permission:ring_groups.view');
+                    Route::post('/', [RingGroupController::class, 'store'])
+                        ->name('store')
+                        ->middleware('permission:ring_groups.create');
+                    Route::get('/{ringGroup}', [RingGroupController::class, 'show'])
+                        ->name('show')
+                        ->middleware('permission:ring_groups.view');
+                    Route::put('/{ringGroup}', [RingGroupController::class, 'update'])
+                        ->name('update')
+                        ->middleware('permission:ring_groups.update');
+                    Route::delete('/{ringGroup}', [RingGroupController::class, 'destroy'])
+                        ->name('destroy')
+                        ->middleware('permission:ring_groups.delete');
+                    Route::get('/{ringGroup}/members', [RingGroupMemberController::class, 'index'])
+                        ->name('members.index')
+                        ->middleware('permission:ring_groups.view');
+                    Route::post('/{ringGroup}/members', [RingGroupMemberController::class, 'store'])
+                        ->name('members.store')
+                        ->middleware('permission:ring_groups.manage_members');
+                    Route::put('/{ringGroup}/members/{member}', [RingGroupMemberController::class, 'update'])
+                        ->name('members.update')
+                        ->middleware('permission:ring_groups.manage_members');
+                    Route::delete('/{ringGroup}/members/{member}', [RingGroupMemberController::class, 'destroy'])
+                        ->name('members.destroy')
+                        ->middleware('permission:ring_groups.manage_members');
+                    Route::post('/{ringGroup}/test-route', [RingGroupController::class, 'testRoute'])
+                        ->name('test-route')
+                        ->middleware('permission:ring_groups.test_route');
                 });
 
                 Route::prefix('phone-numbers')

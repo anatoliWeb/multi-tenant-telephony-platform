@@ -21,6 +21,7 @@ import ChatAdminMonitoringPage from '../modules/chat-admin/pages/ChatAdminMonito
 import TenantsPage from '../modules/tenant-support/pages/TenantsPage.vue';
 import ContactsSupportPage from '../modules/tenant-support/pages/ContactsSupportPage.vue';
 import ExtensionsSupportPage from '../modules/tenant-support/pages/ExtensionsSupportPage.vue';
+import RingGroupsSupportPage from '../modules/tenant-support/pages/RingGroupsSupportPage.vue';
 import PhoneNumbersSupportPage from '../modules/tenant-support/pages/PhoneNumbersSupportPage.vue';
 import CallLogsSupportPage from '../modules/tenant-support/pages/CallLogsSupportPage.vue';
 import NotFoundView from '../shared/components/NotFoundView.vue';
@@ -195,6 +196,16 @@ const routes: RouteRecordRaw[] = [
           title: 'Extensions',
           subtitle: 'Tenant support extensions',
           permission: 'extensions.view',
+        },
+      },
+      {
+        path: 'ring-groups',
+        name: 'ring-groups',
+        component: RingGroupsSupportPage,
+        meta: {
+          title: 'Ring Groups',
+          subtitle: 'Tenant support ring groups',
+          permission: 'ring_groups.view',
         },
       },
       {

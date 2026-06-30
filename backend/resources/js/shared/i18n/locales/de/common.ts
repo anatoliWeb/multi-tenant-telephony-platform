@@ -294,6 +294,7 @@
   tenants: 'Mandanten',
   contacts: 'Kontakte',
   extensions: 'Nebenstellen',
+  ringGroups: 'Rufgruppen',
   phoneNumbers: 'Rufnummern',
   callLogs: 'Anrufprotokolle',
   apiDocumentation: 'API-Dokumentation',
@@ -308,6 +309,7 @@
     fields: {
       total: 'Gesamt',
       status: 'Status',
+      strategy: 'Strategie',
       name: 'Name',
       company: 'Firma',
       phone: 'Telefon',
@@ -339,6 +341,14 @@
     extensions: {
       title: 'Nebenstellen',
       subtitle: 'Mandantenbezogene Supportansicht für Nebenstellen.',
+    },
+    ringGroups: {
+      title: 'Rufgruppen',
+      subtitle: 'Mandantenbezogene Supportansicht für Rufgruppen-Konfiguration und Mitglieder.',
+      fields: {
+        members: 'Mitglieder',
+        activeMembers: 'Aktive Mitglieder',
+      },
     },
     phoneNumbers: {
       title: 'Rufnummern',

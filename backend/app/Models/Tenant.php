@@ -83,6 +83,11 @@ class Tenant extends Model
         return $this->hasMany(PhoneNumber::class);
     }
 
+    public function ringGroups(): HasMany
+    {
+        return $this->hasMany(RingGroup::class);
+    }
+
     public function callLogs(): HasMany
     {
         return $this->hasMany(CallLog::class);

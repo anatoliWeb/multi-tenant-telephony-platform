@@ -294,6 +294,7 @@
   tenants: 'Tenants',
   contacts: 'Contacts',
   extensions: 'Extensions',
+  ringGroups: 'Ring Groups',
   phoneNumbers: 'Phone Numbers',
   callLogs: 'Call Logs',
   apiDocumentation: 'API Documentation',
@@ -308,6 +309,7 @@
     fields: {
       total: 'Total',
       status: 'Status',
+      strategy: 'Strategy',
       name: 'Name',
       company: 'Company',
       phone: 'Phone',
@@ -339,6 +341,14 @@
     extensions: {
       title: 'Extensions',
       subtitle: 'Tenant-scoped support view for extensions.',
+    },
+    ringGroups: {
+      title: 'Ring Groups',
+      subtitle: 'Tenant-scoped support view for ring-group routing configuration and members.',
+      fields: {
+        members: 'Members',
+        activeMembers: 'Active members',
+      },
     },
     phoneNumbers: {
       title: 'Phone Numbers',
