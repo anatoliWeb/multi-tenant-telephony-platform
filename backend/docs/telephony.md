@@ -208,3 +208,23 @@ Current boundary:
 - Vue Admin is planned to get a support-oriented SIP.js/WebRTC softphone later;
 - SIP credentials must remain tenant-scoped and must not leak into logs, browser storage, or devtools-friendly global state;
 - this TODO/docs pass does not add SIP.js packages, credential endpoints, or WebRTC behavior.
+
+## FreeSWITCH Docker Profile
+
+Stage 14 adds an optional local-only FreeSWITCH Docker profile named `freeswitch`.
+
+Current boundary:
+
+- the deterministic fake provider remains the default telephony provider;
+- the profile uses `servicebots/freeswitch:latest`, which boots reliably in this environment;
+- the FreeSWITCH profile only prepares container, SIP, WSS, RTP, and Event Socket boundaries;
+- the foundation slice avoids bind-mounting `/etc/freeswitch` so the image defaults can boot cleanly;
+- Laravel reads the future FreeSWITCH placeholder config from `backend/config/freeswitch.php`;
+- real SIP credentials must stay out of git and out of browser state;
+- no SIP.js, carrier adapter, or live PBX routing is enabled by this foundation slice.
+
+Operational note:
+
+- `mod_xml_curl` may log `Binding has no url` until backend-driven dynamic
+  directory and dialplan integration exists;
+- that log line is acceptable in the Stage 14 foundation slice.

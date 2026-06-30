@@ -113,6 +113,16 @@ Limitations:
 
 - The full backend suite was not rerun in this follow-up because the task only required the telephony runtime stabilization slice.
 - The schema-dump-backed loader depends on the backend image having the MySQL client installed, which is now part of `docker/php/Dockerfile`.
+- Stage 14 FreeSWITCH support is now scaffolded as an optional Docker profile and was validated with the working image shown below.
+- The FreeSWITCH profile uses `servicebots/freeswitch:latest`, keeps the Event Socket bound to localhost, and relies on image defaults instead of a `/etc/freeswitch` bind mount.
+
+## Stage 14 Validation
+
+Manual smoke verification succeeded on 2026-06-30:
+
+- `docker ps --filter "name=freeswitch"` showed a running `servicebots/freeswitch:latest` container.
+- `docker compose exec -T freeswitch fs_cli -x "status"` returned `FreeSWITCH ... is ready`.
+- `docker compose exec -T freeswitch fs_cli -x "sofia status"` showed `internal RUNNING` and `external RUNNING`.
 
 ## Manual Browser Validation
 

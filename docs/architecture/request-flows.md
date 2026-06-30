@@ -194,6 +194,9 @@ Channel authorization is enforced in `backend/routes/channels.php` through `Chat
 
 The current implementation uses a deterministic fake provider. No real PBX transport, SIP signaling, or FreeSWITCH adapter is active in this phase.
 
+Stage 14 introduces an optional local FreeSWITCH Docker profile for future integration work, but the runtime flow above still resolves through the fake provider by default.
+The working runtime uses image defaults rather than a custom `/etc/freeswitch` bind mount, so `mod_xml_curl` may log `Binding has no url` until dynamic directory and dialplan integration is added later.
+
 ### Example: tenant-aware extension provisioning
 
 `TenantContext`
@@ -236,6 +239,8 @@ This flow is simulated only. No real SIP signaling, RTP, or FreeSWITCH event str
 -> normalized dry-run route plan
 
 This flow validates IVR configuration only. It does not play audio, place calls, or invoke a PBX adapter yet.
+
+The future FreeSWITCH profile does not change this dry-run behavior until the call-control layer is explicitly wired to a real provider.
 
 ## Contacts Lookup Flow
 

@@ -222,6 +222,30 @@ services:
       start_period: 10s
     logging: *default-logging
 
+  # Optional local FreeSWITCH runtime.
+  # Fake PBX remains the default telephony provider; this profile only
+  # prepares the container boundary for future call-control wiring.
+  # The selected image is publicly pullable and ships working defaults, so the
+  # foundation slice keeps the service optional and boot-safe without a custom
+  # FreeSWITCH filesystem overlay.
+  # The image ships its own defaults, so we avoid bind-mounting /etc/freeswitch
+  # here; an empty config mount can shadow the runtime and prevent boot.
+  freeswitch:
+    image: servicebots/freeswitch:latest
+    restart: unless-stopped
+    profiles: ["freeswitch"]
+    ports:
+      # Event Socket stays localhost-only; exposing ESL publicly would permit
+      # unsafe call-control access from outside the developer machine.
+      - "5060:5060/udp"
+      - "5060:5060/tcp"
+      - "5061:5061/tcp"
+      - "5080:5080/tcp"
+      - "7443:7443/tcp"
+      - "127.0.0.1:8021:8021/tcp"
+      - "18000-19000:18000-19000/udp"
+    logging: *default-logging
+
 volumes:
   frontend_node_modules:
   vue_node_modules:

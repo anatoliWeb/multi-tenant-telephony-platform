@@ -87,6 +87,8 @@ The boundaries below are planning rules for new code. They do not require a whol
 - Allowed dependencies: Shared, Integrations, Contacts, AccessControl.
 - Forbidden dependencies: direct FreeSWITCH class references.
 - Tenant-facing softphone work stays in Angular, while a separate Vue Admin softphone is only a planned support workflow and must remain tenant-scoped if introduced later.
+- The optional FreeSWITCH Docker profile belongs to Integrations infrastructure, not this domain layer, and it must stay behind provider-neutral contracts and tenant-scoped application services.
+- `mod_xml_curl`-driven directory or dialplan work is intentionally deferred until backend-driven integration exists, so the Stage 14 Docker profile stays image-default based.
 
 ## IVR
 
@@ -139,6 +141,8 @@ The boundaries below are planning rules for new code. They do not require a whol
 - Contracts consumed: Telephony, Conferences, Webhooks, Billing, Monitoring.
 - Allowed dependencies: Shared, Queue, Monitoring.
 - Forbidden dependencies: leaking provider specifics into domain services.
+- Optional FreeSWITCH container runtime, SIP/WSS transport tuning, Event Socket access, TLS certificate mounting, and recording storage belong here rather than inside telephony domain code.
+- The foundation slice should use image defaults and minimal local scaffolding instead of an `/etc/freeswitch` bind mount that can shadow boot-critical runtime files.
 
 ## Webhooks
 
