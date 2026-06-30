@@ -10,6 +10,10 @@ class FreeSwitchConfigurationTest extends TestCase
     {
         $this->assertFalse((bool) config('freeswitch.enabled'));
         $this->assertSame('freeswitch', config('freeswitch.host'));
+        $this->assertSame('localhost', config('freeswitch.sip_domain'));
+        $this->assertSame('wss://localhost:7443', config('freeswitch.sip_wss_url'));
+        $this->assertSame('wss://localhost:7443', config('freeswitch.webrtc_wss_url'));
+        $this->assertNull(config('freeswitch.directory_domain'));
         $this->assertSame(5060, config('freeswitch.ports.sip'));
         $this->assertSame(5061, config('freeswitch.ports.sip_tls'));
         $this->assertSame(7443, config('freeswitch.ports.wss'));

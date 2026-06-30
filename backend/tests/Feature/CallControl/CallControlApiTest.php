@@ -24,6 +24,10 @@ class CallControlApiTest extends TestCase
 
     public function test_sip_profile_is_tenant_scoped_and_omits_secrets_in_normal_mode(): void
     {
+        config()->set('freeswitch.sip_domain', 'localhost');
+        config()->set('freeswitch.sip_wss_url', 'wss://localhost:7443');
+        config()->set('freeswitch.directory_domain', '172.18.0.12');
+
         $tenantA = $this->createTenant('call-control-a');
         $tenantB = $this->createTenant('call-control-b');
         $user = $this->actingAsTenantUser($this->createUser('call-control-user'));
@@ -42,11 +46,15 @@ class CallControlApiTest extends TestCase
             ->assertJsonPath('data.extension_id', $extension->id)
             ->assertJsonPath('data.extension_number', '2010')
             ->assertJsonPath('data.authorization_username', '2010')
+            ->assertJsonPath('data.domain', 'localhost')
+            ->assertJsonPath('data.sip_uri', 'sip:2010@localhost')
+            ->assertJsonPath('data.websocket_url', 'wss://localhost:7443')
             ->assertJsonPath('data.provider', 'freeswitch')
             ->assertJsonPath('data.credentials_available', false)
             ->assertJsonPath('data.registration_enabled', false)
             ->assertJsonPath('data.local_demo_mode', false)
             ->assertJsonPath('data.registration.enabled', false)
+            ->assertJsonMissingPath('data.directory_domain')
             ->assertJsonMissingPath('data.password');
 
         $this->getJson("/api/v1/extensions/{$extension->id}/sip-profile", ['X-Tenant-ID' => $tenantB->id])
@@ -58,6 +66,9 @@ class CallControlApiTest extends TestCase
         config()->set('app.env', 'local');
         config()->set('freeswitch.enabled', true);
         config()->set('freeswitch.local_demo_credentials', true);
+        config()->set('freeswitch.sip_domain', 'localhost');
+        config()->set('freeswitch.sip_wss_url', 'wss://localhost:7443');
+        config()->set('freeswitch.directory_domain', '172.18.0.12');
 
         $tenant = $this->createTenant('call-control-demo');
         $user = $this->actingAsTenantUser($this->createUser('call-control-demo-user'));
@@ -71,11 +82,15 @@ class CallControlApiTest extends TestCase
 
         $this->getJson("/api/v1/extensions/{$extension->id}/sip-profile", ['X-Tenant-ID' => $tenant->id])
             ->assertOk()
+            ->assertJsonPath('data.domain', 'localhost')
+            ->assertJsonPath('data.sip_uri', 'sip:1001@localhost')
+            ->assertJsonPath('data.websocket_url', 'wss://localhost:7443')
             ->assertJsonPath('data.credentials_available', true)
             ->assertJsonPath('data.registration_enabled', true)
             ->assertJsonPath('data.local_demo_mode', true)
             ->assertJsonPath('data.password', 'change_me_local_demo_only')
-            ->assertJsonPath('data.registration.state', 'available');
+            ->assertJsonPath('data.registration.state', 'available')
+            ->assertJsonMissingPath('data.directory_domain');
     }
 
     public function test_sip_profile_rejects_missing_permission_inactive_extensions_and_missing_tenant_context(): void
@@ -115,6 +130,9 @@ class CallControlApiTest extends TestCase
         config()->set('app.env', 'local');
         config()->set('freeswitch.enabled', true);
         config()->set('freeswitch.local_demo_credentials', false);
+        config()->set('freeswitch.sip_domain', 'localhost');
+        config()->set('freeswitch.sip_wss_url', 'wss://localhost:7443');
+        config()->set('freeswitch.directory_domain', '172.18.0.12');
 
         $tenant = $this->createTenant('call-control-locked');
         $user = $this->actingAsTenantUser($this->createUser('call-control-locked-user'));
@@ -128,9 +146,13 @@ class CallControlApiTest extends TestCase
 
         $this->getJson("/api/v1/extensions/{$extension->id}/sip-profile", ['X-Tenant-ID' => $tenant->id])
             ->assertOk()
+            ->assertJsonPath('data.domain', 'localhost')
+            ->assertJsonPath('data.sip_uri', 'sip:1002@localhost')
+            ->assertJsonPath('data.websocket_url', 'wss://localhost:7443')
             ->assertJsonPath('data.credentials_available', false)
             ->assertJsonPath('data.registration_enabled', false)
             ->assertJsonPath('data.local_demo_mode', false)
+            ->assertJsonMissingPath('data.directory_domain')
             ->assertJsonMissingPath('data.password');
     }
 }

@@ -137,6 +137,8 @@ Vue admin navigation stays platform-scoped. It may hydrate tenant selection stat
 -> `SipClientService.loadProfile()`
 -> `backend/app/Services/CallControl/SipProfileService.php`
 -> local-demo gate checks
+-> browser-facing SIP domain such as `localhost`
+-> browser-facing WSS URL such as `wss://localhost:7443`
 -> browser-reachable `wss://localhost:7443`
 -> `SipClientService.register()`
 -> `Registerer`
@@ -145,6 +147,11 @@ Vue admin navigation stays platform-scoped. It may hydrate tenant selection stat
 When registration succeeds, the same service can build a local SIP URI such as
 `sip:1002@localhost`, create an outbound `Inviter`, and handle an incoming
 `Invitation` for the answer/reject path used in the two-browser demo.
+
+The FreeSWITCH runtime directory lookup domain is resolved separately by the
+local provisioning script from `global_getvar local_ip_v4` when needed, so the
+browser profile never has to inherit a Docker runtime IP just to reach the
+directory.
 
 ### Example: platform support telephony page
 

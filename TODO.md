@@ -1013,6 +1013,15 @@ Vue Admin should include a real SIP.js/WebRTC softphone so platform admins and s
 - [ ] Use the same media cleanup rules in Angular and Vue
 - [ ] Use the same tenant-scoped SIP credential contract
 - [ ] Document differences between tenant softphone and admin/support softphone
+
+## 15.5 Browser SIP Domain and WSS Alignment
+
+- [x] Separate browser SIP domain from FreeSWITCH directory lookup domain
+- [x] Keep Angular SIP URIs browser-facing
+- [x] Keep provisioning verification runtime-domain-aware
+- [x] Document WSS/TLS browser trust limitation
+- [x] Confirm CallControl backend tests
+- [x] Confirm Angular tests if frontend changes
 ---
 
 # 20. Stage 16: Calling from Chat

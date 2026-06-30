@@ -73,6 +73,9 @@ class SipProfileService
         $configuredDomain = trim((string) config('freeswitch.sip_domain', ''));
 
         if ($configuredDomain !== '') {
+            // The browser SIP domain must stay browser-reachable. Docker runtime
+            // IPs belong to provisioning checks, not to the SIP URI shown to the
+            // Angular softphone.
             return $configuredDomain;
         }
 
@@ -84,10 +87,16 @@ class SipProfileService
 
     private function resolveWebSocketUrl(string $domain): string
     {
-        $configuredUrl = trim((string) config('freeswitch.webrtc_wss_url', ''));
+        $configuredUrl = trim((string) config('freeswitch.sip_wss_url', ''));
 
         if ($configuredUrl !== '') {
             return $configuredUrl;
+        }
+
+        $legacyConfiguredUrl = trim((string) config('freeswitch.webrtc_wss_url', ''));
+
+        if ($legacyConfiguredUrl !== '') {
+            return $legacyConfiguredUrl;
         }
 
         $scheme = config('freeswitch.enabled', false) ? 'wss' : 'ws';

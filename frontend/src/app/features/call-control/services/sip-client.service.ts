@@ -360,6 +360,9 @@ export class SipClientService {
       throw new Error('SIP URI is invalid.');
     }
 
+    // The browser SIP URI and WSS transport must be built from browser-
+    // reachable values. The FreeSWITCH directory lookup domain can be a
+    // different Docker runtime IP and must never be used here.
     const options = {
       uri,
       displayName: profile.display_name,
@@ -560,6 +563,8 @@ export class SipClientService {
       return destination;
     }
 
+    // The call target follows the browser-facing SIP domain from the loaded
+    // profile so local demo dialing stays reachable from the browser session.
     if (destination.includes('@')) {
       return `sip:${destination}`;
     }

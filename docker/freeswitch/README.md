@@ -91,6 +91,7 @@ Check SIP profiles:
 
 ```bash
 docker compose exec -T freeswitch fs_cli -x "sofia status"
+docker compose exec -T freeswitch fs_cli -x "sofia status profile internal"
 ```
 
 Expected:
@@ -98,6 +99,8 @@ Expected:
 ```text
 internal RUNNING
 external RUNNING
+WS-BIND-URL
+WSS-BIND-URL
 ```
 
 Stop the profile:
@@ -131,10 +134,17 @@ docker compose exec -T freeswitch fs_cli -x "user_exists id 1001 <domain>"
 docker compose exec -T freeswitch fs_cli -x "user_exists id 1002 <domain>"
 ```
 
-The `<domain>` value comes from the running container's `local_ip_v4` when
-`FREESWITCH_SIP_DOMAIN` is not set. In this environment the runtime lookup
-domain has been observed as `172.18.0.12`, but that value is container-network
-specific and may differ on another machine.
+Browser-facing SIP values stay separate from the FreeSWITCH runtime directory
+lookup domain:
+
+- browser SIP domain: `localhost` by default in local development;
+- browser SIP WSS URL: `wss://localhost:7443` by default in local development;
+- FreeSWITCH directory lookup domain: `FREESWITCH_DIRECTORY_DOMAIN` when set,
+  otherwise the running container's `global_getvar local_ip_v4`.
+
+In this environment the runtime lookup domain has been observed as
+`172.18.0.12`, but that value is container-network specific and may differ on
+another machine. Do not hardcode it into browser-facing SIP URIs.
 
 If you need to inspect the resolved XML directly, use:
 
@@ -173,3 +183,7 @@ the Stage 14 and Stage 15.2 foundations.
 The static XML demo users in `conf/directory/default/` remain fallback
 scaffolding. They document the local demo shape, but they are not the SaaS
 source of truth for SIP credentials.
+
+The long-term target is Laravel-backed directory provisioning through a proper
+PBX integration layer. Static XML files are only the local bootstrap fallback
+until that architecture is implemented.

@@ -116,6 +116,7 @@ Limitations:
 - Stage 14 FreeSWITCH support is now scaffolded as an optional Docker profile and was validated with the working image shown below.
 - The FreeSWITCH profile uses `servicebots/freeswitch:latest`, keeps the Event Socket bound to localhost, and relies on image defaults instead of a `/etc/freeswitch` bind mount.
 - Stage 15.4 demo-directory provisioning now copies the local XML users into the running container and verifies `1001` / `1002` with the FreeSWITCH lookup syntax `user_exists id <user> <domain>`.
+- Stage 15.5 keeps the browser SIP domain and WSS URL browser-reachable while allowing the FreeSWITCH directory lookup domain to remain Docker-runtime specific during local provisioning checks.
 
 ## Stage 14 Validation
 
@@ -127,6 +128,7 @@ Manual smoke verification succeeded on 2026-06-30:
 - `docker compose exec -T freeswitch fs_cli -x "global_getvar local_ip_v4"` returned the runtime lookup domain `172.18.0.12` in this environment.
 - `docker compose exec -T freeswitch fs_cli -x "user_exists id 1001 172.18.0.12"` returned `true`.
 - `docker compose exec -T freeswitch fs_cli -x "user_exists id 1002 172.18.0.12"` returned `true`.
+- `docker compose exec -T freeswitch fs_cli -x "sofia status profile internal"` still exposes `WS-BIND-URL` and `WSS-BIND-URL`, but browser trust for the local certificate chain remains a separate manual requirement.
 
 ## Manual Browser Validation
 

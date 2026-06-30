@@ -245,6 +245,8 @@ Current boundary:
 - the FreeSWITCH profile only prepares container, SIP, WSS, RTP, and Event Socket boundaries;
 - the foundation slice avoids bind-mounting `/etc/freeswitch` so the image defaults can boot cleanly;
 - Laravel reads the future FreeSWITCH placeholder config from `backend/config/freeswitch.php`;
+- browser-facing SIP URIs and WSS URLs stay on browser-reachable values such as `localhost` and `wss://localhost:7443`;
+- the FreeSWITCH runtime directory lookup domain can differ inside Docker, so provisioning verification must resolve it separately and must not reuse the browser SIP domain by assumption;
 - real SIP credentials must stay out of git and out of browser state;
 - no SIP.js, carrier adapter, or live PBX routing is enabled by this foundation slice.
 - the local demo provisioning script copies only the demo user XML files needed for the running image and reuses the container's live lookup domain when `FREESWITCH_SIP_DOMAIN` is not set;
@@ -267,6 +269,9 @@ Stage 15.2 local-demo notes:
   this environment, but the provisioning script resolves it dynamically from
   `global_getvar local_ip_v4` so the same workflow keeps working on other Docker
   networks.
+- the future target is DB-backed provisioning behind Laravel, with the current
+  static XML files serving only as a local-demo bridge until that integration
+  exists.
 
 Stage 15.3 browser notes:
 

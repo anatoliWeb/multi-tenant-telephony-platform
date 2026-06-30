@@ -117,6 +117,11 @@ The boundaries below are planning rules for new code. They do not require a whol
 - Stage 15.3 lets the same service attempt local-demo registration and local
   extension calls while still clearing sessions, audio streams, and in-memory
   credentials on hangup, failure, or tenant change.
+- The softphone service must build browser-reachable SIP URIs and WSS transport
+  URLs only; Docker runtime lookup domains belong to provisioning verification,
+  not to browser session state.
+- Static XML users in the FreeSWITCH profile are local-demo fallback only until
+  the future DB-backed provisioning path is implemented behind Laravel.
 
 ## CallManagement
 
@@ -149,6 +154,9 @@ The boundaries below are planning rules for new code. They do not require a whol
 - Forbidden dependencies: leaking provider specifics into domain services.
 - Optional FreeSWITCH container runtime, SIP/WSS transport tuning, Event Socket access, TLS certificate mounting, and recording storage belong here rather than inside telephony domain code.
 - The foundation slice should use image defaults and minimal local scaffolding instead of an `/etc/freeswitch` bind mount that can shadow boot-critical runtime files.
+- Docker-local runtime IPs may appear in FreeSWITCH directory lookup checks, but
+  they must not be baked into browser-facing SIP profiles because the browser
+  only needs reachable SIP and WSS endpoints.
 
 ## Webhooks
 
