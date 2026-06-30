@@ -116,13 +116,32 @@ Provision local demo users after the container is up:
 ```bash
 docker compose --profile freeswitch up -d freeswitch
 ./docker/freeswitch/scripts/provision-demo-users.sh
-docker compose exec -T freeswitch fs_cli -x "reloadxml"
-docker compose exec -T freeswitch fs_cli -x "sofia profile internal restart"
 ```
 
 The script provisions `1001`, `1002`, `2001`, and `2002` by default so it can
 cover both the documented demo pair and the current Angular demo seed data.
 Override that list with `FREESWITCH_DEMO_USERS` if you need a narrower set.
+
+The script reloads XML and restarts the internal SIP profile after copying the
+demo files, then verifies that `1001` and `1002` resolve with the correct
+lookup syntax:
+
+```bash
+docker compose exec -T freeswitch fs_cli -x "user_exists id 1001 <domain>"
+docker compose exec -T freeswitch fs_cli -x "user_exists id 1002 <domain>"
+```
+
+The `<domain>` value comes from the running container's `local_ip_v4` when
+`FREESWITCH_SIP_DOMAIN` is not set. In this environment the runtime lookup
+domain has been observed as `172.18.0.12`, but that value is container-network
+specific and may differ on another machine.
+
+If you need to inspect the resolved XML directly, use:
+
+```bash
+docker compose exec -T freeswitch fs_cli -x "find_user_xml id 1001 <domain>"
+docker compose exec -T freeswitch fs_cli -x "find_user_xml id 1002 <domain>"
+```
 
 If you prefer to copy the example files manually, use the discovered container
 path:

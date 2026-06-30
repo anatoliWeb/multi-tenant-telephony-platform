@@ -7,6 +7,26 @@ COMPOSE_FILE="$PROJECT_ROOT/docker-compose.yml"
 PASSWORD="${FREESWITCH_DEFAULT_SIP_PASSWORD:-change_me_local_demo_only}"
 USERS="${FREESWITCH_DEMO_USERS:-1001 1002 2001 2002}"
 
+run_fs_cli() {
+  docker compose -f "$COMPOSE_FILE" exec -T freeswitch fs_cli -x "$1"
+}
+
+resolve_lookup_domain() {
+  if [ -n "${FREESWITCH_SIP_DOMAIN:-}" ]; then
+    printf '%s\n' "$FREESWITCH_SIP_DOMAIN"
+    return 0
+  fi
+
+  runtime_domain="$(run_fs_cli "global_getvar local_ip_v4" 2>/dev/null | tr -d '\r' | awk 'NF { value = $0 } END { print value }')"
+
+  if [ -n "$runtime_domain" ]; then
+    printf '%s\n' "$runtime_domain"
+    return 0
+  fi
+
+  printf '%s\n' localhost
+}
+
 if [ -z "$(docker compose -f "$COMPOSE_FILE" ps -q freeswitch)" ]; then
   echo "FreeSWITCH must be running before provisioning demo users." >&2
   echo "Start it with: docker compose --profile freeswitch up -d freeswitch" >&2
@@ -22,6 +42,8 @@ fi
 
 TMP_DIR="$(mktemp -d)"
 trap 'rm -rf "$TMP_DIR"' EXIT
+
+LOOKUP_DOMAIN="$(resolve_lookup_domain)"
 
 for user in $USERS; do
   USER_FILE="$TMP_DIR/$user.xml"
@@ -52,5 +74,19 @@ EOF
   docker cp "$USER_FILE" "$CONTAINER_ID:/usr/local/freeswitch/conf/directory/default/$user.xml" >/dev/null
 done
 
+run_fs_cli "reloadxml" >/dev/null
+run_fs_cli "sofia profile internal restart" >/dev/null
+
 echo "Provisioned local demo users: $USERS"
-echo "Reload XML and restart the internal SIP profile before testing registration."
+echo "Using FreeSWITCH lookup domain: $LOOKUP_DOMAIN"
+
+for user in 1001 1002; do
+  if [ "$(run_fs_cli "user_exists id $user $LOOKUP_DOMAIN" | tr -d '\r' | awk 'NF { value = $0 } END { print value }')" != "true" ]; then
+    echo "FreeSWITCH did not resolve demo user $user in domain $LOOKUP_DOMAIN." >&2
+    exit 1
+  fi
+
+  echo "Verified demo user $user in domain $LOOKUP_DOMAIN."
+done
+
+echo "Demo directory provisioning completed successfully."

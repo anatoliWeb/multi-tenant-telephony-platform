@@ -115,6 +115,7 @@ Limitations:
 - The schema-dump-backed loader depends on the backend image having the MySQL client installed, which is now part of `docker/php/Dockerfile`.
 - Stage 14 FreeSWITCH support is now scaffolded as an optional Docker profile and was validated with the working image shown below.
 - The FreeSWITCH profile uses `servicebots/freeswitch:latest`, keeps the Event Socket bound to localhost, and relies on image defaults instead of a `/etc/freeswitch` bind mount.
+- Stage 15.4 demo-directory provisioning now copies the local XML users into the running container and verifies `1001` / `1002` with the FreeSWITCH lookup syntax `user_exists id <user> <domain>`.
 
 ## Stage 14 Validation
 
@@ -123,6 +124,9 @@ Manual smoke verification succeeded on 2026-06-30:
 - `docker ps --filter "name=freeswitch"` showed a running `servicebots/freeswitch:latest` container.
 - `docker compose exec -T freeswitch fs_cli -x "status"` returned `FreeSWITCH ... is ready`.
 - `docker compose exec -T freeswitch fs_cli -x "sofia status"` showed `internal RUNNING` and `external RUNNING`.
+- `docker compose exec -T freeswitch fs_cli -x "global_getvar local_ip_v4"` returned the runtime lookup domain `172.18.0.12` in this environment.
+- `docker compose exec -T freeswitch fs_cli -x "user_exists id 1001 172.18.0.12"` returned `true`.
+- `docker compose exec -T freeswitch fs_cli -x "user_exists id 1002 172.18.0.12"` returned `true`.
 
 ## Manual Browser Validation
 

@@ -247,6 +247,8 @@ Current boundary:
 - Laravel reads the future FreeSWITCH placeholder config from `backend/config/freeswitch.php`;
 - real SIP credentials must stay out of git and out of browser state;
 - no SIP.js, carrier adapter, or live PBX routing is enabled by this foundation slice.
+- the local demo provisioning script copies only the demo user XML files needed for the running image and reuses the container's live lookup domain when `FREESWITCH_SIP_DOMAIN` is not set;
+- the correct FreeSWITCH user lookup syntax is `user_exists id <user> <domain>`.
 
 Stage 15.2 local-demo notes:
 
@@ -261,6 +263,10 @@ Stage 15.2 local-demo notes:
   overlay.
 - the static XML demo users are a local fallback only and are not the SaaS
   source of truth for SIP credentials.
+- the container's current runtime domain has been observed as `172.18.0.12` in
+  this environment, but the provisioning script resolves it dynamically from
+  `global_getvar local_ip_v4` so the same workflow keeps working on other Docker
+  networks.
 
 Stage 15.3 browser notes:
 

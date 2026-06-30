@@ -932,6 +932,7 @@ CallControlApiService
 - [x] Local/demo SIP credential gate
 - [x] Backend SIP profile can enable local demo registration
 - [x] FreeSWITCH demo user provisioning documented/scripted
+- [x] FreeSWITCH demo directory provisioning resolves `1001` and `1002` in the live container domain
 - [x] Angular register button gated by credential availability
 - [x] Angular SIP.js registration attempt wired for local demo mode
 - [x] Clear registration failure message for local WSS/TLS issues
