@@ -9,7 +9,7 @@ use App\Models\Extension;
 use App\Services\CallQueues\CallQueueRoutingService;
 use App\Services\Tenancy\TenantContext;
 use App\Enums\CallQueues\CallQueueStrategy;
-use Illuminate\Foundation\Testing\DatabaseMigrations;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 use Tests\Feature\Extensions\Concerns\BuildsExtensionFixtures;
 use Tests\Feature\Tenancy\Isolation\Concerns\BuildsTenantIsolationFixtures;
@@ -19,7 +19,7 @@ class CallQueueRoutingServiceTest extends TestCase
 {
     use BuildsExtensionFixtures;
     use BuildsTenantIsolationFixtures;
-    use DatabaseMigrations;
+    use RefreshDatabase;
 
     public function test_ring_all_returns_all_eligible_members_and_excludes_paused_or_inactive_targets(): void
     {

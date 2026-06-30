@@ -3,7 +3,7 @@
 namespace Tests\Feature\RingGroups;
 
 use App\Models\RingGroup;
-use Illuminate\Foundation\Testing\DatabaseMigrations;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 use Laravel\Sanctum\Sanctum;
 use Tests\Feature\Extensions\Concerns\BuildsExtensionFixtures;
@@ -14,7 +14,7 @@ class RingGroupApiTest extends TestCase
 {
     use BuildsExtensionFixtures;
     use BuildsTenantIsolationFixtures;
-    use DatabaseMigrations;
+    use RefreshDatabase;
 
     public function test_ring_group_crud_members_options_and_route_testing_are_tenant_scoped(): void
     {

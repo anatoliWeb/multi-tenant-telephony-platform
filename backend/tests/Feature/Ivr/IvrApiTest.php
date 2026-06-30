@@ -5,7 +5,7 @@ namespace Tests\Feature\Ivr;
 use App\Enums\TenantMembershipStatus;
 use App\Models\IvrMenu;
 use App\Models\IvrOption;
-use Illuminate\Foundation\Testing\DatabaseMigrations;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 use Laravel\Sanctum\Sanctum;
 use Tests\Feature\Tenancy\Isolation\Concerns\BuildsTenantIsolationFixtures;
@@ -14,7 +14,7 @@ use Tests\TestCase;
 class IvrApiTest extends TestCase
 {
     use BuildsTenantIsolationFixtures;
-    use DatabaseMigrations;
+    use RefreshDatabase;
 
     public function test_ivr_crud_options_and_route_testing_are_tenant_scoped(): void
     {

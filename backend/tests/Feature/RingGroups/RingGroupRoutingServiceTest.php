@@ -7,7 +7,7 @@ use App\Models\RingGroup;
 use App\Models\RingGroupMember;
 use App\Services\RingGroups\RingGroupRoutingService;
 use App\Services\Tenancy\TenantContext;
-use Illuminate\Foundation\Testing\DatabaseMigrations;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 use Tests\Feature\Extensions\Concerns\BuildsExtensionFixtures;
 use Tests\Feature\Tenancy\Isolation\Concerns\BuildsTenantIsolationFixtures;
@@ -17,7 +17,7 @@ class RingGroupRoutingServiceTest extends TestCase
 {
     use BuildsExtensionFixtures;
     use BuildsTenantIsolationFixtures;
-    use DatabaseMigrations;
+    use RefreshDatabase;
 
     public function test_sequential_strategy_orders_active_members_and_excludes_inactive_and_cross_tenant_targets(): void
     {

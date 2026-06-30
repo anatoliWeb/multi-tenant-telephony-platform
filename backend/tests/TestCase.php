@@ -6,9 +6,12 @@ use App\Services\Tenancy\TenantContext;
 use App\Support\TestingDatabaseGuard;
 use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
+use Tests\Support\TestingDatabaseBootstrap;
 
 abstract class TestCase extends BaseTestCase
 {
+    private static bool $testingDatabaseBootstrapped = false;
+
     public function createApplication()
     {
         $testingDatabase = (string) ($_ENV['DB_TEST_DATABASE']
@@ -36,6 +39,21 @@ abstract class TestCase extends BaseTestCase
         $_SERVER['DB_USERNAME'] = 'saas';
         $_ENV['DB_PASSWORD'] = 'secret';
         $_SERVER['DB_PASSWORD'] = 'secret';
+
+        if (! self::$testingDatabaseBootstrapped) {
+            // The testing database must start from an empty schema so a
+            // partially-finished migration from a previous aborted run cannot
+            // poison the next feature-test bootstrap.
+            (new TestingDatabaseBootstrap())->reset(
+                $_ENV['DB_HOST'],
+                $_ENV['DB_PORT'],
+                $testingDatabase,
+                $_ENV['DB_USERNAME'],
+                $_ENV['DB_PASSWORD']
+            );
+
+            self::$testingDatabaseBootstrapped = true;
+        }
 
         return parent::createApplication();
     }

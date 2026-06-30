@@ -7,7 +7,7 @@ use App\Models\IvrMenu;
 use App\Services\Ivr\IvrMenuService;
 use App\Services\Ivr\IvrRoutingService;
 use App\Services\Tenancy\TenantContext;
-use Illuminate\Foundation\Testing\DatabaseMigrations;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 use Tests\Feature\Tenancy\Isolation\Concerns\BuildsTenantIsolationFixtures;
 use Tests\TestCase;
@@ -15,7 +15,7 @@ use Tests\TestCase;
 class IvrRoutingServiceTest extends TestCase
 {
     use BuildsTenantIsolationFixtures;
-    use DatabaseMigrations;
+    use RefreshDatabase;
 
     public function test_digit_and_timeout_routes_resolve_tenant_safe_destinations(): void
     {

@@ -26,14 +26,14 @@ use Illuminate\Support\Collection;
 use Database\Seeders\CoreSeeder;
 use Database\Seeders\DemoSeeder;
 use Database\Seeders\TestSeeder;
-use Illuminate\Foundation\Testing\DatabaseMigrations;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use RuntimeException;
 use Tests\TestCase;
 
 class SeederArchitectureTest extends TestCase
 {
-    use DatabaseMigrations;
+    use RefreshDatabase;
 
     public function test_core_seeder_is_idempotent_and_does_not_create_demo_data(): void
     {
