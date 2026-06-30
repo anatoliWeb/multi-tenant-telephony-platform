@@ -106,6 +106,16 @@
   box-sizing: border-box;
 }
 
+.softphone__card select {
+  width: 100%;
+  box-sizing: border-box;
+  border-radius: 12px;
+  border: 1px solid rgba(71, 85, 105, 0.8);
+  background: rgba(15, 23, 42, 0.85);
+  color: #e2e8f0;
+  padding: 10px 12px;
+}
+
 .softphone__card audio {
   width: 100%;
   margin-top: 4px;

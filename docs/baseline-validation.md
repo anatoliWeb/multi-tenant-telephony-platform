@@ -197,6 +197,9 @@ Verified:
 - Angular SIP.js softphone foundation is now present.
 - Stage 15.2 adds a local-demo credential gate for browser registration in
   local development only.
+- Stage 15.3 wires a local-registration attempt and local extension-call flow,
+  but end-to-end browser verification remains a manual follow-up because local
+  WSS/TLS trust still needs confirmation on the target machine.
 - Vue Admin SIP.js softphone remains a planned follow-up slice only.
 
 ## Final Verdict

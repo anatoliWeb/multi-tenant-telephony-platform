@@ -114,6 +114,9 @@ The boundaries below are planning rules for new code. They do not require a whol
 - The current Angular slice is foundation-only: it loads a tenant-scoped SIP profile, manages permission state, and keeps registration disabled until the provisioning slice can safely supply live credentials.
 - Stage 15.2 keeps any demo password in service memory only and clears it on
   tenant switch, logout, modal close, and registration failure.
+- Stage 15.3 lets the same service attempt local-demo registration and local
+  extension calls while still clearing sessions, audio streams, and in-memory
+  credentials on hangup, failure, or tenant change.
 
 ## CallManagement
 

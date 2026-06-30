@@ -134,4 +134,39 @@ describe('SipClientService', () => {
     expect((service as any).authorizationPassword).toBeNull();
     expect(service.registrationState).toBe('disconnected');
   });
+
+  it('normalizes extension destinations into local SIP URIs', () => {
+    expect((service as any).resolveSipTarget('1002', 'localhost')).toBe('sip:1002@localhost');
+    expect((service as any).resolveSipTarget('sip:2002@localhost', 'localhost')).toBe('sip:2002@localhost');
+  });
+
+  it('does not write SIP credentials to browser storage', async () => {
+    const setItemSpy = vi.spyOn(Storage.prototype, 'setItem');
+    const removeItemSpy = vi.spyOn(Storage.prototype, 'removeItem');
+    const clearSpy = vi.spyOn(Storage.prototype, 'clear');
+
+    callControlApiMock.getSipProfile.mockReturnValue(of({
+      success: true,
+      message: 'ok',
+      data: {
+        ...baseProfile,
+        credentials_available: true,
+        registration_enabled: true,
+        local_demo_mode: true,
+        password: 'change_me_local_demo_only',
+        registration: {
+          enabled: true,
+          state: 'available',
+          reason: 'Local demo SIP credentials are enabled for this development environment.',
+        },
+      },
+    }));
+
+    await service.loadProfile(42);
+    await service.register();
+
+    expect(setItemSpy).not.toHaveBeenCalled();
+    expect(removeItemSpy).not.toHaveBeenCalled();
+    expect(clearSpy).not.toHaveBeenCalled();
+  });
 });

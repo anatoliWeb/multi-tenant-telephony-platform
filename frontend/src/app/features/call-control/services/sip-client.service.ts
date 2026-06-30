@@ -1,6 +1,15 @@
 import { Injectable } from '@angular/core';
 import { BehaviorSubject, firstValueFrom } from 'rxjs';
-import { Inviter, Registerer, Session, SessionState, UserAgent } from 'sip.js';
+import {
+  Invitation,
+  Inviter,
+  Registerer,
+  RegistererState,
+  Session,
+  SessionState,
+  UserAgent,
+  UserAgentDelegate,
+} from 'sip.js';
 import { CallControlApiService } from './call-control-api.service';
 import type {
   MicrophonePermissionState,
@@ -16,20 +25,25 @@ export class SipClientService {
   private readonly registrationStateSubject = new BehaviorSubject<SipRegistrationState>('disconnected');
   private readonly microphonePermissionSubject = new BehaviorSubject<MicrophonePermissionState>('unknown');
   private readonly mutedSubject = new BehaviorSubject<boolean>(false);
+  private readonly incomingCallSubject = new BehaviorSubject<boolean>(false);
   private readonly destinationSubject = new BehaviorSubject<string>('');
   private readonly errorSubject = new BehaviorSubject<string | null>(null);
 
   private userAgent: UserAgent | null = null;
   private registerer: Registerer | null = null;
   private activeSession: Session | null = null;
+  private incomingInvitation: Invitation | null = null;
   private remoteAudioElement: HTMLAudioElement | null = null;
   private authorizationPassword: string | null = null;
+  private readonly registrationFailureMessage =
+    'SIP registration failed. Check local FreeSWITCH WebSocket/TLS configuration.';
 
   readonly profile$ = this.profileSubject.asObservable();
   readonly callState$ = this.callStateSubject.asObservable();
   readonly registrationState$ = this.registrationStateSubject.asObservable();
   readonly microphonePermission$ = this.microphonePermissionSubject.asObservable();
   readonly muted$ = this.mutedSubject.asObservable();
+  readonly incomingCall$ = this.incomingCallSubject.asObservable();
   readonly destination$ = this.destinationSubject.asObservable();
   readonly error$ = this.errorSubject.asObservable();
 
@@ -71,6 +85,7 @@ export class SipClientService {
     this.registrationStateSubject.next('disconnected');
     this.microphonePermissionSubject.next('unknown');
     this.mutedSubject.next(false);
+    this.incomingCallSubject.next(false);
     this.destinationSubject.next('');
 
     try {
@@ -157,13 +172,22 @@ export class SipClientService {
 
     try {
       await this.ensureTransport(profile);
-      await this.registerer?.register();
+      await this.registerer?.register({
+        requestDelegate: {
+          onReject: () => {
+            this.registrationStateSubject.next('failed');
+            this.callStateSubject.next('registration_failed');
+            this.errorSubject.next(this.registrationFailureMessage);
+            this.clearCredentials();
+          },
+        },
+      });
       this.registrationStateSubject.next('registered');
       this.callStateSubject.next('registered');
     } catch (error) {
       this.registrationStateSubject.next('failed');
       this.callStateSubject.next('registration_failed');
-      this.errorSubject.next(this.toErrorMessage(error, 'Registration failed.'));
+      this.errorSubject.next(this.toErrorMessage(error, this.registrationFailureMessage));
       this.clearCredentials();
       this.destroyTransport();
     }
@@ -197,9 +221,7 @@ export class SipClientService {
       return;
     }
 
-    const target = UserAgent.makeURI(
-      normalizedDestination.includes('@') ? normalizedDestination : `sip:${normalizedDestination}@${profile.domain}`,
-    );
+    const target = UserAgent.makeURI(this.resolveSipTarget(normalizedDestination, profile.domain));
 
     if (!target) {
       this.callStateSubject.next('failed');
@@ -210,6 +232,8 @@ export class SipClientService {
     this.errorSubject.next(null);
     this.callStateSubject.next('dialing');
 
+    // The outgoing Inviter owns the call attempt until it either reaches an
+    // established dialog, gets rejected, or is torn down by hangup/reset.
     const inviter = new Inviter(this.userAgent, target, {
       sessionDescriptionHandlerOptions: {
         constraints: {
@@ -223,7 +247,21 @@ export class SipClientService {
     this.attachSessionHandlers(inviter);
 
     try {
-      await inviter.invite();
+      await inviter.invite({
+        requestDelegate: {
+          onTrying: () => {
+            this.callStateSubject.next('dialing');
+          },
+          onProgress: () => {
+            this.callStateSubject.next('ringing');
+          },
+          onReject: () => {
+            this.callStateSubject.next('failed');
+            this.errorSubject.next('Call failed.');
+            this.destroySession();
+          },
+        },
+      });
     } catch (error) {
       this.callStateSubject.next('failed');
       this.errorSubject.next(this.toErrorMessage(error, 'Call failed.'));
@@ -233,6 +271,11 @@ export class SipClientService {
 
   async hangup(): Promise<void> {
     if (!this.activeSession) {
+      if (this.incomingInvitation) {
+        await this.rejectIncomingCall();
+        return;
+      }
+
       this.callStateSubject.next('ended');
       return;
     }
@@ -269,6 +312,18 @@ export class SipClientService {
     this.remoteAudioElement = element;
   }
 
+  /**
+   * Browser storage must stay empty. Demo SIP credentials are local-only and
+   * live in memory just long enough for the current tenant session.
+   */
+  hasPersistedCredentials(): boolean {
+    try {
+      return Boolean(localStorage.getItem('sip_password') || sessionStorage.getItem('sip_password'));
+    } catch {
+      return false;
+    }
+  }
+
   setDestination(destination: string): void {
     this.destinationSubject.next(destination);
   }
@@ -286,6 +341,7 @@ export class SipClientService {
     this.microphonePermissionSubject.next('unknown');
     this.mutedSubject.next(false);
     this.destinationSubject.next('');
+    this.incomingCallSubject.next(false);
     this.errorSubject.next(null);
   }
 
@@ -320,14 +376,125 @@ export class SipClientService {
       },
     } as any;
 
+    // Browser SIP.js transport only works when the local WSS/TLS endpoint is
+    // reachable and the browser trusts the certificate chain.
     this.userAgent = new UserAgent(options);
+    this.userAgent.delegate = this.createUserAgentDelegate();
+    // Registerer lifecycle is tied to the UserAgent so a tenant change or
+    // disconnect can tear both down together without leaking stale state.
     this.registerer = new Registerer(this.userAgent);
+    this.registerer.stateChange.addListener((state) => this.handleRegistererStateChange(state));
     await this.userAgent.start();
   }
 
+  private createUserAgentDelegate(): UserAgentDelegate {
+    return {
+      onInvite: (invitation) => this.handleIncomingInvitation(invitation),
+      onDisconnect: (error) => {
+        if (!error) {
+          return;
+        }
+
+        // A browser transport error usually means local WSS/TLS is not trusted
+        // yet, not that the SIP credentials themselves are wrong.
+        this.registrationStateSubject.next('failed');
+        this.callStateSubject.next('failed');
+        this.errorSubject.next(this.registrationFailureMessage);
+      },
+    };
+  }
+
+  private handleRegistererStateChange(state: RegistererState): void {
+    if (state === RegistererState.Registered) {
+      this.registrationStateSubject.next('registered');
+      return;
+    }
+
+    if (state === RegistererState.Unregistered || state === RegistererState.Terminated) {
+      if (this.registrationStateSubject.value !== 'failed') {
+        this.registrationStateSubject.next('disconnected');
+      }
+    }
+  }
+
+  private handleIncomingInvitation(invitation: Invitation): void {
+    if (this.activeSession || this.incomingInvitation) {
+      void invitation.reject({
+        statusCode: 486,
+        reasonPhrase: 'Busy Here',
+      }).catch(() => undefined);
+      return;
+    }
+
+    // Incoming calls stay in a lightweight ringing state until the user
+    // explicitly answers or rejects them from the current browser session.
+    this.destroySession();
+    this.incomingInvitation = invitation;
+    this.incomingCallSubject.next(true);
+    this.callStateSubject.next('ringing');
+    this.errorSubject.next(null);
+
+    invitation.stateChange.addListener((state) => {
+      if (state === SessionState.Terminated && this.incomingInvitation === invitation) {
+        this.destroySession();
+        this.callStateSubject.next('ended');
+      }
+    });
+  }
+
+  async answerIncomingCall(): Promise<void> {
+    if (!this.incomingInvitation) {
+      return;
+    }
+
+    this.activeSession = this.incomingInvitation;
+    // Accepting the invitation promotes the incoming call into the same
+    // session lifecycle as an outgoing call so cleanup stays centralized.
+    this.attachSessionHandlers(this.incomingInvitation);
+
+    try {
+      await this.incomingInvitation.accept({
+        sessionDescriptionHandlerOptions: {
+          constraints: {
+            audio: true,
+            video: false,
+          },
+        },
+      });
+    } catch (error) {
+      this.callStateSubject.next('failed');
+      this.errorSubject.next(this.toErrorMessage(error, 'Call failed.'));
+      this.destroySession();
+    }
+  }
+
+  async rejectIncomingCall(): Promise<void> {
+    if (!this.incomingInvitation) {
+      return;
+    }
+
+    try {
+      await this.incomingInvitation.reject();
+    } finally {
+      this.destroySession();
+      this.callStateSubject.next('ended');
+    }
+  }
+
   private attachSessionHandlers(session: Session): void {
+    // Session lifecycle events drive the visible call state so the UI can show
+    // dialing, ringing, active, and terminated transitions without guessing.
     session.stateChange.addListener((state) => {
+      if (state === SessionState.Establishing) {
+        this.callStateSubject.next('dialing');
+      }
+
       if (state === SessionState.Established) {
+        if (this.incomingInvitation === session) {
+          this.incomingInvitation = null;
+          this.incomingCallSubject.next(false);
+        }
+
         this.callStateSubject.next('active');
         this.registrationStateSubject.next('registered');
         this.bindSessionAudio(session);
@@ -363,7 +530,7 @@ export class SipClientService {
     this.destroySession();
 
     if (this.registerer) {
-      void this.registerer.unregister().catch(() => undefined);
+      void this.registerer.dispose().catch(() => undefined);
       this.registerer = null;
     }
 
@@ -388,8 +555,22 @@ export class SipClientService {
     };
   }
 
+  private resolveSipTarget(destination: string, domain: string): string {
+    if (destination.startsWith('sip:')) {
+      return destination;
+    }
+
+    if (destination.includes('@')) {
+      return `sip:${destination}`;
+    }
+
+    return `sip:${destination}@${domain}`;
+  }
+
   private destroySession(): void {
     if (typeof MediaStream !== 'undefined' && this.remoteAudioElement?.srcObject instanceof MediaStream) {
+      // Stop any live media tracks so a tenant switch does not leave the
+      // browser capturing microphone or speaker resources in the background.
       this.remoteAudioElement.srcObject.getTracks().forEach((track) => track.stop());
     }
 
@@ -397,6 +578,8 @@ export class SipClientService {
       this.remoteAudioElement.srcObject = null;
     }
 
+    this.incomingInvitation = null;
+    this.incomingCallSubject.next(false);
     this.activeSession = null;
     this.mutedSubject.next(false);
   }

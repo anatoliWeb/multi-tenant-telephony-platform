@@ -25,11 +25,13 @@ export class SoftphoneModalComponent implements OnChanges, OnDestroy {
   selectedExtensionId: number | null = null;
   loadingExtension = false;
 
+  readonly extensions$;
   readonly profile$;
   readonly callState$;
   readonly registrationState$;
   readonly microphonePermission$;
   readonly muted$;
+  readonly incomingCall$;
   readonly error$;
 
   constructor(
@@ -42,7 +44,9 @@ export class SoftphoneModalComponent implements OnChanges, OnDestroy {
     this.registrationState$ = this.sipClient.registrationState$;
     this.microphonePermission$ = this.sipClient.microphonePermission$;
     this.muted$ = this.sipClient.muted$;
+    this.incomingCall$ = this.sipClient.incomingCall$;
     this.error$ = this.sipClient.error$;
+    this.extensions$ = this.extensionsState.extensions$;
   }
 
   get profile() {
@@ -71,7 +75,7 @@ export class SoftphoneModalComponent implements OnChanges, OnDestroy {
 
     try {
       await this.extensionsState.init();
-      const extension = await this.resolveDefaultExtension();
+      const extension = await this.resolveSelectedExtension();
 
       if (!extension) {
         this.sipClient.resetForTenantChange();
@@ -84,6 +88,19 @@ export class SoftphoneModalComponent implements OnChanges, OnDestroy {
     } finally {
       this.loadingExtension = false;
     }
+  }
+
+  async onExtensionChange(value: string): Promise<void> {
+    const extensionId = Number(value);
+
+    if (!Number.isFinite(extensionId) || extensionId <= 0) {
+      this.selectedExtensionId = null;
+      this.sipClient.resetForTenantChange();
+      return;
+    }
+
+    this.selectedExtensionId = extensionId;
+    await this.sipClient.loadProfile(extensionId);
   }
 
   async register(): Promise<void> {
@@ -100,6 +117,14 @@ export class SoftphoneModalComponent implements OnChanges, OnDestroy {
 
   async hangup(): Promise<void> {
     await this.sipClient.hangup();
+  }
+
+  async answerIncomingCall(): Promise<void> {
+    await this.sipClient.answerIncomingCall();
+  }
+
+  async rejectIncomingCall(): Promise<void> {
+    await this.sipClient.rejectIncomingCall();
   }
 
   toggleMute(): void {
@@ -120,8 +145,15 @@ export class SoftphoneModalComponent implements OnChanges, OnDestroy {
     return extension.id;
   }
 
-  private async resolveDefaultExtension(): Promise<{ id: number; number: string; label?: string | null } | null> {
+  private async resolveSelectedExtension(): Promise<{ id: number; number: string; label?: string | null } | null> {
     const extensions = await firstValueFrom(this.extensionsState.extensions$);
+
+    if (this.selectedExtensionId) {
+      const selected = extensions.find((extension) => extension.id === this.selectedExtensionId);
+      if (selected) {
+        return selected;
+      }
+    }
 
     return extensions.find((extension) => extension.status === 'active') ?? extensions[0] ?? null;
   }

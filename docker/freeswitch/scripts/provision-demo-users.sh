@@ -28,7 +28,8 @@ for user in $USERS; do
 
   cat > "$USER_FILE" <<EOF
 <include>
-  <!-- Local demo user for FreeSWITCH development only. Never reuse this in production. -->
+  <!-- Local demo user for FreeSWITCH development only. This static XML is a fallback,
+       not the SaaS source of truth, and must never be reused in production. -->
   <user id="$user">
     <params>
       <param name="password" value="$PASSWORD"/>

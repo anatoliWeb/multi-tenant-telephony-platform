@@ -131,6 +131,21 @@ but tenant feature modules must stay dormant until `current_tenant_id` exists.
 
 Vue admin navigation stays platform-scoped. It may hydrate tenant selection state for support flows, but it must not use tenant permissions to decide platform navigation visibility.
 
+### Example: local softphone registration
+
+`frontend/src/app/features/call-control/components/softphone-modal.component.ts`
+-> `SipClientService.loadProfile()`
+-> `backend/app/Services/CallControl/SipProfileService.php`
+-> local-demo gate checks
+-> browser-reachable `wss://localhost:7443`
+-> `SipClientService.register()`
+-> `Registerer`
+-> SIP.js `UserAgent`
+
+When registration succeeds, the same service can build a local SIP URI such as
+`sip:1002@localhost`, create an outbound `Inviter`, and handle an incoming
+`Invitation` for the answer/reject path used in the two-browser demo.
+
 ### Example: platform support telephony page
 
 `backend/resources/js/modules/tenant-support/pages/ContactsSupportPage.vue`

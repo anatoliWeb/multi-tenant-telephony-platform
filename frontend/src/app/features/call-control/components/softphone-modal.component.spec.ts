@@ -18,6 +18,12 @@ describe('SoftphoneModalComponent', () => {
       label: 'Primary Desk',
       status: 'active',
     },
+    {
+      id: 43,
+      number: '2002',
+      label: 'Backup Desk',
+      status: 'active',
+    },
   ]);
 
   const tenantContextMock = {
@@ -62,6 +68,7 @@ describe('SoftphoneModalComponent', () => {
     registrationState$: new BehaviorSubject('disconnected'),
     microphonePermission$: new BehaviorSubject('unknown'),
     muted$: new BehaviorSubject(false),
+    incomingCall$: new BehaviorSubject(false),
     error$: new BehaviorSubject<string | null>(null),
     loadProfile: vi.fn().mockResolvedValue(undefined),
     bindRemoteAudio: vi.fn(),
@@ -70,6 +77,8 @@ describe('SoftphoneModalComponent', () => {
     checkMicrophonePermission: vi.fn().mockResolvedValue(undefined),
     call: vi.fn().mockResolvedValue(undefined),
     hangup: vi.fn().mockResolvedValue(undefined),
+    answerIncomingCall: vi.fn().mockResolvedValue(undefined),
+    rejectIncomingCall: vi.fn().mockResolvedValue(undefined),
     toggleMute: vi.fn(),
     setDestination: vi.fn(),
   };
@@ -98,6 +107,16 @@ describe('SoftphoneModalComponent', () => {
     expect(component.selectedExtensionId).toBe(42);
     expect(fixture.nativeElement.textContent).toContain('2001');
     expect(fixture.nativeElement.textContent).not.toContain('callControl.title');
+  });
+
+  it('loads the selected extension when the picker changes', async () => {
+    component.open = true;
+    await component.prepareProfile();
+    await component.onExtensionChange('43');
+    fixture.detectChanges();
+
+    expect(component.selectedExtensionId).toBe(43);
+    expect(sipClientMock.loadProfile).toHaveBeenCalledWith(43);
   });
 
   it('disables register and call actions when credentials are unavailable', async () => {
@@ -145,6 +164,18 @@ describe('SoftphoneModalComponent', () => {
 
     const callButton = () => fixture.debugElement.queryAll(By.css('.softphone__actions button'))[2].nativeElement as HTMLButtonElement;
     expect(callButton().disabled).toBe(true);
+  });
+
+  it('shows answer and reject actions when an incoming call is pending', async () => {
+    sipClientMock.incomingCall$.next(true);
+
+    component.open = true;
+    await component.prepareProfile();
+    fixture.detectChanges();
+
+    const buttons = fixture.debugElement.queryAll(By.css('.softphone__actions button'));
+    expect(buttons.some((button) => button.nativeElement.textContent.includes('Answer'))).toBe(true);
+    expect(buttons.some((button) => button.nativeElement.textContent.includes('Reject'))).toBe(true);
   });
 
   it('cleans up state when closed', () => {

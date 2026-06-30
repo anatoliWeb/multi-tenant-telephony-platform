@@ -226,9 +226,13 @@ Current boundary:
 - Vue Admin is planned to get a support-oriented SIP.js/WebRTC softphone later;
 - SIP credentials must remain tenant-scoped and must not leak into logs, browser
   storage, or devtools-friendly global state;
-- this slice adds the Angular SIP.js dependency, but it does not yet wire live
-  registration because the FreeSWITCH directory/dialplan provisioning slice is
-  still pending.
+- Stage 15.3 wires the Angular SIP.js softphone to attempt live local-demo
+  registration and extension-to-extension calling against `wss://localhost:7443`;
+- if the browser does not trust the local FreeSWITCH certificate chain, the
+  service surfaces a clear WSS/TLS error instead of hiding the failure;
+- the local demo registration path remains development-only and still depends on
+  the local FreeSWITCH provisioning scaffolding rather than SaaS-backed SIP
+  credential storage.
 
 ## FreeSWITCH Docker Profile
 
@@ -255,6 +259,18 @@ Stage 15.2 local-demo notes:
 - the provisioning foundation should copy or generate only the demo user files
   needed for local testing and should not mount an incomplete `/etc/freeswitch`
   overlay.
+- the static XML demo users are a local fallback only and are not the SaaS
+  source of truth for SIP credentials.
+
+Stage 15.3 browser notes:
+
+- local browser registration uses the browser-reachable SIP WebSocket endpoint
+  on `wss://localhost:7443`;
+- the current FreeSWITCH image advertises both `WS-BIND-URL` and
+  `WSS-BIND-URL`, but browser trust for the local certificate chain still needs
+  manual confirmation;
+- 1001 -> 1002 calling is the intended demo pair, but end-to-end browser
+  verification remains a manual follow-up in this environment.
 
 Operational note:
 

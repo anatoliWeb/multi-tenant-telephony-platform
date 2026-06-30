@@ -15,6 +15,18 @@
       <article class="softphone__card softphone__card--summary">
         <h4>{{ 'callControl.section.selection' | t }}</h4>
         <div class="softphone__rows">
+          <label>
+            <span>{{ 'callControl.fields.extensionSelector' | t }}</span>
+            <select
+              [value]="selectedExtensionId ?? ''"
+              (change)="onExtensionChange($any($event.target).value)"
+            >
+              <option value="">{{ 'callControl.fields.selectExtension' | t }}</option>
+              <option *ngFor="let extension of (extensions$ | async); trackBy: trackExtension" [value]="extension.id">
+                {{ extension.number }}<ng-container *ngIf="extension.label"> - {{ extension.label }}</ng-container>
+              </option>
+            </select>
+          </label>
           <div>
             <span>{{ 'callControl.fields.tenant' | t }}</span>
             <strong>{{ (tenantContext.activeTenant$ | async)?.name || ('callControl.noTenant' | t) }}</strong>
@@ -112,6 +124,12 @@
           </button>
           <button type="button" (click)="hangup()" [disabled]="(registrationState$ | async) !== 'registered'">
             {{ 'callControl.actions.hangup' | t }}
+          </button>
+          <button type="button" (click)="answerIncomingCall()" [disabled]="!(incomingCall$ | async)">
+            {{ 'callControl.actions.answer' | t }}
+          </button>
+          <button type="button" (click)="rejectIncomingCall()" [disabled]="!(incomingCall$ | async)">
+            {{ 'callControl.actions.reject' | t }}
           </button>
           <button
             type="button"

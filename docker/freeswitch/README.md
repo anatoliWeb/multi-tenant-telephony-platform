@@ -35,6 +35,11 @@ The Angular softphone keeps that password in service memory only. It is not
 written to browser storage, and the public profile response stays metadata-only
 outside the local-demo gate.
 
+Stage 15.3 adds a browser registration attempt and two-browser call path for
+local development. The browser must still trust the local FreeSWITCH
+certificate chain for `wss://localhost:7443`, otherwise SIP.js will fail the
+transport handshake with a clear local WSS/TLS error.
+
 ## Layout
 
 - `conf/` - reserved for future FreeSWITCH configuration files;
@@ -145,3 +150,7 @@ containers.
 `mod_xml_curl` may log `Binding has no url` because backend-driven dynamic
 directory and dialplan integration is not configured yet. That is acceptable for
 the Stage 14 and Stage 15.2 foundations.
+
+The static XML demo users in `conf/directory/default/` remain fallback
+scaffolding. They document the local demo shape, but they are not the SaaS
+source of truth for SIP credentials.

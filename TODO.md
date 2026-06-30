@@ -933,6 +933,17 @@ CallControlApiService
 - [x] Backend SIP profile can enable local demo registration
 - [x] FreeSWITCH demo user provisioning documented/scripted
 - [x] Angular register button gated by credential availability
+- [x] Angular SIP.js registration attempt wired for local demo mode
+- [x] Clear registration failure message for local WSS/TLS issues
+- [x] SIP password stays memory-only and is cleared on tenant switch/failure
+- [x] Outbound call is gated on registration state
+- [x] Local SIP URI helper builds `sip:1002@localhost` style targets
+- [x] Two-browser extension picker is available in the softphone modal
+- [x] Tests
+- [ ] Browser registration for 1001
+- [ ] Browser registration for 1002
+- [ ] Two-browser call verification `1001 -> 1002`
+- [ ] Remote audio verification
 - [ ] SIP registration
 - [ ] WSS connection
 - [ ] WebRTC audio

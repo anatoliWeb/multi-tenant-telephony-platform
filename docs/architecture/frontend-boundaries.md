@@ -62,6 +62,9 @@ Vue owns:
   permission-aware launcher and tenant-scoped SIP profile modal.
 - Stage 15.2 adds a local-demo credential gate for Angular registration only
   when the backend explicitly allows it in local development.
+- Stage 15.3 lets Angular attempt real local-demo SIP registration and local
+  extension calls, but browser WSS/TLS trust still governs whether the browser
+  can actually complete the handshake on a given machine.
 - Vue already owns the platform dashboard, admin monitoring surface, and the tenant-support IVR visibility page.
 - Vue also has a planned SIP.js/WebRTC softphone slice for platform admin and support workflows, but it is not implemented yet.
 - Telephony UI work has started for routing foundation slices, and the reusable
