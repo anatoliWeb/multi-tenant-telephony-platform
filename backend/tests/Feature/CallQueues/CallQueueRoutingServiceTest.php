@@ -156,9 +156,11 @@ class CallQueueRoutingServiceTest extends TestCase
         $randomPlan = app(CallQueueRoutingService::class)->resolve($random);
 
         $this->assertSame(['user', 'extension'], array_column($sequentialPlan['members'], 'member_type'));
-        $this->assertSame(['user', 'extension'], array_column($roundRobinPlan['members'], 'member_type'));
+        // Round-robin treats a null last_call_at as least recently used, so
+        // members with no prior calls sort ahead of the recently called user.
+        $this->assertSame(['extension', 'user'], array_column($roundRobinPlan['members'], 'member_type'));
         $this->assertCount(2, $randomPlan['members']);
-        $this->assertSame($agent->id, $roundRobinPlan['primary_member']['user']['id']);
+        $this->assertSame($extension->id, $roundRobinPlan['primary_member']['extension']['id']);
     }
 
     public function test_overflow_is_returned_when_no_members_are_eligible(): void

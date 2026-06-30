@@ -30,6 +30,7 @@
         <server name="DB_PASSWORD" value="secret"/>
         <server name="DB_TEST_USERNAME" value="saas"/>
         <server name="DB_TEST_PASSWORD" value="secret"/>
+        <server name="MYSQL_ATTR_SSL_VERIFY_SERVER_CERT" value="false"/>
         <env name="APP_ENV" value="testing"/>
         <env name="APP_KEY" value="base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="/>
         <env name="APP_MAINTENANCE_DRIVER" value="file"/>
@@ -45,6 +46,7 @@
         <env name="DB_PASSWORD" value="secret"/>
         <env name="DB_TEST_USERNAME" value="saas"/>
         <env name="DB_TEST_PASSWORD" value="secret"/>
+        <env name="MYSQL_ATTR_SSL_VERIFY_SERVER_CERT" value="false"/>
         <env name="DB_URL" value=""/>
         <env name="MAIL_MAILER" value="array"/>
         <env name="QUEUE_CONNECTION" value="sync"/>

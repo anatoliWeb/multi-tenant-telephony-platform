@@ -90,6 +90,30 @@ Fixes made during validation:
 - Added a tenant cache-isolation regression test that proves permissions do not leak across tenant switches.
 - Pinned auth contract fixtures to the platform permission scope so tenant-scoped permissions do not get picked up accidentally.
 
+## Backend Runtime Stabilization
+
+Follow-up validation on 2026-06-30 confirmed that the isolated `saas_testing` bootstrap now loads a stored MySQL schema dump and that the targeted telephony backend suites complete successfully.
+
+Verified commands and results:
+
+- `docker compose exec -T backend php artisan test --env=testing tests/Feature/RingGroups/RingGroupApiTest.php --stop-on-failure` - `PASS`, `2` tests, `38` assertions, `89.50s`
+- `docker compose exec -T backend php artisan test --env=testing tests/Feature/RingGroups/RingGroupRoutingServiceTest.php --stop-on-failure` - `PASS`, `3` tests, `11` assertions, `117.31s`
+- `docker compose exec -T backend php artisan test --env=testing tests/Feature/CallQueues/CallQueueApiTest.php --stop-on-failure` - `PASS`, `2` tests, `46` assertions, `111.95s`
+- `docker compose exec -T backend php artisan test --env=testing tests/Feature/CallQueues/CallQueueRoutingServiceTest.php --stop-on-failure` - `PASS`, `3` tests, `12` assertions, `113.58s`
+- `docker compose exec -T backend php artisan test --env=testing tests/Feature/Ivr/IvrApiTest.php --stop-on-failure` - `PASS`, `2` tests, `30` assertions, `126.60s`
+- `docker compose exec -T backend php artisan test --env=testing tests/Feature/Ivr/IvrRoutingServiceTest.php --stop-on-failure` - `PASS`, `2` tests, `6` assertions, `114.39s`
+- `docker compose exec -T backend php artisan test --env=testing tests/Feature/Seeders/SeederArchitectureTest.php --stop-on-failure` - `PASS`, `5` tests, `98` assertions, `151.72s`
+- `docker compose exec -T backend php artisan test --env=testing --filter=RingGroup` - `PASS`, `5` tests, `49` assertions, `128.29s`
+- `docker compose exec -T backend php artisan test --env=testing --filter=CallQueue` - `PASS`, `5` tests, `58` assertions, `122.74s`
+- `docker compose exec -T backend php artisan test --env=testing --filter=Ivr` - `PASS`, `4` tests, `36` assertions, `119.86s`
+- `docker compose exec -T backend php artisan test --env=testing --filter=SeederArchitectureTest` - `PASS`, `5` tests, `98` assertions, `152.69s`
+- `docker compose exec -T backend php artisan test --env=testing --filter=TenantAwareRbac` - `PASS`, `6` tests, `14` assertions, `125.52s`
+
+Limitations:
+
+- The full backend suite was not rerun in this follow-up because the task only required the telephony runtime stabilization slice.
+- The schema-dump-backed loader depends on the backend image having the MySQL client installed, which is now part of `docker/php/Dockerfile`.
+
 ## Manual Browser Validation
 
 Recorded from the project owner's manual verification:

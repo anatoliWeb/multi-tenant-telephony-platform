@@ -51,6 +51,9 @@ Testing reset note:
   migration lifecycle at a time;
 - if a test run aborts mid-migration, rerun `composer test:preflight` before the
   next targeted or full suite.
+- the backend test image now includes the MySQL client so the stored schema dump
+  can be loaded quickly for isolated `saas_testing` runs without touching dev or
+  production data.
 
 ## Seeder Responsibilities
 

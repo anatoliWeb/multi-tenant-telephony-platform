@@ -51,6 +51,10 @@ class CallQueueApiTest extends TestCase
             'assigned_user_id' => $owner->id,
         ]);
 
+        // Re-assert the authenticated user after fixture setup so the protected
+        // tenant-scoped API calls never inherit a cleared guard from helper work.
+        Sanctum::actingAs($owner);
+
         $createResponse = $this->postJson('/api/v1/call-queues', [
             'name' => 'Support Queue',
             'description' => 'Primary support queue.',

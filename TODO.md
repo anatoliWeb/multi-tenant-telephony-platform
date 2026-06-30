@@ -861,11 +861,11 @@ The Laravel domain must not depend directly on FreeSWITCH-specific classes.
 - [x] IVR options
 - [x] Timeout actions
 - [x] Invalid-input actions
-- PARTIAL Route validation
-- PARTIAL Route-loop validation
+- [x] Route validation
+- [x] Route-loop validation
 - [x] Policies
 - [x] Events
-- PARTIAL Tests
+- [x] Tests
 - [x] Demo data
 
 ---
@@ -874,14 +874,14 @@ The Laravel domain must not depend directly on FreeSWITCH-specific classes.
 
 Several telephony feature slices have backend functional tests that cannot be fully trusted until the isolated testing database bootstrap is stable.
 
-- [ ] Rebuild or reset the `saas_testing` database bootstrap
-- [ ] Verify migrations run cleanly from an empty testing database
-- [ ] Rerun Ring Groups backend feature tests
-- [ ] Rerun Call Queues backend feature tests
-- [ ] Rerun IVR backend feature tests
-- [ ] Rerun SeederArchitectureTest
+- [x] Rebuild or reset the `saas_testing` database bootstrap
+- [x] Verify migrations run cleanly from an empty testing database
+- [x] Rerun Ring Groups backend feature tests
+- [x] Rerun Call Queues backend feature tests
+- [x] Rerun IVR backend feature tests
+- [x] Rerun SeederArchitectureTest
 - [ ] Rerun the full backend test suite
-- [ ] Update baseline validation docs with trusted backend totals
+- [x] Update baseline validation docs with trusted backend totals
 
 ---
 

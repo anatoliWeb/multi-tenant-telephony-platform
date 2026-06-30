@@ -51,7 +51,9 @@ class IvrApiTest extends TestCase
         ], ['X-Tenant-ID' => $tenant->id])
             ->assertCreated()
             ->assertJsonPath('data.tenant_id', $tenant->id)
-            ->assertJsonPath('data.timeout_destination_summary', 'hangup')
+            // Hangup without a destination is represented as a null summary in
+            // the API contract because there is nothing to resolve further.
+            ->assertJsonPath('data.timeout_destination_summary', null)
             ->assertJsonPath('data.invalid_action_type', 'repeat');
 
         $menuId = (int) $createResponse->json('data.id');
