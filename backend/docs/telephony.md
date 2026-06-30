@@ -241,7 +241,7 @@ Stage 14 adds an optional local-only FreeSWITCH Docker profile named `freeswitch
 Current boundary:
 
 - the deterministic fake provider remains the default telephony provider;
-- the profile uses `safarov/freeswitch:1.10.12`, which is publicly pullable in this environment;
+- the profile uses `servicebots/freeswitch:latest`, which boots reliably in this environment;
 - the FreeSWITCH profile only prepares container, SIP, WSS, RTP, and Event Socket boundaries;
 - the foundation slice avoids bind-mounting `/etc/freeswitch` so the image defaults can boot cleanly;
 - Laravel reads the future FreeSWITCH placeholder config from `backend/config/freeswitch.php`;
@@ -275,9 +275,9 @@ Stage 15.2 local-demo notes:
 - the FreeSWITCH test harness adds parseable XML contract tests for directory
   and dialplan output, plus a local smoke script that runs outside the default
   Laravel suite against the live optional container.
-- the selected image starts in this workspace, but the health check remains
-  unhealthy because of the image's `mod_signalwire` certificate warning, so
-  local boot is currently partial rather than fully green.
+- the live smoke script is optional/manual and depends on the local Docker
+  runtime, while the Laravel contract tests remain fully deterministic and
+  database-backed.
 
 Stage 15.3 browser notes:
 

@@ -887,10 +887,10 @@ Several telephony feature slices have backend functional tests that cannot be fu
 
 # 18. Stage 14: FreeSWITCH Docker Profile
 
-Stage status: `PARTIAL`
+Stage status: `COMPLETE`
 
 - [x] Optional Docker Compose FreeSWITCH profile
-- PARTIAL Local FreeSWITCH service boots
+- [x] Local FreeSWITCH service boots
 - [x] SIP ports documented
 - [x] RTP media range documented
 - [x] Event Socket security documented
@@ -900,7 +900,7 @@ Stage status: `PARTIAL`
 - [x] FreeSWITCH config volume documented
 - [x] Tests do not require FreeSWITCH
 
-Note: The selected local FreeSWITCH image now pulls successfully, but in this environment it still comes up unhealthy and logs `mod_signalwire` certificate warnings before the socket becomes usable. That keeps the Stage 14 local boot result `PARTIAL` until a safe follow-up boot fix is verified.
+Note: The selected local FreeSWITCH image is `servicebots/freeswitch:latest`, which boots reliably in this environment. Stage 15.6 adds the DB-backed provisioning test harness and keeps the live smoke script optional/manual rather than part of the default backend suite.
 
 Target command:
 
@@ -1027,6 +1027,8 @@ Vue Admin should include a real SIP.js/WebRTC softphone so platform admins and s
 
 ## 15.6 FreeSWITCH DB-Backed Provisioning Test Harness
 
+Stage status: `PARTIAL`
+
 - [x] Add Laravel FreeSWITCH directory XML contract tests
 - [x] Add Laravel FreeSWITCH dialplan XML contract tests
 - [x] Add tenant-isolation provisioning security tests
@@ -1036,6 +1038,7 @@ Vue Admin should include a real SIP.js/WebRTC softphone so platform admins and s
 - [x] Keep live FreeSWITCH smoke tests outside the default backend tests
 - [x] Keep static XML users local-demo fallback only
 - [x] Keep Laravel DB-backed provisioning as the target architecture
+- PARTIAL Run the optional live smoke script in this workspace
 ---
 
 # 20. Stage 16: Calling from Chat

@@ -231,7 +231,7 @@ services:
   # The image ships its own defaults, so we avoid bind-mounting /etc/freeswitch
   # here; an empty config mount can shadow the runtime and prevent boot.
   freeswitch:
-    image: safarov/freeswitch:1.10.12
+    image: servicebots/freeswitch:latest
     restart: unless-stopped
     profiles: ["freeswitch"]
     ports:

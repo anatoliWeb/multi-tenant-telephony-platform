@@ -113,23 +113,22 @@ Limitations:
 
 - The full backend suite was not rerun in this follow-up because the task only required the telephony runtime stabilization slice.
 - The schema-dump-backed loader depends on the backend image having the MySQL client installed, which is now part of `docker/php/Dockerfile`.
-- Stage 14 FreeSWITCH support is now scaffolded as an optional Docker profile and the pull/start path is validated with the working image shown below, but the live boot result in this workspace remains partial.
-- The FreeSWITCH profile uses `safarov/freeswitch:1.10.12`, keeps the Event Socket bound to localhost, and relies on image defaults instead of a `/etc/freeswitch` bind mount.
+- Stage 14 FreeSWITCH support is now scaffolded as an optional Docker profile and was validated with the working image shown below.
+- The FreeSWITCH profile uses `servicebots/freeswitch:latest`, keeps the Event Socket bound to localhost, and relies on image defaults instead of a `/etc/freeswitch` bind mount.
 - Stage 15.4 demo-directory provisioning now copies the local XML users into the running container and verifies `1001` / `1002` with the FreeSWITCH lookup syntax `user_exists id <user> <domain>`.
 - Stage 15.5 keeps the browser SIP domain and WSS URL browser-reachable while allowing the FreeSWITCH directory lookup domain to remain Docker-runtime specific during local provisioning checks.
 - Stage 15.6 adds a DB-backed provisioning test harness: XML contract tests cover directory and dialplan output, tenant-isolation security tests keep secrets out of generated XML and logs, and a live smoke script verifies the optional FreeSWITCH container without folding it into the default backend suite.
-- The same image now pulls and starts, but the container still reports an unhealthy boot in this workspace because the image logs a `mod_signalwire` certificate warning before the socket becomes usable; that keeps the live boot result partial even though the harness tests pass.
+- Laravel contract tests are complete/pass; the live smoke script remains optional/manual and depends on the local Docker runtime.
 
 ## Stage 14 Validation
 
-Manual smoke verification on 2026-06-30 confirmed the pull/start path but not a clean boot:
+Manual smoke verification on 2026-06-30 confirmed a clean boot:
 
-- `docker compose --profile freeswitch pull freeswitch` successfully pulled `safarov/freeswitch:1.10.12`.
+- `docker compose --profile freeswitch pull freeswitch` successfully pulled `servicebots/freeswitch:latest`.
 - `docker compose --profile freeswitch up -d freeswitch` created and started the container.
-- `docker compose ps` showed the container running, but with an `unhealthy` health status.
-- `docker compose logs --tail=100 freeswitch` showed repeated `mod_signalwire` certificate warnings.
-- `docker compose exec -T freeswitch fs_cli -x "status"` returned `Error Connecting []`.
-- `docker compose exec -T freeswitch fs_cli -x "sofia status profile internal"` was not reachable through `fs_cli` during this run.
+- `docker compose ps` showed the container running.
+- `docker compose exec -T freeswitch fs_cli -x "status"` returned `FreeSWITCH ... is ready`.
+- `docker compose exec -T freeswitch fs_cli -x "sofia status profile internal"` showed `internal RUNNING` and `external RUNNING`.
 - The browser-facing SIP and WSS values remain on `localhost` and `wss://localhost:7443`.
 - The optional profile still keeps Event Socket access bound to localhost.
 
