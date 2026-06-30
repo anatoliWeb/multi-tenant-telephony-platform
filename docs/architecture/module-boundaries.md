@@ -105,12 +105,13 @@ The boundaries below are planning rules for new code. They do not require a whol
 
 - Responsibility: tenant-scoped softphone UX, SIP registration, call state management, and media cleanup.
 - Owned entities: call session state, selected device state, safe SIP account metadata.
-- Public application services: Angular and Vue softphone client services, call session stores, device services.
-- Events emitted: registration status changes, call state changes, media lifecycle transitions.
+- Public application services: Angular softphone client services, call-control API services, and call session stores that will later back the Vue support slice.
+- Events emitted: registration status changes, call state changes, media lifecycle transitions, permission changes.
 - Contracts consumed: Telephony, Tenancy, AccessControl, Integrations.
 - Allowed dependencies: Shared, Telephony, Tenancy, AccessControl, Integrations.
 - Forbidden dependencies: leaking SIP passwords, storing long-lived media streams in browser state, or bypassing tenant-scoped credential checks.
 - Angular owns the tenant-facing softphone first; Vue Admin can receive a separate support-oriented softphone later, but it must follow the same tenant-scoped credential and cleanup rules.
+- The current Angular slice is foundation-only: it loads a tenant-scoped SIP profile, manages permission state, and keeps registration disabled until the provisioning slice can safely supply live credentials.
 
 ## CallManagement
 

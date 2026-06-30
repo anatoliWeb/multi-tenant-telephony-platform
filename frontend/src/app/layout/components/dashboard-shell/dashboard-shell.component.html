@@ -8,13 +8,17 @@
       [locales]="enabledLocales"
       [tenants]="tenants$ | async"
       [activeTenantId]="activeTenantId$ | async"
+      [canOpenSoftphone]="canOpenSoftphone"
       (localeChange)="switchLocale($event)"
       (tenantChange)="switchTenant($event)"
+      (softphoneClick)="openSoftphone()"
       (logout)="logout()"
     />
 
     <app-content-wrapper />
     <app-footer />
+
+    <app-softphone-modal [open]="isSoftphoneOpen" (close)="closeSoftphone()" />
   </section>
 
   <app-notification-host />

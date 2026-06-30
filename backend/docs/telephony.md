@@ -168,7 +168,9 @@ Current rules:
 - a user may have one primary DID per tenant;
 - extensions stay separate and are linked only through the assigned user.
 
-Current implementation does not add FreeSWITCH, SIP.js, carrier adapters, or real call routing.
+Current implementation keeps DID inventory provider-neutral; the new Angular
+softphone foundation lives in a separate call-control slice and does not change
+DID routing behavior yet.
 
 ## Call Logs Integration
 
@@ -200,14 +202,26 @@ Current behavior:
 
 ## Softphone Planning
 
-The next call-control slice is intentionally planned, not implemented.
+The next call-control slice has started as an Angular foundation, but real SIP
+registration remains intentionally disabled until tenant-safe directory
+provisioning exists.
 
 Current boundary:
 
 - Angular remains the primary tenant softphone surface;
+- the browser softphone now loads a tenant-scoped SIP profile for the selected
+  extension and keeps credentials out of persistent browser state;
+- the SIP profile endpoint is `GET /api/v1/extensions/{extension}/sip-profile`
+  and returns metadata only in the normal environment;
+- the profile endpoint is metadata-only in the normal environment, so the UI
+  can render call state, microphone checks, and placeholder actions without
+  leaking secrets;
 - Vue Admin is planned to get a support-oriented SIP.js/WebRTC softphone later;
-- SIP credentials must remain tenant-scoped and must not leak into logs, browser storage, or devtools-friendly global state;
-- this TODO/docs pass does not add SIP.js packages, credential endpoints, or WebRTC behavior.
+- SIP credentials must remain tenant-scoped and must not leak into logs, browser
+  storage, or devtools-friendly global state;
+- this slice adds the Angular SIP.js dependency, but it does not yet wire live
+  registration because the FreeSWITCH directory/dialplan provisioning slice is
+  still pending.
 
 ## FreeSWITCH Docker Profile
 

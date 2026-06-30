@@ -1,6 +1,7 @@
 import { NgModule } from '@angular/core';
 import { RouterModule } from '@angular/router';
 import { SharedModule } from '../shared/shared.module';
+import { CallControlModule } from '../features/call-control/call-control.module';
 import { ContentWrapperComponent } from './components/content-wrapper/content-wrapper.component';
 import { DashboardShellComponent } from './components/dashboard-shell/dashboard-shell.component';
 import { FooterComponent } from './components/footer/footer.component';
@@ -17,7 +18,7 @@ import { TopbarComponent } from './components/topbar/topbar.component';
     FooterComponent,
     NotificationHostComponent,
   ],
-  imports: [RouterModule, SharedModule],
+  imports: [RouterModule, SharedModule, CallControlModule],
   exports: [DashboardShellComponent],
 })
 export class LayoutModule {}

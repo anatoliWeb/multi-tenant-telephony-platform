@@ -7,6 +7,7 @@ import { TenantContextService } from '../../../core/services/tenant-context.serv
 import { LocaleService } from '../../../i18n/services/locale.service';
 import { RuntimeTranslationService } from '../../../i18n/services/runtime-translation.service';
 import { PermissionService } from '../../../rbac/services/permission.service';
+import { SipClientService } from '../../../features/call-control/services/sip-client.service';
 
 @Component({
   selector: 'app-dashboard-shell',
@@ -19,12 +20,14 @@ export class DashboardShellComponent {
   readonly tenants$;
   readonly activeTenant$;
   readonly activeTenantId$;
+  isSoftphoneOpen = false;
 
   constructor(
     public readonly authState: AuthStateService,
     public readonly permissionService: PermissionService,
     public readonly localeService: LocaleService,
     public readonly tenantContext: TenantContextService,
+    private readonly sipClient: SipClientService,
     private readonly appLoading: AppLoadingService,
     private readonly authRuntime: AuthRuntimeService,
     private readonly runtimeTranslation: RuntimeTranslationService,
@@ -35,7 +38,12 @@ export class DashboardShellComponent {
     this.activeTenantId$ = this.tenantContext.activeTenantId$;
   }
 
+  get canOpenSoftphone(): boolean {
+    return this.tenantContext.hasTenant() && this.permissionService.hasTenantPermission('call_control.view');
+  }
+
   async logout(): Promise<void> {
+    this.closeSoftphone();
     await this.authRuntime.logout();
   }
 
@@ -53,11 +61,22 @@ export class DashboardShellComponent {
   }
 
   async switchTenant(tenantId: string): Promise<void> {
+    this.closeSoftphone();
+
     if (!tenantId) {
       this.tenantContext.clearSelection();
       return;
     }
 
     await this.tenantContext.switchTenant(tenantId);
+  }
+
+  openSoftphone(): void {
+    this.isSoftphoneOpen = true;
+  }
+
+  closeSoftphone(): void {
+    this.isSoftphoneOpen = false;
+    this.sipClient.resetForTenantChange();
   }
 }

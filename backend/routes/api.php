@@ -769,6 +769,10 @@ Route::prefix('v1')
                         ->name('show')
                         ->middleware('permission:extensions.view');
 
+                    Route::get('/{extension}/sip-profile', [ExtensionController::class, 'sipProfile'])
+                        ->name('sip-profile')
+                        ->middleware('permission:call_control.view');
+
                     Route::put('/{extension}', [ExtensionController::class, 'update'])
                         ->name('update')
                         ->middleware('permission:extensions.update');

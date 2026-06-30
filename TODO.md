@@ -916,16 +916,19 @@ Create a reusable Angular call-control layer:
 
 ```text
 CallControlModule
-CallControlService
-CallSessionStore
+SipClientService
 SoftphoneModal
-IncomingCallOverlay
-DeviceService
-CallPermissionService
-PBXClientAdapter
+CallControlApiService
 ```
 
-- [ ] SIP.js integration
+- [x] SIP.js integration
+- [x] Tenant-scoped SIP profile endpoint
+- [x] Call-control permissions
+- [x] Angular softphone button
+- [x] Angular softphone modal
+- [x] Registration status
+- [x] Microphone permission handling
+- [x] Remote audio element handling
 - [ ] SIP registration
 - [ ] WSS connection
 - [ ] WebRTC audio
@@ -939,12 +942,14 @@ PBXClientAdapter
 - [ ] Transfer
 - [ ] DTMF
 - [ ] Device selection
-- [ ] Registration status
 - [ ] Reconnect behavior
 - [ ] Error handling
 - [ ] Floating minimized mode
-- [ ] Full softphone view
-- [ ] Permission-aware controls
+- [x] Permission-aware controls
+- [x] Tenant switch cleanup
+- [x] Logout cleanup
+- [x] Tests
+- [ ] Browser verification
 
 The same call-control service must be reusable from:
 

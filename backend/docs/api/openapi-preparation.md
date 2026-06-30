@@ -389,6 +389,7 @@ Metadata gate note:
 | GET | `/api/v1/extensions/assignment-options` | sanctum | `tenant.extensions.view` | none | success envelope with `users[]` and `contacts[]` | tenant-safe assignee choices only |
 | POST | `/api/v1/extensions` | sanctum | `tenant.extensions.create` | `StoreExtensionRequest` | `ExtensionResource` envelope with one-time `plain_secret` | creates extension, credentials, and fake-provider endpoint |
 | GET | `/api/v1/extensions/{extension}` | sanctum | `tenant.extensions.view` | path param | `ExtensionResource` envelope | refreshes stored fake-provider state |
+| GET | `/api/v1/extensions/{extension}/sip-profile` | sanctum | `tenant.call_control.view` | path param | success envelope with SIP profile metadata only | tenant-scoped browser calling foundation; no password is exposed yet |
 | PUT/PATCH | `/api/v1/extensions/{extension}` | sanctum | `tenant.extensions.update` | `UpdateExtensionRequest` | `ExtensionResource` envelope | updates assignment/status and reprovisions |
 | POST | `/api/v1/extensions/{extension}/rotate-credentials` | sanctum | `tenant.extensions.manage_credentials` | path param | `ExtensionResource` envelope with one-time `plain_secret` | rotates SIP-style secret without exposing stored value later |
 | DELETE | `/api/v1/extensions/{extension}` | sanctum | `tenant.extensions.delete` | path param | success envelope | removes tenant-owned extension and fake endpoint |

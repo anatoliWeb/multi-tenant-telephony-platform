@@ -10,6 +10,7 @@ use App\Http\Requests\Api\UpdateExtensionRequest;
 use App\Http\Resources\ExtensionResource;
 use App\Models\Extension;
 use App\Models\User;
+use App\Services\CallControl\SipProfileService;
 use App\Services\Extensions\ExtensionQueryService;
 use App\Services\Extensions\ExtensionService;
 use Illuminate\Http\JsonResponse;
@@ -19,6 +20,7 @@ class ExtensionController extends BaseController
     public function __construct(
         private readonly ExtensionQueryService $queryService,
         private readonly ExtensionService $extensionService,
+        private readonly SipProfileService $sipProfileService,
     ) {
     }
 
@@ -109,6 +111,19 @@ class ExtensionController extends BaseController
         $payload['plain_secret'] = $result['plain_secret'];
 
         return $this->successResponse($payload, 'Extension credentials rotated');
+    }
+
+    public function sipProfile(Extension $extension): JsonResponse
+    {
+        if (! $extension->isInCurrentTenant()) {
+            abort(404, 'Extension not found.');
+        }
+
+        $this->authorize('viewSipProfile', $extension);
+
+        $payload = $this->sipProfileService->build($extension->loadMissing(['credential']));
+
+        return $this->successResponse($payload, 'SIP profile loaded');
     }
 
     public function assignmentOptions(): JsonResponse

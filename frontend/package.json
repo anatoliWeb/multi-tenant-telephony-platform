@@ -21,6 +21,7 @@
     "laravel-echo": "^2.2.4",
     "pusher-js": "^8.4.0",
     "rxjs": "~7.8.0",
+    "sip.js": "0.21.2",
     "tslib": "^2.3.0"
   },
   "devDependencies": {
@@ -33,4 +34,3 @@
     "vitest": "^4.0.8"
   }
 }
-

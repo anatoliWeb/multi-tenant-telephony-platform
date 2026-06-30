@@ -149,6 +149,7 @@ class SeederArchitectureTest extends TestCase
         $this->assertSame(3, $tenantOwnerRoles->unique()->count());
         $this->assertTenantRolePermissions($defaultTenant, 'tenant_owner', ['contacts.view', 'extensions.view', 'phone_numbers.view', 'call_logs.view_all', 'chat.view']);
         $this->assertTenantRolePermissions($defaultTenant, 'tenant_admin', ['contacts.create', 'extensions.manage_credentials', 'phone_numbers.release', 'call_logs.export']);
+        $this->assertTenantRolePermissions($defaultTenant, 'telephony_manager', ['extensions.view', 'call_control.view', 'call_control.register', 'call_control.call']);
         $this->assertTenantRolePermissions($defaultTenant, 'agent', ['contacts.view', 'extensions.view', 'phone_numbers.view', 'call_logs.view_own', 'chat.conversations.view']);
         $this->assertTenantRolePermissions($defaultTenant, 'read_only', ['contacts.view', 'extensions.view', 'phone_numbers.view', 'call_logs.view_own', 'chat.view']);
         $this->assertSame(

@@ -10,6 +10,7 @@ import type {
   TenantSummary,
 } from '../models/tenant-context.model';
 import { ChatStateService } from '../../features/chat/services/chat-state.service';
+import { SipClientService } from '../../features/call-control/services/sip-client.service';
 import { ContactsStateService } from '../../features/contacts/services/contacts-state.service';
 import { ExtensionsStateService } from '../../features/extensions/services/extensions-state.service';
 import { PhoneNumbersStateService } from '../../features/phone-numbers/services/phone-numbers-state.service';
@@ -32,6 +33,7 @@ export class TenantContextService {
     private readonly tokenStorage: AuthTokenStorageService,
     private readonly authState: AuthStateService,
     private readonly chatState: ChatStateService,
+    private readonly sipClient: SipClientService,
     private readonly contactsState: ContactsStateService,
     private readonly extensionsState: ExtensionsStateService,
     private readonly phoneNumbersState: PhoneNumbersStateService,
@@ -68,6 +70,7 @@ export class TenantContextService {
 
   clear(): void {
     this.chatState.resetForTenantChange();
+    this.sipClient.resetForTenantChange();
     this.contactsState.resetForTenantChange();
     this.extensionsState.resetForTenantChange();
     this.phoneNumbersState.resetForTenantChange();
@@ -80,6 +83,7 @@ export class TenantContextService {
 
   clearSelection(): void {
     this.chatState.resetForTenantChange();
+    this.sipClient.resetForTenantChange();
     this.contactsState.resetForTenantChange();
     this.extensionsState.resetForTenantChange();
     this.phoneNumbersState.resetForTenantChange();
@@ -117,6 +121,7 @@ export class TenantContextService {
 
   async switchTenant(tenantId: string): Promise<TenantContextPayload> {
     this.chatState.resetForTenantChange();
+    this.sipClient.resetForTenantChange();
     this.contactsState.resetForTenantChange();
     this.extensionsState.resetForTenantChange();
     this.phoneNumbersState.resetForTenantChange();
@@ -193,6 +198,7 @@ export class TenantContextService {
 
     if (this.activeTenantSubject.value?.id !== candidate?.id) {
       this.chatState.resetForTenantChange();
+      this.sipClient.resetForTenantChange();
       this.contactsState.resetForTenantChange();
       this.extensionsState.resetForTenantChange();
       this.phoneNumbersState.resetForTenantChange();

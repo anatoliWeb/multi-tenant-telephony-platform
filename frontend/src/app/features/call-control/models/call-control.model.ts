@@ -1,0 +1,46 @@
+export type SipCallState =
+  | 'idle'
+  | 'checking_permissions'
+  | 'ready'
+  | 'registering'
+  | 'registered'
+  | 'registration_failed'
+  | 'dialing'
+  | 'ringing'
+  | 'active'
+  | 'held'
+  | 'ended'
+  | 'failed';
+
+export type SipRegistrationState = 'disconnected' | 'connecting' | 'registered' | 'failed';
+
+export type MicrophonePermissionState = 'unknown' | 'checking' | 'granted' | 'denied' | 'prompt' | 'unsupported';
+
+export interface SipProfileCapabilities {
+  outbound_call: boolean;
+  inbound_call: boolean;
+  hold: boolean;
+  mute: boolean;
+}
+
+export interface SipProfileRegistrationState {
+  enabled: boolean;
+  state: 'disabled' | 'available' | 'connecting' | 'registered' | 'failed';
+  reason: string | null;
+}
+
+export interface SipProfile {
+  extension_id: number;
+  extension_number: string;
+  display_name: string;
+  sip_uri: string;
+  authorization_username: string;
+  authorization_password?: string | null;
+  websocket_url: string;
+  domain: string;
+  provider: string;
+  expires_seconds: number;
+  capabilities: SipProfileCapabilities;
+  registration: SipProfileRegistrationState;
+  tenant_id: string;
+}

@@ -1,0 +1,129 @@
+<app-modal-shell [open]="open" (close)="requestClose()">
+  <section class="softphone" *ngIf="open">
+    <header class="softphone__header">
+      <div>
+        <p class="softphone__eyebrow">{{ 'callControl.title' | t }}</p>
+        <h3>{{ 'callControl.subtitle' | t }}</h3>
+      </div>
+
+      <button type="button" class="softphone__close" (click)="requestClose()">
+        {{ 'common.actions.close' | t }}
+      </button>
+    </header>
+
+    <div class="softphone__grid">
+      <article class="softphone__card softphone__card--summary">
+        <h4>{{ 'callControl.section.selection' | t }}</h4>
+        <div class="softphone__rows">
+          <div>
+            <span>{{ 'callControl.fields.tenant' | t }}</span>
+            <strong>{{ (tenantContext.activeTenant$ | async)?.name || ('callControl.noTenant' | t) }}</strong>
+          </div>
+          <div>
+            <span>{{ 'callControl.fields.extension' | t }}</span>
+            <strong>{{ (profile$ | async)?.extension_number || ('callControl.noExtension' | t) }}</strong>
+          </div>
+          <div>
+            <span>{{ 'callControl.fields.registrationState' | t }}</span>
+            <strong>{{ (registrationState$ | async) || 'disconnected' }}</strong>
+          </div>
+          <div>
+            <span>{{ 'callControl.fields.callState' | t }}</span>
+            <strong>{{ (callState$ | async) || 'idle' }}</strong>
+          </div>
+          <div>
+            <span>{{ 'callControl.fields.microphonePermission' | t }}</span>
+            <strong>{{ (microphonePermission$ | async) || 'unknown' }}</strong>
+          </div>
+        </div>
+      </article>
+
+      <article class="softphone__card">
+        <h4>{{ 'callControl.section.profile' | t }}</h4>
+        <ng-container *ngIf="profile$ | async as profile; else noProfile">
+          <div class="softphone__rows">
+            <div>
+              <span>{{ 'callControl.fields.sipUri' | t }}</span>
+              <strong>{{ profile.sip_uri }}</strong>
+            </div>
+            <div>
+              <span>{{ 'callControl.fields.username' | t }}</span>
+              <strong>{{ profile.authorization_username }}</strong>
+            </div>
+            <div>
+              <span>{{ 'callControl.fields.websocket' | t }}</span>
+              <strong>{{ profile.websocket_url }}</strong>
+            </div>
+            <div>
+              <span>{{ 'callControl.fields.registration' | t }}</span>
+              <strong>{{ profile.registration.state }}</strong>
+            </div>
+            <p class="softphone__hint">
+              {{ profile.registration.reason || ('callControl.registrationDisabled' | t) }}
+            </p>
+          </div>
+        </ng-container>
+
+        <ng-template #noProfile>
+          <p class="softphone__hint">{{ 'callControl.profileUnavailable' | t }}</p>
+        </ng-template>
+      </article>
+
+      <article class="softphone__card softphone__card--controls">
+        <h4>{{ 'callControl.section.controls' | t }}</h4>
+
+        <label>
+          <span>{{ 'callControl.fields.destination' | t }}</span>
+          <input
+            type="text"
+            [value]="destination"
+            (input)="onDestinationChange($any($event.target).value)"
+            [placeholder]="'callControl.destinationPlaceholder' | t"
+          />
+        </label>
+
+        <audio #remoteAudio controls autoplay muted></audio>
+
+        <div class="softphone__actions">
+          <button type="button" (click)="checkMicrophonePermission()">
+            {{ 'callControl.actions.checkMicrophone' | t }}
+          </button>
+          <button type="button" (click)="register()" [disabled]="!profile?.registration?.enabled">
+            {{ 'callControl.actions.register' | t }}
+          </button>
+          <button
+            type="button"
+            (click)="placeCall()"
+            [disabled]="!profile?.registration?.enabled || !profile?.capabilities?.outbound_call"
+          >
+            {{ 'callControl.actions.call' | t }}
+          </button>
+          <button type="button" (click)="hangup()" [disabled]="!profile?.registration?.enabled">
+            {{ 'callControl.actions.hangup' | t }}
+          </button>
+          <button
+            type="button"
+            (click)="toggleMute()"
+            [disabled]="!profile?.registration?.enabled || !profile?.capabilities?.mute"
+          >
+            {{ ((muted$ | async) ? 'callControl.actions.unmute' : 'callControl.actions.mute') | t }}
+          </button>
+          <button type="button" disabled>
+            {{ 'callControl.actions.holdResume' | t }}
+          </button>
+        </div>
+
+        <p class="softphone__hint" *ngIf="loadingExtension">
+          {{ 'callControl.loadingProfile' | t }}
+        </p>
+        <p class="softphone__error" *ngIf="error$ | async as error">
+          {{ error }}
+        </p>
+      </article>
+    </div>
+
+    <footer class="softphone__footer">
+      <small>{{ 'callControl.footer.note' | t }}</small>
+    </footer>
+  </section>
+</app-modal-shell>

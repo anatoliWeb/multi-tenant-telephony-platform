@@ -1,0 +1,103 @@
+import { BehaviorSubject } from 'rxjs';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { vi } from 'vitest';
+import { SoftphoneModalComponent } from './softphone-modal.component';
+import { SipClientService } from '../services/sip-client.service';
+import { ExtensionsStateService } from '../../extensions/services/extensions-state.service';
+import { TenantContextService } from '../../../core/services/tenant-context.service';
+
+describe('SoftphoneModalComponent', () => {
+  let fixture: ComponentFixture<SoftphoneModalComponent>;
+  let component: SoftphoneModalComponent;
+
+  const extensions$ = new BehaviorSubject([
+    {
+      id: 42,
+      number: '2001',
+      label: 'Primary Desk',
+      status: 'active',
+    },
+  ]);
+
+  const tenantContextMock = {
+    hasTenant: vi.fn(() => true),
+    activeTenant$: new BehaviorSubject({ id: 'tenant-a', name: 'Tenant A' }),
+  };
+
+  const extensionsStateMock = {
+    extensions$,
+    init: vi.fn().mockResolvedValue(undefined),
+  };
+
+  const sipClientMock = {
+    profile$: new BehaviorSubject({
+      extension_id: 42,
+      extension_number: '2001',
+      display_name: 'Primary Desk',
+      sip_uri: 'sip:2001@localhost',
+      authorization_username: '2001',
+      websocket_url: 'wss://localhost:7443',
+      domain: 'localhost',
+      provider: 'freeswitch',
+      expires_seconds: 300,
+      registration: {
+        enabled: false,
+        state: 'disabled',
+        reason: 'SIP registration stays disabled until a safe tenant directory provisioning slice exists.',
+      },
+      capabilities: {
+        outbound_call: true,
+        inbound_call: false,
+        hold: false,
+        mute: true,
+      },
+      tenant_id: 'tenant-a',
+    }),
+    callState$: new BehaviorSubject('ready'),
+    registrationState$: new BehaviorSubject('disconnected'),
+    microphonePermission$: new BehaviorSubject('unknown'),
+    muted$: new BehaviorSubject(false),
+    error$: new BehaviorSubject<string | null>(null),
+    loadProfile: vi.fn().mockResolvedValue(undefined),
+    bindRemoteAudio: vi.fn(),
+    resetForTenantChange: vi.fn(),
+    register: vi.fn().mockResolvedValue(undefined),
+    checkMicrophonePermission: vi.fn().mockResolvedValue(undefined),
+    call: vi.fn().mockResolvedValue(undefined),
+    hangup: vi.fn().mockResolvedValue(undefined),
+    toggleMute: vi.fn(),
+    setDestination: vi.fn(),
+  };
+
+  beforeEach(async () => {
+    await TestBed.configureTestingModule({
+      imports: [SoftphoneModalComponent],
+      providers: [
+        { provide: SipClientService, useValue: sipClientMock },
+        { provide: ExtensionsStateService, useValue: extensionsStateMock },
+        { provide: TenantContextService, useValue: tenantContextMock },
+      ],
+    }).compileComponents();
+
+    fixture = TestBed.createComponent(SoftphoneModalComponent);
+    component = fixture.componentInstance;
+  });
+
+  it('loads a default extension profile when opened', async () => {
+    component.open = true;
+    await component.prepareProfile();
+    fixture.detectChanges();
+
+    expect(extensionsStateMock.init).toHaveBeenCalled();
+    expect(sipClientMock.loadProfile).toHaveBeenCalledWith(42);
+    expect(component.selectedExtensionId).toBe(42);
+    expect(fixture.nativeElement.textContent).toContain('2001');
+    expect(fixture.nativeElement.textContent).not.toContain('callControl.title');
+  });
+
+  it('cleans up state when closed', () => {
+    component.requestClose();
+
+    expect(sipClientMock.resetForTenantChange).toHaveBeenCalled();
+  });
+});

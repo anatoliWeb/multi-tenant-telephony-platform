@@ -20,6 +20,10 @@
       <option *ngFor="let locale of locales" [value]="locale">{{ locale | uppercase }}</option>
     </select>
 
+    <button *ngIf="canOpenSoftphone" type="button" class="softphone-btn" (click)="softphoneClick.emit()">
+      {{ 'layout.topbar.softphone' | t }}
+    </button>
+
     <small class="user-name">{{ userName || ('common.status.guest' | t) }}</small>
     <button type="button" class="logout-btn" (click)="logout.emit()">{{ 'common.actions.logout' | t }}</button>
   </div>

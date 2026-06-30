@@ -26,7 +26,8 @@
 }
 
 select,
-.logout-btn {
+.logout-btn,
+.softphone-btn {
   height: 32px;
   border-radius: 8px;
   border: 1px solid rgba(71, 85, 105, 0.6);
@@ -37,6 +38,13 @@ select,
 
 .logout-btn {
   cursor: pointer;
+}
+
+.softphone-btn {
+  cursor: pointer;
+  border-color: rgba(56, 189, 248, 0.45);
+  color: #e0f2fe;
+  background: linear-gradient(135deg, rgba(8, 47, 73, 0.95), rgba(15, 23, 42, 0.85));
 }
 
 .user-name {

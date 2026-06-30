@@ -78,6 +78,12 @@ Canonical tenant feature names:
 - `extensions.update`
 - `extensions.delete`
 - `extensions.manage_credentials`
+- `call_control.view`
+- `call_control.register`
+- `call_control.call`
+- `call_control.hangup`
+- `call_control.mute`
+- `call_control.hold`
 - `phone_numbers.view`
 - `phone_numbers.create`
 - `phone_numbers.update`
@@ -165,6 +171,30 @@ Verified behavior:
 - assigned users and assigned contacts must belong to the active tenant;
 - credential rotation stays behind the dedicated credential-management permission;
 - cross-tenant extension identifiers fail closed.
+
+## Call Control Permissions
+
+The Angular softphone foundation uses a dedicated tenant-scoped call-control
+permission set.
+
+Implemented permissions:
+
+- `call_control.view`
+- `call_control.register`
+- `call_control.call`
+- `call_control.hangup`
+- `call_control.mute`
+- `call_control.hold`
+
+Verified behavior:
+
+- platform permissions alone do not grant tenant softphone access;
+- the SIP profile endpoint requires an active tenant context and
+  `call_control.view`;
+- the normal profile response is metadata-only, so SIP passwords are not
+  persisted in browser state or echoed in API payloads;
+- tenant owner, tenant admin, and tenant telephony manager remain the intended
+  roles for the first softphone slice.
 
 ## Phone Numbers Permissions
 

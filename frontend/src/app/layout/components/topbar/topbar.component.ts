@@ -13,8 +13,10 @@ export class TopbarComponent {
   @Input() locales: readonly string[] = ['en', 'uk', 'de'];
   @Input() tenants: readonly TenantSelectionItem[] | null = [];
   @Input() activeTenantId: string | null = null;
+  @Input() canOpenSoftphone = false;
   @Output() localeChange = new EventEmitter<string>();
   @Output() tenantChange = new EventEmitter<string>();
+  @Output() softphoneClick = new EventEmitter<void>();
   @Output() logout = new EventEmitter<void>();
 
   onLocaleChange(event: Event): void {

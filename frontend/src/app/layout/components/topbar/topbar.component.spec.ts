@@ -16,6 +16,7 @@ class MockTranslatePipe implements PipeTransform {
         'layout.topbar.selectTenant': 'Select tenant',
         'layout.topbar.selectedTenant': 'Selected tenant',
         'layout.topbar.noTenantSelected': 'No tenant selected',
+        'layout.topbar.softphone': 'Softphone',
         'common.status.guest': 'Guest',
         'common.actions.logout': 'Logout',
       }[value] ?? value
@@ -128,5 +129,18 @@ describe('TopbarComponent', () => {
 
     expect(fixture.nativeElement.textContent).toContain('Select tenant');
     expect(fixture.nativeElement.textContent).not.toContain('layout.topbar.selectTenant');
+  });
+
+  it('shows the softphone launcher only when enabled', () => {
+    component.canOpenSoftphone = true;
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('Softphone');
+  });
+
+  it('hides the softphone launcher by default', () => {
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('.softphone-btn')).toBeNull();
   });
 });

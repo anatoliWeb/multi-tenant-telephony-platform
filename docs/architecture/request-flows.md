@@ -240,7 +240,9 @@ This flow is simulated only. No real SIP signaling, RTP, or FreeSWITCH event str
 
 This flow validates IVR configuration only. It does not play audio, place calls, or invoke a PBX adapter yet.
 
-The future FreeSWITCH profile does not change this dry-run behavior until the call-control layer is explicitly wired to a real provider.
+The softphone foundation now loads a tenant-scoped SIP profile, but it still
+keeps registration disabled until the call-control layer is explicitly wired
+to a real provider and safe tenant credentials can be provisioned.
 
 ## Contacts Lookup Flow
 

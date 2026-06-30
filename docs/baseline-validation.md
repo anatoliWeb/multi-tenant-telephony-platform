@@ -194,7 +194,7 @@ Verified:
 - Stage 13.3 IVR foundation is implemented in code, but the current report still
   needs fresh automated and browser verification before it can be treated as a
   fully revalidated milestone alongside the earlier baseline work.
-- Vue Admin SIP.js softphone remains a planned follow-up slice only; no SIP.js code was added in this alignment pass.
+- Angular SIP.js softphone foundation is now present; Vue Admin SIP.js softphone remains a planned follow-up slice only.
 
 ## Final Verdict
 
