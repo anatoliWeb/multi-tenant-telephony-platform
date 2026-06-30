@@ -8,8 +8,11 @@ This directory holds the optional local FreeSWITCH profile scaffolding for Stage
 - future SIP/WebRTC and call-control wiring;
 - keeping FreeSWITCH runtime boundaries outside the Laravel telephony domain.
 
-The current profile uses `servicebots/freeswitch:latest`, which boots reliably
-in this environment and remains suitable for local development.
+The current profile uses `safarov/freeswitch:1.10.12`, which is publicly
+pullable and remains suitable for local development. In this workspace the
+container starts, but the health check still goes unhealthy because the image
+logs a `mod_signalwire` certificate warning before the event socket becomes
+usable, so treat the local boot as partial until that follow-up is resolved.
 
 ## What this profile is not for
 

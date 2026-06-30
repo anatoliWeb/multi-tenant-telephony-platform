@@ -887,8 +887,10 @@ Several telephony feature slices have backend functional tests that cannot be fu
 
 # 18. Stage 14: FreeSWITCH Docker Profile
 
+Stage status: `PARTIAL`
+
 - [x] Optional Docker Compose FreeSWITCH profile
-- [x] Local FreeSWITCH service boots
+- PARTIAL Local FreeSWITCH service boots
 - [x] SIP ports documented
 - [x] RTP media range documented
 - [x] Event Socket security documented
@@ -898,7 +900,7 @@ Several telephony feature slices have backend functional tests that cannot be fu
 - [x] FreeSWITCH config volume documented
 - [x] Tests do not require FreeSWITCH
 
-Note: The selected local FreeSWITCH image logs `mod_xml_curl` / `Binding has no url` because backend-driven dynamic directory and dialplan integration is not configured yet. This is acceptable for the Stage 14 Docker profile foundation.
+Note: The selected local FreeSWITCH image now pulls successfully, but in this environment it still comes up unhealthy and logs `mod_signalwire` certificate warnings before the socket becomes usable. That keeps the Stage 14 local boot result `PARTIAL` until a safe follow-up boot fix is verified.
 
 Target command:
 
@@ -1022,6 +1024,18 @@ Vue Admin should include a real SIP.js/WebRTC softphone so platform admins and s
 - [x] Document WSS/TLS browser trust limitation
 - [x] Confirm CallControl backend tests
 - [x] Confirm Angular tests if frontend changes
+
+## 15.6 FreeSWITCH DB-Backed Provisioning Test Harness
+
+- [x] Add Laravel FreeSWITCH directory XML contract tests
+- [x] Add Laravel FreeSWITCH dialplan XML contract tests
+- [x] Add tenant-isolation provisioning security tests
+- [x] Add reusable XML assertions for FreeSWITCH payloads
+- [x] Add optional live FreeSWITCH smoke-test script
+- [x] Document the FreeSWITCH testing strategy
+- [x] Keep live FreeSWITCH smoke tests outside the default backend tests
+- [x] Keep static XML users local-demo fallback only
+- [x] Keep Laravel DB-backed provisioning as the target architecture
 ---
 
 # 20. Stage 16: Calling from Chat
