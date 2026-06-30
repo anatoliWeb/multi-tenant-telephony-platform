@@ -8,6 +8,7 @@ return [
     'sip_wss_url' => env('FREESWITCH_SIP_WSS_URL', env('FREESWITCH_WEBRTC_WSS_URL', 'wss://localhost:7443')),
     'webrtc_wss_url' => env('FREESWITCH_WEBRTC_WSS_URL', 'wss://localhost:7443'),
     'directory_domain' => env('FREESWITCH_DIRECTORY_DOMAIN'),
+    'directory_tenant_id' => env('FREESWITCH_DIRECTORY_TENANT_ID'),
     'default_sip_password' => env('FREESWITCH_DEFAULT_SIP_PASSWORD'),
     'ports' => [
         'sip' => (int) env('FREESWITCH_SIP_PORT', 5060),

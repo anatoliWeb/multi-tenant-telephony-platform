@@ -242,6 +242,7 @@ Current boundary:
 
 - the deterministic fake provider remains the default telephony provider;
 - the profile uses `servicebots/freeswitch:latest`, which boots reliably in this environment;
+- the stable local container name is `multi-tenant-telephony-platform-freeswitch`, which keeps scripts and docs readable without relying on Compose-generated suffixes;
 - the FreeSWITCH profile only prepares container, SIP, WSS, RTP, and Event Socket boundaries;
 - the foundation slice avoids bind-mounting `/etc/freeswitch` so the image defaults can boot cleanly;
 - Laravel reads the future FreeSWITCH placeholder config from `backend/config/freeswitch.php`;
@@ -275,6 +276,9 @@ Stage 15.2 local-demo notes:
 - the FreeSWITCH test harness adds parseable XML contract tests for directory
   and dialplan output, plus a local smoke script that runs outside the default
   Laravel suite against the live optional container.
+- the Stage 15.7 directory endpoint scaffold is local-only, uses an explicit
+  configured tenant id, and returns XML or 404 without guessing tenant
+  identity from a raw FreeSWITCH request.
 - the live smoke script is optional/manual and depends on the local Docker
   runtime, while the Laravel contract tests remain fully deterministic and
   database-backed.

@@ -35,6 +35,7 @@ use App\Http\Controllers\Api\V1\CallQueues\CallQueueController;
 use App\Http\Controllers\Api\V1\CallQueues\CallQueueMemberController;
 use App\Http\Controllers\Api\V1\CallLogs\CallLogController;
 use App\Http\Controllers\Api\V1\Extensions\ExtensionController;
+use App\Http\Controllers\Api\V1\FreeSwitch\DirectoryController;
 use App\Http\Controllers\Api\V1\RingGroups\RingGroupController;
 use App\Http\Controllers\Api\V1\RingGroups\RingGroupMemberController;
 use App\Http\Controllers\Api\V1\PhoneNumbers\PhoneNumberController;
@@ -248,6 +249,25 @@ Route::prefix('v1')
             ->group(function () {
                 Route::get('/', [TranslationController::class, 'index'])
                     ->name('index');
+            });
+
+        /**
+         * --------------------------------------------------------
+         * Local FreeSWITCH scaffolding
+         * --------------------------------------------------------
+         *
+         * WHY:
+         * The directory endpoint stays local-only until DB-backed
+         * provisioning is intentionally wired into FreeSWITCH. The route uses
+         * an explicit tenant/config gate instead of guessing tenant identity
+         * from a raw PBX request.
+         */
+        Route::prefix('freeswitch')
+            ->as('freeswitch.')
+            ->middleware('freeswitch.enabled')
+            ->group(function () {
+                Route::get('/directory', [DirectoryController::class, 'show'])
+                    ->name('directory.show');
             });
 
         Route::prefix('settings')

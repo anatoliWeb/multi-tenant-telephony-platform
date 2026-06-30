@@ -22,6 +22,10 @@ class DirectoryXmlContractTest extends TestCase
     {
         parent::setUp();
 
+        config()->set('app.env', 'local');
+        config()->set('freeswitch.enabled', true);
+        config()->set('freeswitch.local_demo_credentials', true);
+        config()->set('freeswitch.default_sip_password', 'secret-pass');
         config()->set('freeswitch.directory_domain', 'directory.contract.local');
         app(TenantContext::class)->clear();
     }
@@ -47,7 +51,7 @@ class DirectoryXmlContractTest extends TestCase
 
         app(TenantContext::class)->setTenant($tenant);
 
-        $xml = app(DirectoryXmlBuilder::class)->build($extension);
+        $xml = app(DirectoryXmlBuilder::class)->build($extension, true);
 
         $this->assertNotNull($xml);
 
@@ -64,6 +68,28 @@ class DirectoryXmlContractTest extends TestCase
         FreeSwitchXmlAssertions::assertDoesNotContain($xml, 'Foreign Desk');
         FreeSwitchXmlAssertions::assertDoesNotContain($xml, $otherExtension->number);
         FreeSwitchXmlAssertions::assertDoesNotContain($xml, (string) $otherTenant->getKey());
+    }
+
+    public function test_active_tenant_extension_omits_password_when_local_demo_is_disabled(): void
+    {
+        config()->set('freeswitch.local_demo_credentials', false);
+
+        $tenant = $this->createTenant('directory-no-password');
+        $owner = $this->actingAsTenantUser($this->createUser('directory-no-password-owner'));
+        $this->createMembership($tenant, $owner);
+
+        $extension = $this->createExtensionFixture($tenant, $owner, [
+            'number' => '2003',
+            'label' => 'No Password Desk',
+        ]);
+
+        app(TenantContext::class)->setTenant($tenant);
+
+        $xml = app(DirectoryXmlBuilder::class)->build($extension);
+
+        $this->assertNotNull($xml);
+        FreeSwitchXmlAssertions::assertDoesNotContain($xml, 'name="password"');
+        FreeSwitchXmlAssertions::assertDoesNotContain($xml, 'secret-pass');
     }
 
     public function test_inactive_extension_is_not_provisioned(): void

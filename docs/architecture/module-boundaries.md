@@ -89,6 +89,13 @@ The boundaries below are planning rules for new code. They do not require a whol
 - Tenant-facing softphone work stays in Angular, while a separate Vue Admin softphone is only a planned support workflow and must remain tenant-scoped if introduced later.
 - The optional FreeSWITCH Docker profile belongs to Integrations infrastructure, not this domain layer, and it must stay behind provider-neutral contracts and tenant-scoped application services.
 - `mod_xml_curl`-driven directory or dialplan work is intentionally deferred until backend-driven integration exists, so the Stage 14 Docker profile stays image-default based.
+- The Stage 15.7 directory endpoint is only a local scaffold: it resolves a
+  tenant from explicit config, emits XML from DB extensions, and keeps static
+  XML fallback files as the local-demo path until production `mod_xml_curl`
+  wiring is intentionally introduced.
+- Browser-facing SIP domains and FreeSWITCH runtime lookup domains remain
+  different inputs; browser URIs stay on reachable hostnames while directory
+  lookups may use the container/runtime domain during local validation.
 
 ## IVR
 

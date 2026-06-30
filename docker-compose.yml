@@ -232,6 +232,7 @@ services:
   # here; an empty config mount can shadow the runtime and prevent boot.
   freeswitch:
     image: servicebots/freeswitch:latest
+    container_name: multi-tenant-telephony-platform-freeswitch
     restart: unless-stopped
     profiles: ["freeswitch"]
     ports:

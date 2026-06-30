@@ -219,6 +219,21 @@ The current implementation uses a deterministic fake provider. No real PBX trans
 Stage 14 introduces an optional local FreeSWITCH Docker profile for future integration work, but the runtime flow above still resolves through the fake provider by default.
 The working runtime uses image defaults rather than a custom `/etc/freeswitch` bind mount, so `mod_xml_curl` may log `Binding has no url` until dynamic directory and dialplan integration is added later.
 
+### Example: local FreeSWITCH directory lookup scaffold
+
+`HTTP GET /api/v1/freeswitch/directory?user=1001&domain=directory.contract.local`
+-> `App\Http\Middleware\EnsureFreeSwitchEnabled`
+-> `App\Http\Requests\Api\V1\FreeSwitch\DirectoryLookupRequest`
+-> `App\Services\FreeSwitch\FreeSwitchDirectoryService`
+-> `App\Services\FreeSwitch\DirectoryXmlBuilder`
+-> tenant-scoped `Extension` query
+-> XML response or 404
+
+This scaffold is intentionally local-only. It uses an explicit configured
+tenant id, keeps the Laravel DB as the source of truth, omits passwords outside
+local-demo mode, and does not guess tenant identity from a FreeSWITCH runtime
+request yet.
+
 ### Example: tenant-aware extension provisioning
 
 `TenantContext`

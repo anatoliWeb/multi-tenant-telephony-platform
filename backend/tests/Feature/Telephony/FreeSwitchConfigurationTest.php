@@ -14,6 +14,7 @@ class FreeSwitchConfigurationTest extends TestCase
         $this->assertSame('wss://localhost:7443', config('freeswitch.sip_wss_url'));
         $this->assertSame('wss://localhost:7443', config('freeswitch.webrtc_wss_url'));
         $this->assertNull(config('freeswitch.directory_domain'));
+        $this->assertNull(config('freeswitch.directory_tenant_id'));
         $this->assertSame(5060, config('freeswitch.ports.sip'));
         $this->assertSame(5061, config('freeswitch.ports.sip_tls'));
         $this->assertSame(7443, config('freeswitch.ports.wss'));

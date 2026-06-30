@@ -262,3 +262,22 @@ Verified behavior:
 - suspended memberships cannot manage tenant IVR menus;
 - IVR options stay tenant-local and cannot target another tenant's extensions, queues, ring groups, or menus;
 - route testing is tenant-scoped and returns a dry-run plan instead of executing media or PBX actions.
+
+## FreeSWITCH Directory Scaffold
+
+The Stage 15.7 FreeSWITCH directory endpoint is not a tenant permission API
+yet. It is a local-only scaffold used to prove that Laravel can generate safe,
+tenant-owned directory XML from the database before full `mod_xml_curl`
+wiring is introduced.
+
+Verified guardrails:
+
+- FreeSWITCH must be explicitly enabled before the endpoint responds;
+- the endpoint stays local-only and refuses to guess tenant identity from the
+  FreeSWITCH request itself;
+- the configured tenant id is the explicit local-demo constraint for now;
+- tenant-owned extensions remain the source of truth for XML generation;
+- plaintext passwords are included only when the local-demo credential gate is
+  open;
+- static XML demo users remain local-demo fallback only and do not replace the
+  DB-backed scaffold.

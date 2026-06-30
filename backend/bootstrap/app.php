@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Route;
 use Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful;
 
 use App\Http\Middleware\CorsMiddleware;
+use App\Http\Middleware\EnsureFreeSwitchEnabled;
 use App\Http\Middleware\PermissionMiddleware;
 use App\Http\Middleware\ResolveTenantContext;
 use App\Http\Middleware\RequireTenantContext;
@@ -160,6 +161,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'permission' => PermissionMiddleware::class,
             'role' => RoleMiddleware::class,
+            'freeswitch.enabled' => EnsureFreeSwitchEnabled::class,
             'resolve.tenant' => ResolveTenantContext::class,
             'require.tenant' => RequireTenantContext::class,
             'external.chat.scope' => ExternalChatScopeMiddleware::class,

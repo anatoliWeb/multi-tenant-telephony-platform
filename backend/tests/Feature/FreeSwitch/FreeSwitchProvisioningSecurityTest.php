@@ -23,6 +23,9 @@ class FreeSwitchProvisioningSecurityTest extends TestCase
     {
         parent::setUp();
 
+        config()->set('app.env', 'local');
+        config()->set('freeswitch.enabled', true);
+        config()->set('freeswitch.local_demo_credentials', false);
         config()->set('freeswitch.directory_domain', 'directory.contract.local');
         app(TenantContext::class)->clear();
     }
@@ -111,6 +114,7 @@ class FreeSwitchProvisioningSecurityTest extends TestCase
 
         FreeSwitchXmlAssertions::assertDoesNotContain($directoryXml, 'credential_secret');
         FreeSwitchXmlAssertions::assertDoesNotContain($directoryXml, 'secret_hint');
+        FreeSwitchXmlAssertions::assertDoesNotContain($directoryXml, 'name="password"');
         FreeSwitchXmlAssertions::assertDoesNotContain($dialplanXml, 'credential_secret');
         FreeSwitchXmlAssertions::assertDoesNotContain($dialplanXml, 'secret_hint');
 

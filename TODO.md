@@ -1039,6 +1039,21 @@ Stage status: `PARTIAL`
 - [x] Keep static XML users local-demo fallback only
 - [x] Keep Laravel DB-backed provisioning as the target architecture
 - PARTIAL Run the optional live smoke script in this workspace
+
+## 15.7 Stable FreeSWITCH Container and DB-backed Directory Scaffold
+
+Stage status: `COMPLETE`
+
+- [x] Add stable FreeSWITCH container name
+- [x] Document one-time cleanup of old generated container
+- [x] Scaffold Laravel-backed FreeSWITCH directory endpoint
+- [x] Generate parseable directory XML from DB extensions
+- [x] Gate endpoint by FreeSWITCH/local config
+- [x] Keep password local-demo gated
+- [x] Add tenant isolation tests
+- [x] Keep static XML users local-demo fallback only
+- [x] Document future mod_xml_curl wiring
+- [x] Tests
 ---
 
 # 20. Stage 16: Calling from Chat

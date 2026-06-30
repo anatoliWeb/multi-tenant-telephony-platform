@@ -9,7 +9,12 @@ This directory holds the optional local FreeSWITCH profile scaffolding for Stage
 - keeping FreeSWITCH runtime boundaries outside the Laravel telephony domain.
 
 The current profile uses `servicebots/freeswitch:latest`, which boots reliably
-in this environment and remains suitable for local development.
+in this environment and remains suitable for local development. The Compose
+service now uses the stable container name
+`multi-tenant-telephony-platform-freeswitch` so local docs and scripts do not
+depend on Compose's generated suffix. Because `container_name` fixes the
+service to a single instance, it is intentionally not meant to be scaled with
+Compose.
 
 ## What this profile is not for
 
@@ -54,6 +59,8 @@ the demo user directory at `/usr/local/freeswitch/conf/directory/default`.
 The files in `conf/directory/default/` are local scaffolding examples only.
 They exist so the repository documents the exact shape of the demo users
 without bind-mounting an incomplete `/etc/freeswitch` tree over the container.
+They remain the local-demo fallback only; the Laravel-backed directory
+endpoint scaffold is the target source of truth for DB-driven provisioning.
 
 The Event Socket port is bound to `127.0.0.1` so it stays local-only and does
 not expose unsafe call-control access outside the developer machine.
@@ -66,6 +73,23 @@ config tree can shadow the image defaults and prevent FreeSWITCH from booting.
 Use the profile only when you want to expose the FreeSWITCH container alongside the default stack:
 
 ```bash
+docker compose --profile freeswitch up -d freeswitch
+```
+
+If you previously started the profile before the stable container name landed,
+remove the old generated container once and start again:
+
+```bash
+docker compose --profile freeswitch stop freeswitch
+docker rm multi-tenant-telephony-platform-freeswitch-1 2>/dev/null || true
+docker compose --profile freeswitch up -d freeswitch
+```
+
+PowerShell equivalent:
+
+```powershell
+docker compose --profile freeswitch stop freeswitch
+docker rm multi-tenant-telephony-platform-freeswitch-1
 docker compose --profile freeswitch up -d freeswitch
 ```
 
@@ -141,6 +165,12 @@ lookup domain:
 - browser SIP WSS URL: `wss://localhost:7443` by default in local development;
 - FreeSWITCH directory lookup domain: `FREESWITCH_DIRECTORY_DOMAIN` when set,
   otherwise the running container's `global_getvar local_ip_v4`.
+
+The Laravel directory endpoint scaffold is local-only and tenant-safe. It uses
+a configured tenant id as an explicit demo constraint rather than guessing
+tenant identity from a raw FreeSWITCH request. That keeps the DB-backed
+directory scaffold in place without pretending production `mod_xml_curl`
+wiring is ready yet.
 
 In this environment the runtime lookup domain has been observed as
 `172.18.0.12`, but that value is container-network specific and may differ on
