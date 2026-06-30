@@ -197,3 +197,14 @@ Current behavior:
 - timeout and invalid-input actions can repeat, route, or hang up;
 - route testing returns a dry-run plan for the active tenant only;
 - no audio playback, real DTMF runtime, SIP.js, or FreeSWITCH integration is active yet.
+
+## Softphone Planning
+
+The next call-control slice is intentionally planned, not implemented.
+
+Current boundary:
+
+- Angular remains the primary tenant softphone surface;
+- Vue Admin is planned to get a support-oriented SIP.js/WebRTC softphone later;
+- SIP credentials must remain tenant-scoped and must not leak into logs, browser storage, or devtools-friendly global state;
+- this TODO/docs pass does not add SIP.js packages, credential endpoints, or WebRTC behavior.

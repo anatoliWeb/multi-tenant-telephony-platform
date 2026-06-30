@@ -86,6 +86,7 @@ The boundaries below are planning rules for new code. They do not require a whol
 - Contracts consumed: Integrations, Contacts, AccessControl, Tenancy.
 - Allowed dependencies: Shared, Integrations, Contacts, AccessControl.
 - Forbidden dependencies: direct FreeSWITCH class references.
+- Tenant-facing softphone work stays in Angular, while a separate Vue Admin softphone is only a planned support workflow and must remain tenant-scoped if introduced later.
 
 ## IVR
 
@@ -97,6 +98,17 @@ The boundaries below are planning rules for new code. They do not require a whol
 - Allowed dependencies: Shared, Telephony, Tenancy, AccessControl.
 - Forbidden dependencies: direct provider execution, media playback, or other tenant's routing graphs.
 - The IVR module is intentionally configuration-first: it validates routing and returns dry-run plans for later call-control integration.
+
+## Softphone
+
+- Responsibility: tenant-scoped softphone UX, SIP registration, call state management, and media cleanup.
+- Owned entities: call session state, selected device state, safe SIP account metadata.
+- Public application services: Angular and Vue softphone client services, call session stores, device services.
+- Events emitted: registration status changes, call state changes, media lifecycle transitions.
+- Contracts consumed: Telephony, Tenancy, AccessControl, Integrations.
+- Allowed dependencies: Shared, Telephony, Tenancy, AccessControl, Integrations.
+- Forbidden dependencies: leaking SIP passwords, storing long-lived media streams in browser state, or bypassing tenant-scoped credential checks.
+- Angular owns the tenant-facing softphone first; Vue Admin can receive a separate support-oriented softphone later, but it must follow the same tenant-scoped credential and cleanup rules.
 
 ## CallManagement
 

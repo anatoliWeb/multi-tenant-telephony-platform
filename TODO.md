@@ -861,12 +861,27 @@ The Laravel domain must not depend directly on FreeSWITCH-specific classes.
 - [x] IVR options
 - [x] Timeout actions
 - [x] Invalid-input actions
-- [x] Route validation
-- [x] Route-loop validation
+- PARTIAL Route validation
+- PARTIAL Route-loop validation
 - [x] Policies
 - [x] Events
-- [x] Tests
+- PARTIAL Tests
 - [x] Demo data
+
+---
+
+# 17.1 Backend Test Database Stabilization
+
+Several telephony feature slices have backend functional tests that cannot be fully trusted until the isolated testing database bootstrap is stable.
+
+- [ ] Rebuild or reset the `saas_testing` database bootstrap
+- [ ] Verify migrations run cleanly from an empty testing database
+- [ ] Rerun Ring Groups backend feature tests
+- [ ] Rerun Call Queues backend feature tests
+- [ ] Rerun IVR backend feature tests
+- [ ] Rerun SeederArchitectureTest
+- [ ] Rerun the full backend test suite
+- [ ] Update baseline validation docs with trusted backend totals
 
 ---
 
@@ -971,6 +986,14 @@ Vue Admin should include a real SIP.js/WebRTC softphone so platform admins and s
 - [ ] Add useful English comments in SIP service, media handling, and security-sensitive areas
 - [ ] Add Vue tests for modal state, registration state, permission visibility, and call controls
 - [ ] Document Vue Admin SIP.js softphone setup and limitations
+
+## Shared Softphone Rules
+
+- [ ] Keep Angular and Vue SIP clients behavior-compatible
+- [ ] Use the same call state names in Angular and Vue
+- [ ] Use the same media cleanup rules in Angular and Vue
+- [ ] Use the same tenant-scoped SIP credential contract
+- [ ] Document differences between tenant softphone and admin/support softphone
 ---
 
 # 20. Stage 16: Calling from Chat
