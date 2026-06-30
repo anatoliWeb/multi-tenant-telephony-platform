@@ -5,6 +5,9 @@ namespace App\Services\Seeding;
 use App\Enums\CallLogs\CallBillingStatus;
 use App\Enums\CallLogs\CallDisposition;
 use App\Enums\CallLogs\CallEventType;
+use App\Enums\CallQueues\CallQueueMemberType;
+use App\Enums\CallQueues\CallQueueStatus;
+use App\Enums\CallQueues\CallQueueStrategy;
 use App\Enums\Contacts\ContactStatus;
 use App\Enums\PhoneNumbers\PhoneNumberAssignmentStatus;
 use App\Enums\PhoneNumbers\PhoneNumberStatus;
@@ -17,9 +20,12 @@ use App\Enums\Telephony\TelephonyCallDirection;
 use App\Enums\Telephony\TelephonyCallStatus;
 use App\Models\CallEvent;
 use App\Models\CallLog;
+use App\Models\CallQueue;
+use App\Models\CallQueueMember;
 use App\Models\Contact;
 use App\Models\Extension;
 use App\Models\ExtensionCredential;
+use App\Models\QueueMemberPause;
 use App\Models\RingGroup;
 use App\Models\RingGroupMember;
 use App\Models\PhoneNumber;
@@ -74,6 +80,9 @@ class TenantDemoSeedService
             'extensions' => 0,
             'ring_groups' => 0,
             'ring_group_members' => 0,
+            'call_queues' => 0,
+            'call_queue_members' => 0,
+            'queue_member_pauses' => 0,
             'phone_numbers' => 0,
             'call_logs' => 0,
         ];
@@ -147,6 +156,14 @@ class TenantDemoSeedService
         $ringGroupCounts = $this->seedRingGroups($secondaryTenant, 'tenant-b');
         $counts['ring_groups'] += $ringGroupCounts['ring_groups'];
         $counts['ring_group_members'] += $ringGroupCounts['ring_group_members'];
+        $queueCounts = $this->seedCallQueues($defaultTenant, 'tenant-a');
+        $counts['call_queues'] += $queueCounts['call_queues'];
+        $counts['call_queue_members'] += $queueCounts['call_queue_members'];
+        $counts['queue_member_pauses'] += $queueCounts['queue_member_pauses'];
+        $queueCounts = $this->seedCallQueues($secondaryTenant, 'tenant-b');
+        $counts['call_queues'] += $queueCounts['call_queues'];
+        $counts['call_queue_members'] += $queueCounts['call_queue_members'];
+        $counts['queue_member_pauses'] += $queueCounts['queue_member_pauses'];
         $counts['phone_numbers'] += $this->seedPhoneNumbers($defaultTenant, 'tenant-a');
         $counts['phone_numbers'] += $this->seedPhoneNumbers($secondaryTenant, 'tenant-b');
         $counts['call_logs'] += $this->seedCallLogs($defaultTenant, 'tenant-a');
@@ -570,6 +587,246 @@ class TenantDemoSeedService
     private function stableRingGroupMemberUuid(Tenant $tenant, string $slug, string $memberKey): string
     {
         $hash = substr(sha1((string) $tenant->getKey().':ring-group-member:'.$slug.':'.$memberKey), 0, 32);
+
+        return sprintf(
+            '%s-%s-%s-%s-%s',
+            substr($hash, 0, 8),
+            substr($hash, 8, 4),
+            substr($hash, 12, 4),
+            substr($hash, 16, 4),
+            substr($hash, 20, 12),
+        );
+    }
+
+    /**
+     * @return array{call_queues:int, call_queue_members:int, queue_member_pauses:int}
+     */
+    private function seedCallQueues(Tenant $tenant, string $tenantPrefix): array
+    {
+        $owner = User::query()->where('email', sprintf('%s-owner@test.local', $tenantPrefix))->first();
+        $agent = User::query()->where('email', sprintf('%s-agent@test.local', $tenantPrefix))->first();
+        $telephony = User::query()->where('email', sprintf('%s-telephony@test.local', $tenantPrefix))->first();
+
+        if (! $owner instanceof User || ! $agent instanceof User || ! $telephony instanceof User) {
+            return [
+                'call_queues' => 0,
+                'call_queue_members' => 0,
+                'queue_member_pauses' => 0,
+            ];
+        }
+
+        $created = [
+            'call_queues' => 0,
+            'call_queue_members' => 0,
+            'queue_member_pauses' => 0,
+        ];
+
+        $queues = [
+            [
+                'slug' => 'support-queue',
+                'name' => Str::title($tenantPrefix).' Support Queue',
+                'description' => 'Primary support queue for incoming calls.',
+                'strategy' => CallQueueStrategy::RingAll->value,
+                'status' => CallQueueStatus::Active->value,
+                'overflow_destination_type' => 'ring_group',
+                'overflow_destination_slug' => 'support-ring-group',
+                'members' => [
+                    ['member_type' => CallQueueMemberType::User->value, 'user_email' => sprintf('%s-owner@test.local', $tenantPrefix), 'priority' => 1, 'penalty' => 0, 'paused' => false],
+                    ['member_type' => CallQueueMemberType::Extension->value, 'extension_number' => '2001', 'priority' => 2, 'penalty' => 1, 'paused' => false],
+                ],
+            ],
+            [
+                'slug' => 'sales-queue',
+                'name' => Str::title($tenantPrefix).' Sales Queue',
+                'description' => 'Sequential sales queue with a paused member for validation.',
+                'strategy' => CallQueueStrategy::Sequential->value,
+                'status' => CallQueueStatus::Active->value,
+                'overflow_destination_type' => 'queue',
+                'overflow_destination_slug' => 'support-queue',
+                'members' => [
+                    ['member_type' => CallQueueMemberType::User->value, 'user_email' => sprintf('%s-agent@test.local', $tenantPrefix), 'priority' => 1, 'penalty' => 0, 'paused' => true, 'pause_reason' => 'Lunch break'],
+                    ['member_type' => CallQueueMemberType::Extension->value, 'extension_number' => '2002', 'priority' => 2, 'penalty' => 0, 'paused' => false],
+                ],
+            ],
+            [
+                'slug' => 'billing-queue',
+                'name' => Str::title($tenantPrefix).' Billing Queue',
+                'description' => 'Empty queue used to exercise overflow and no-member states.',
+                'strategy' => CallQueueStrategy::Random->value,
+                'status' => CallQueueStatus::Suspended->value,
+                'overflow_destination_type' => 'user',
+                'overflow_destination_user_email' => sprintf('%s-telephony@test.local', $tenantPrefix),
+                'members' => [],
+            ],
+        ];
+
+        $this->tenantContext->setTenant($tenant);
+
+        try {
+            foreach ($queues as $queueRow) {
+                $overflowDestinationId = null;
+
+                if (($queueRow['overflow_destination_type'] ?? null) === 'ring_group') {
+                    $overflowDestinationId = RingGroup::query()
+                        ->where('tenant_id', $tenant->getKey())
+                        ->where('slug', $queueRow['overflow_destination_slug'])
+                        ->value('id');
+                } elseif (($queueRow['overflow_destination_type'] ?? null) === 'queue') {
+                    $overflowDestinationId = CallQueue::query()
+                        ->where('tenant_id', $tenant->getKey())
+                        ->where('slug', $queueRow['overflow_destination_slug'])
+                        ->value('id');
+                } elseif (($queueRow['overflow_destination_type'] ?? null) === 'user') {
+                    $overflowDestinationId = User::query()
+                        ->where('email', $queueRow['overflow_destination_user_email'])
+                        ->value('id');
+                }
+
+                $queue = CallQueue::query()->updateOrCreate(
+                    [
+                        'tenant_id' => $tenant->getKey(),
+                        'slug' => $queueRow['slug'],
+                    ],
+                    [
+                        'uuid' => $this->stableCallQueueUuid($tenant, $queueRow['slug']),
+                        'name' => $queueRow['name'],
+                        'description' => $queueRow['description'],
+                        'strategy' => $queueRow['strategy'],
+                        'status' => $queueRow['status'],
+                        'max_wait_time_seconds' => 300,
+                        'ring_timeout_seconds' => 20,
+                        'retry_delay_seconds' => 5,
+                        'max_attempts' => 3,
+                        'music_on_hold' => 'demo-moh',
+                        'announce_position' => true,
+                        'announce_estimated_wait' => true,
+                        'overflow_destination_type' => $queueRow['overflow_destination_type'],
+                        'overflow_destination_id' => $overflowDestinationId,
+                        'settings' => [
+                            'demo' => true,
+                            'inventory_source' => 'demo_seeder',
+                        ],
+                        'metadata' => [
+                            'inventory_source' => 'demo_seeder',
+                        ],
+                        'created_by' => $owner->getKey(),
+                        'updated_by' => $owner->getKey(),
+                    ]
+                );
+
+                $created['call_queues']++;
+
+                foreach ($queueRow['members'] as $index => $memberRow) {
+                    $memberUser = null;
+                    $extension = null;
+
+                    if ($memberRow['member_type'] === CallQueueMemberType::User->value) {
+                        $memberUser = User::query()->where('email', $memberRow['user_email'])->first();
+                    } else {
+                        $extension = Extension::query()
+                            ->where('tenant_id', $tenant->getKey())
+                            ->where('number', $memberRow['extension_number'])
+                            ->first();
+                    }
+
+                    if ($memberRow['member_type'] === CallQueueMemberType::User->value && ! $memberUser instanceof User) {
+                        continue;
+                    }
+
+                    if ($memberRow['member_type'] === CallQueueMemberType::Extension->value && ! $extension instanceof Extension) {
+                        continue;
+                    }
+
+                    $member = CallQueueMember::query()->updateOrCreate(
+                        [
+                            'tenant_id' => $tenant->getKey(),
+                            'call_queue_id' => $queue->getKey(),
+                            'member_type' => $memberRow['member_type'],
+                            'member_id' => $memberRow['member_type'] === CallQueueMemberType::Extension->value ? $extension?->getKey() : $memberUser?->getKey(),
+                        ],
+                        [
+                            'uuid' => $this->stableCallQueueMemberUuid(
+                                $tenant,
+                                $queueRow['slug'],
+                                $memberRow['member_type'].':'.($extension?->number ?? $memberUser?->email ?? (string) $index)
+                            ),
+                            'extension_id' => $extension?->getKey(),
+                            'user_id' => $memberUser?->getKey(),
+                            'priority' => $memberRow['priority'],
+                            'penalty' => $memberRow['penalty'],
+                            'is_active' => true,
+                            'is_paused' => (bool) ($memberRow['paused'] ?? false),
+                            'paused_at' => ! empty($memberRow['paused']) ? now()->subHours(3) : null,
+                            'pause_reason' => $memberRow['pause_reason'] ?? null,
+                            'metadata' => [
+                                'inventory_source' => 'demo_seeder',
+                            ],
+                        ]
+                    );
+
+                    $created['call_queue_members']++;
+
+                    if (! empty($memberRow['paused'])) {
+                        QueueMemberPause::query()->updateOrCreate(
+                            [
+                                'tenant_id' => $tenant->getKey(),
+                                'call_queue_id' => $queue->getKey(),
+                                'call_queue_member_id' => $member->getKey(),
+                                'ended_at' => null,
+                            ],
+                            [
+                                'uuid' => $this->stableQueueMemberPauseUuid($tenant, $queueRow['slug'], $member->uuid),
+                                'user_id' => $telephony->getKey(),
+                                'started_at' => now()->subHours(3),
+                                'reason' => $memberRow['pause_reason'] ?? 'Paused for demo validation.',
+                                'metadata' => [
+                                    'inventory_source' => 'demo_seeder',
+                                ],
+                            ]
+                        );
+
+                        $created['queue_member_pauses']++;
+                    }
+                }
+            }
+        } finally {
+            $this->tenantContext->clear();
+        }
+
+        return $created;
+    }
+
+    private function stableCallQueueUuid(Tenant $tenant, string $slug): string
+    {
+        $hash = substr(sha1((string) $tenant->getKey().':call-queue:'.$slug), 0, 32);
+
+        return sprintf(
+            '%s-%s-%s-%s-%s',
+            substr($hash, 0, 8),
+            substr($hash, 8, 4),
+            substr($hash, 12, 4),
+            substr($hash, 16, 4),
+            substr($hash, 20, 12),
+        );
+    }
+
+    private function stableCallQueueMemberUuid(Tenant $tenant, string $slug, string $memberKey): string
+    {
+        $hash = substr(sha1((string) $tenant->getKey().':call-queue-member:'.$slug.':'.$memberKey), 0, 32);
+
+        return sprintf(
+            '%s-%s-%s-%s-%s',
+            substr($hash, 0, 8),
+            substr($hash, 8, 4),
+            substr($hash, 12, 4),
+            substr($hash, 16, 4),
+            substr($hash, 20, 12),
+        );
+    }
+
+    private function stableQueueMemberPauseUuid(Tenant $tenant, string $slug, string $memberUuid): string
+    {
+        $hash = substr(sha1((string) $tenant->getKey().':queue-member-pause:'.$slug.':'.$memberUuid), 0, 32);
 
         return sprintf(
             '%s-%s-%s-%s-%s',

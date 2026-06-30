@@ -223,6 +223,7 @@ const routeTitleMap: Record<string, string> = {
   contacts: 'common.contacts',
   extensions: 'common.extensions',
   'ring-groups': 'common.ringGroups',
+  'call-queues': 'common.callQueues',
   'phone-numbers': 'common.phoneNumbers',
   'call-logs': 'common.callLogs',
 };
@@ -241,6 +242,7 @@ const IconBook = defineIcon('M5 5.5A2.5 2.5 0 0 1 7.5 3H20v16H7.5A2.5 2.5 0 0 0 
 const IconPhone = defineIcon('M6.6 10.8a15 15 0 0 0 6.6 6.6l2.2-2.2a1 1 0 0 1 1-.24 11 11 0 0 0 3.46.55 1 1 0 0 1 1 1V20a1 1 0 0 1-1 1C10.3 21 3 13.7 3 4a1 1 0 0 1 1-1h3.49a1 1 0 0 1 1 1c0 1.2.19 2.36.55 3.46a1 1 0 0 1-.24 1l-2.2 2.34z');
 const IconPhoneNumbers = defineIcon('M6 4h12v16H6V4zm2 2v3h8V6H8zm0 5v2h8v-2H8zm0 4v2h5v-2H8z');
 const IconRingGroup = defineIcon('M12 3a9 9 0 1 0 9 9h-2a7 7 0 1 1-7-7V3zm0 4a5 5 0 1 0 5 5h-2a3 3 0 1 1-3-3V7zm0 4h.01');
+const IconCallQueue = defineIcon('M4 6h16v3H4V6zm0 5h16v3H4v-3zm0 5h10v3H4v-3z');
 const IconWave = defineIcon('M4 12a8 8 0 0 1 16 0h-2a6 6 0 1 0-12 0H4zm4 0a4 4 0 0 1 8 0h-2a2 2 0 1 0-4 0H8zm4 0h.01');
 
 const overviewLinks: NavItem[] = [
@@ -311,6 +313,12 @@ const managementLinks: NavItem[] = [
     labelKey: 'common.ringGroups',
     icon: IconRingGroup,
     permission: 'ring_groups.view',
+  },
+  {
+    to: '/call-queues',
+    labelKey: 'common.callQueues',
+    icon: IconCallQueue,
+    permission: 'call_queues.view',
   },
   {
     to: '/phone-numbers',

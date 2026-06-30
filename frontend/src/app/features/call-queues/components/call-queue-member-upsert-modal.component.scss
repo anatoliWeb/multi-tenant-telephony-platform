@@ -1,0 +1,35 @@
+.modal {
+  display: grid;
+  gap: 16px;
+}
+
+.modal__header p {
+  margin: 6px 0 0;
+  color: #94a3b8;
+}
+
+.modal__form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.modal__form label {
+  display: grid;
+  gap: 6px;
+}
+
+.modal__form input,
+.modal__form select {
+  width: 100%;
+}
+
+.modal__full {
+  grid-column: 1 / -1;
+}
+
+.modal__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}

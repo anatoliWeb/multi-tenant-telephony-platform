@@ -20,6 +20,7 @@ describe('tenantSupportService', () => {
     await tenantSupportService.listContacts();
     await tenantSupportService.listExtensions();
     await tenantSupportService.listRingGroups();
+    await tenantSupportService.listCallQueues();
     await tenantSupportService.listPhoneNumbers();
     await tenantSupportService.listCallLogs();
     await tenantSupportService.getCallLogStatistics();
@@ -27,6 +28,7 @@ describe('tenantSupportService', () => {
     expect(getMock).toHaveBeenCalledWith('/v1/contacts', { params: { per_page: 20 } });
     expect(getMock).toHaveBeenCalledWith('/v1/extensions', { params: { per_page: 20 } });
     expect(getMock).toHaveBeenCalledWith('/v1/ring-groups', { params: { per_page: 20 } });
+    expect(getMock).toHaveBeenCalledWith('/v1/call-queues', { params: { per_page: 20 } });
     expect(getMock).toHaveBeenCalledWith('/v1/phone-numbers', { params: { per_page: 20 } });
     expect(getMock).toHaveBeenCalledWith('/v1/call-logs', { params: { per_page: 20 } });
     expect(getMock).toHaveBeenCalledWith('/v1/call-logs/statistics');

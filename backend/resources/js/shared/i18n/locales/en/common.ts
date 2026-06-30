@@ -295,6 +295,7 @@
   contacts: 'Contacts',
   extensions: 'Extensions',
   ringGroups: 'Ring Groups',
+  callQueues: 'Call Queues',
   phoneNumbers: 'Phone Numbers',
   callLogs: 'Call Logs',
   apiDocumentation: 'API Documentation',
@@ -348,6 +349,15 @@
       fields: {
         members: 'Members',
         activeMembers: 'Active members',
+      },
+    },
+    callQueues: {
+      title: 'Call Queues',
+      subtitle: 'Tenant-scoped support view for queue configuration and routing state.',
+      fields: {
+        members: 'Members',
+        pausedMembers: 'Paused members',
+        overflow: 'Overflow',
       },
     },
     phoneNumbers: {

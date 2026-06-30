@@ -29,6 +29,8 @@ use App\Http\Controllers\Api\V1\Contacts\ContactController;
 use App\Http\Controllers\Api\V1\Contacts\ContactExportController;
 use App\Http\Controllers\Api\V1\Contacts\ContactImportController;
 use App\Http\Controllers\Api\V1\Contacts\ContactTagController;
+use App\Http\Controllers\Api\V1\CallQueues\CallQueueController;
+use App\Http\Controllers\Api\V1\CallQueues\CallQueueMemberController;
 use App\Http\Controllers\Api\V1\CallLogs\CallLogController;
 use App\Http\Controllers\Api\V1\Extensions\ExtensionController;
 use App\Http\Controllers\Api\V1\RingGroups\RingGroupController;
@@ -819,6 +821,51 @@ Route::prefix('v1')
                     Route::post('/{ringGroup}/test-route', [RingGroupController::class, 'testRoute'])
                         ->name('test-route')
                         ->middleware('permission:ring_groups.test_route');
+                });
+
+                Route::prefix('call-queues')
+                    ->as('call-queues.')
+                    ->middleware('resolve.tenant')
+                    ->group(function (): void {
+                    Route::get('/', [CallQueueController::class, 'index'])
+                        ->name('index')
+                        ->middleware('permission:call_queues.view');
+                    Route::get('/options', [CallQueueController::class, 'options'])
+                        ->name('options')
+                        ->middleware('permission:call_queues.view');
+                    Route::post('/', [CallQueueController::class, 'store'])
+                        ->name('store')
+                        ->middleware('permission:call_queues.create');
+                    Route::get('/{callQueue}', [CallQueueController::class, 'show'])
+                        ->name('show')
+                        ->middleware('permission:call_queues.view');
+                    Route::put('/{callQueue}', [CallQueueController::class, 'update'])
+                        ->name('update')
+                        ->middleware('permission:call_queues.update');
+                    Route::delete('/{callQueue}', [CallQueueController::class, 'destroy'])
+                        ->name('destroy')
+                        ->middleware('permission:call_queues.delete');
+                    Route::get('/{callQueue}/members', [CallQueueMemberController::class, 'index'])
+                        ->name('members.index')
+                        ->middleware('permission:call_queues.view');
+                    Route::post('/{callQueue}/members', [CallQueueMemberController::class, 'store'])
+                        ->name('members.store')
+                        ->middleware('permission:call_queues.manage_members');
+                    Route::put('/{callQueue}/members/{member}', [CallQueueMemberController::class, 'update'])
+                        ->name('members.update')
+                        ->middleware('permission:call_queues.manage_members');
+                    Route::delete('/{callQueue}/members/{member}', [CallQueueMemberController::class, 'destroy'])
+                        ->name('members.destroy')
+                        ->middleware('permission:call_queues.manage_members');
+                    Route::post('/{callQueue}/members/{member}/pause', [CallQueueMemberController::class, 'pause'])
+                        ->name('members.pause')
+                        ->middleware('permission:call_queues.pause_members');
+                    Route::post('/{callQueue}/members/{member}/resume', [CallQueueMemberController::class, 'resume'])
+                        ->name('members.resume')
+                        ->middleware('permission:call_queues.pause_members');
+                    Route::post('/{callQueue}/test-route', [CallQueueController::class, 'testRoute'])
+                        ->name('test-route')
+                        ->middleware('permission:call_queues.test_route');
                 });
 
                 Route::prefix('phone-numbers')

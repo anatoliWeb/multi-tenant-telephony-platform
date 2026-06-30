@@ -847,26 +847,26 @@ The Laravel domain must not depend directly on FreeSWITCH-specific classes.
 
 # 17. Stage 13: Telephony Routing
 
-- [ ] Ring groups
-- [ ] Ring group members
-- [ ] Simultaneous strategy
-- [ ] Sequential strategy
-- [ ] Random strategy
-- [ ] Call queues
-- [ ] Queue members
-- [ ] Queue strategies
-- [ ] Agent pause and resume
-- [ ] Queue overflow destinations
+- [x] Ring groups
+- [x] Ring group members
+- [x] Simultaneous strategy
+- [x] Sequential strategy
+- [x] Random strategy
+- [x] Call queues
+- [x] Queue members
+- [x] Queue strategies
+- [x] Agent pause and resume
+- [x] Queue overflow destinations
 - [ ] IVR
 - [ ] IVR options
 - [ ] Timeout actions
 - [ ] Invalid-input actions
 - [ ] Route validation
 - [ ] Route-loop validation
-- [ ] Policies
-- [ ] Events
+- [x] Policies
+- [x] Events
 - [ ] Tests
-- [ ] Demo data
+- [x] Demo data
 
 ---
 

@@ -33,6 +33,9 @@ describe('Frontend UI polish contracts', () => {
       'ringGroups.title',
       'ringGroups.fields.members',
       'ringGroups.memberModal.subtitle',
+      'callQueues.title',
+      'callQueues.fields.members',
+      'callQueues.memberModal.subtitle',
     ];
 
     for (const key of requiredKeys) {

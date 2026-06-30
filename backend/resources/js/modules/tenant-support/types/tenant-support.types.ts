@@ -61,6 +61,19 @@ export interface SupportRingGroup {
   members?: SupportRingGroupMember[];
 }
 
+export interface SupportCallQueue {
+  id: number;
+  uuid: string;
+  name: string;
+  slug: string;
+  strategy: string;
+  status: string;
+  members_count?: number | null;
+  active_members_count?: number | null;
+  paused_members_count?: number | null;
+  overflow_destination_summary?: string | null;
+}
+
 export interface SupportPhoneNumber {
   id: number;
   uuid: string;

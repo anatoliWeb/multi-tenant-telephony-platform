@@ -1,0 +1,149 @@
+<section class="call-queues-shell">
+  <header class="header">
+    <div>
+      <h1>Call Queues</h1>
+      <p>Tenant-aware queue configuration and routing validation.</p>
+    </div>
+    <div class="header__actions">
+      <button *ngIf="canCreate" class="button button--primary" (click)="openCreateQueue()">Create Queue</button>
+      <button *ngIf="canTestRoute && (activeQueue$ | async) as activeQueue" class="button button--secondary" (click)="testRoute(activeQueue)">Test Route</button>
+    </div>
+  </header>
+
+  <div *ngIf="!tenantContext.hasTenant()" class="state">Select a tenant to manage call queues.</div>
+  <div *ngIf="tenantContext.hasTenant() && (error$ | async) as error" class="state state--error">{{ error }}</div>
+
+  <div class="filters" *ngIf="tenantContext.hasTenant()">
+    <label>
+      <span>Search</span>
+      <input type="search" (input)="onSearchChange(($any($event.target)).value)" placeholder="Search queues" />
+    </label>
+    <label>
+      <span>Status</span>
+      <select (change)="onStatusChange(($any($event.target)).value)">
+        <option value="">All</option>
+        <option *ngFor="let status of statusOptions((options$ | async))" [value]="status">{{ status }}</option>
+      </select>
+    </label>
+    <label>
+      <span>Strategy</span>
+      <select (change)="onStrategyChange(($any($event.target)).value)">
+        <option value="">All</option>
+        <option *ngFor="let strategy of strategyOptions((options$ | async))" [value]="strategy">{{ strategy }}</option>
+      </select>
+    </label>
+  </div>
+
+  <div class="layout" *ngIf="tenantContext.hasTenant()">
+    <section class="panel panel--list">
+      <div *ngIf="(loading$ | async)" class="state">Loading queues...</div>
+      <table *ngIf="!(loading$ | async) && ((queues$ | async)?.length ?? 0) > 0" class="table">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Strategy</th>
+            <th>Members</th>
+            <th>Overflow</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let queue of (queues$ | async); trackBy: trackQueue" [class.active]="(activeQueue$ | async)?.id === queue.id" (click)="selectQueue(queue)">
+            <td>
+              <strong>{{ queue.name }}</strong>
+              <div class="subtle">{{ queue.slug }}</div>
+            </td>
+            <td>{{ queue.strategy }}</td>
+            <td>{{ queue.active_members_count ?? 0 }} active / {{ queue.paused_members_count ?? 0 }} paused</td>
+            <td>{{ queue.overflow_destination_summary || '-' }}</td>
+            <td>{{ queue.status }}</td>
+          </tr>
+        </tbody>
+      </table>
+      <div *ngIf="!(loading$ | async) && ((queues$ | async)?.length ?? 0) === 0" class="state">No call queues yet.</div>
+    </section>
+
+    <section class="panel panel--detail">
+      <div *ngIf="detailLoading$ | async" class="state">Loading queue details...</div>
+      <ng-container *ngIf="!(detailLoading$ | async) && (activeQueue$ | async) as activeQueue">
+        <header class="detail__header">
+          <div>
+            <h2>{{ activeQueue.name }}</h2>
+            <p>{{ activeQueue.description || 'No description provided.' }}</p>
+          </div>
+          <div class="detail__actions">
+            <button *ngIf="canUpdate" class="button button--secondary" (click)="openEditQueue(activeQueue)">Edit</button>
+            <button *ngIf="canDelete" class="button button--danger" (click)="deleteQueue(activeQueue)">Delete</button>
+          </div>
+        </header>
+
+        <div class="metrics">
+          <div>Strategy: <strong>{{ activeQueue.strategy }}</strong></div>
+          <div>Status: <strong>{{ activeQueue.status }}</strong></div>
+          <div>Members: <strong>{{ activeQueue.active_members_count ?? 0 }}</strong></div>
+          <div>Paused: <strong>{{ activeQueue.paused_members_count ?? 0 }}</strong></div>
+          <div>Overflow: <strong>{{ activeQueue.overflow_destination_summary || '-' }}</strong></div>
+        </div>
+
+        <div class="panel__section">
+          <div class="panel__section-header">
+            <h3>Members</h3>
+            <button *ngIf="canManageMembers" class="button button--primary" (click)="openCreateMember()">Add Member</button>
+          </div>
+
+          <div *ngIf="(activeQueueMembers$ | async)?.length ?? 0; else emptyMembers" class="member-list">
+            <article *ngFor="let member of (activeQueueMembers$ | async); trackBy: trackMember" class="member-card">
+              <div>
+                <strong>{{ member.member_type }}</strong>
+                <div class="subtle">{{ member.extension?.number || member.user?.email || member.member_id }}</div>
+              </div>
+              <div class="member-card__meta">
+                <span>Priority {{ member.priority }}</span>
+                <span>Penalty {{ member.penalty }}</span>
+                <span *ngIf="member.is_paused">Paused</span>
+                <span *ngIf="!member.is_paused">Active</span>
+              </div>
+              <div class="member-card__actions">
+                <button *ngIf="canManageMembers" class="button button--secondary" (click)="openEditMember(member)">Edit</button>
+                <button *ngIf="canManageMembers" class="button button--danger" (click)="deleteMember(member)">Delete</button>
+                <button *ngIf="canPauseMembers && !member.is_paused" class="button button--secondary" (click)="pauseMember(member)">Pause</button>
+                <button *ngIf="canPauseMembers && member.is_paused" class="button button--secondary" (click)="resumeMember(member)">Resume</button>
+              </div>
+            </article>
+          </div>
+          <ng-template #emptyMembers>
+            <div class="state">This queue has no members yet.</div>
+          </ng-template>
+        </div>
+
+        <div class="panel__section" *ngIf="(routePlan$ | async) as routePlan">
+          <h3>Route Test</h3>
+          <pre>{{ routePlan | json }}</pre>
+        </div>
+      </ng-container>
+      <div *ngIf="!(detailLoading$ | async) && !(activeQueue$ | async)" class="state">Select a queue to view details.</div>
+    </section>
+  </div>
+
+  <app-call-queue-upsert-modal
+    [isOpen]="isQueueModalOpen"
+    [mode]="queueModalMode"
+    [queue]="queueModalItem"
+    [strategies]="strategyOptions((options$ | async))"
+    [statuses]="statusOptions((options$ | async))"
+    [saving]="(saving$ | async) ?? false"
+    (save)="saveQueue($event)"
+    (close)="closeQueueModal()"
+  />
+
+  <app-call-queue-member-upsert-modal
+    [isOpen]="isMemberModalOpen"
+    [mode]="memberModalMode"
+    [queue]="(activeQueue$ | async)"
+    [member]="memberModalItem"
+    [options]="(options$ | async)"
+    [saving]="(saving$ | async) ?? false"
+    (save)="saveMember($event)"
+    (close)="closeMemberModal()"
+  />
+</section>

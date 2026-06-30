@@ -88,6 +88,11 @@ class Tenant extends Model
         return $this->hasMany(RingGroup::class);
     }
 
+    public function callQueues(): HasMany
+    {
+        return $this->hasMany(CallQueue::class);
+    }
+
     public function callLogs(): HasMany
     {
         return $this->hasMany(CallLog::class);

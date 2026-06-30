@@ -23,6 +23,7 @@ class MockTranslatePipe implements PipeTransform {
         'layout.nav.contacts': 'Contacts',
         'layout.nav.extensions': 'Extensions',
         'layout.nav.ringGroups': 'Ring groups',
+        'layout.nav.callQueues': 'Call queues',
         'layout.nav.phoneNumbers': 'Phone numbers',
         'layout.nav.callLogs': 'Call Logs',
       }[value] ?? value
@@ -67,6 +68,7 @@ describe('SidebarComponent', () => {
       'contacts.view',
       'extensions.view',
       'ring_groups.view',
+      'call_queues.view',
       'phone_numbers.view',
       'call_logs.view',
       'settings.view',
@@ -80,6 +82,7 @@ describe('SidebarComponent', () => {
     expect(text).toContain('Contacts');
     expect(text).toContain('Extensions');
     expect(text).toContain('Ring groups');
+    expect(text).toContain('Call queues');
     expect(text).toContain('Phone numbers');
     expect(text).toContain('Call Logs');
     expect(text).toContain('Settings');
@@ -100,6 +103,7 @@ describe('SidebarComponent', () => {
     expect(links).not.toContain('Contacts');
     expect(links).not.toContain('Extensions');
     expect(links).not.toContain('Ring groups');
+    expect(links).not.toContain('Call queues');
     expect(links).not.toContain('Phone numbers');
     expect(links).not.toContain('Call Logs');
   });

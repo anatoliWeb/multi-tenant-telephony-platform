@@ -12,8 +12,11 @@ use App\Models\Contact;
 use App\Models\ContactPhone;
 use App\Models\ContactTag;
 use App\Models\CallLog;
+use App\Models\CallQueue;
+use App\Models\CallQueueMember;
 use App\Models\RingGroup;
 use App\Models\RingGroupMember;
+use App\Models\QueueMemberPause;
 use App\Models\PhoneNumber;
 use App\Models\User;
 use App\Services\Seeding\PerformanceSeedService;
@@ -111,6 +114,9 @@ class SeederArchitectureTest extends TestCase
         $this->assertGreaterThanOrEqual(1000, CallLog::count());
         $this->assertGreaterThanOrEqual(6, RingGroup::count());
         $this->assertGreaterThanOrEqual(8, RingGroupMember::count());
+        $this->assertGreaterThanOrEqual(6, CallQueue::count());
+        $this->assertGreaterThanOrEqual(8, CallQueueMember::count());
+        $this->assertGreaterThanOrEqual(2, QueueMemberPause::count());
         $this->assertSame(500, CallLog::query()->where('tenant_id', $defaultTenant->id)->where('provider_call_id', 'like', 'tenant-a-volume-%')->count());
         $this->assertSame(500, CallLog::query()->where('tenant_id', $secondaryTenant->id)->where('provider_call_id', 'like', 'tenant-b-volume-%')->count());
         $this->assertGreaterThanOrEqual(500, CallLog::query()->where('tenant_id', $defaultTenant->id)->count());
@@ -228,6 +234,9 @@ class SeederArchitectureTest extends TestCase
             'permissions' => Permission::count(),
             'ring_groups' => RingGroup::count(),
             'ring_group_members' => RingGroupMember::count(),
+            'call_queues' => CallQueue::count(),
+            'call_queue_members' => CallQueueMember::count(),
+            'queue_member_pauses' => QueueMemberPause::count(),
         ];
     }
 

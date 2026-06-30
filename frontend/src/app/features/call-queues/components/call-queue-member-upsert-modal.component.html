@@ -1,0 +1,57 @@
+<app-modal-shell [open]="isOpen" (close)="close.emit()">
+  <div class="modal">
+    <header class="modal__header">
+      <div>
+        <h2>{{ mode === 'create' ? 'Add Queue Member' : 'Edit Queue Member' }}</h2>
+        <p>Queue members stay tenant-scoped and must belong to the selected tenant.</p>
+      </div>
+    </header>
+
+    <form class="modal__form" (ngSubmit)="submit()">
+      <label>
+        <span>Member type</span>
+        <select [(ngModel)]="form.member_type" name="member_type">
+          <option *ngFor="let option of memberTypeOptions()" [value]="option">{{ option }}</option>
+        </select>
+      </label>
+
+      <label *ngIf="form.member_type === 'extension'">
+        <span>Extension</span>
+        <select [(ngModel)]="form.extension_id" name="extension_id">
+          <option [ngValue]="null">Select extension</option>
+          <option *ngFor="let extension of options?.extensions ?? []" [ngValue]="extension.id">
+            {{ extension.number }} - {{ extension.label || extension.status }}
+          </option>
+        </select>
+      </label>
+
+      <label *ngIf="form.member_type === 'user'">
+        <span>User</span>
+        <select [(ngModel)]="form.user_id" name="user_id">
+          <option [ngValue]="null">Select user</option>
+          <option *ngFor="let user of options?.users ?? []" [ngValue]="user.id">
+            {{ user.name }} - {{ user.email }}
+          </option>
+        </select>
+      </label>
+
+      <label>
+        <span>Priority</span>
+        <input type="number" [(ngModel)]="form.priority" name="priority" min="1" max="1000" />
+      </label>
+      <label>
+        <span>Penalty</span>
+        <input type="number" [(ngModel)]="form.penalty" name="penalty" min="0" max="100" />
+      </label>
+      <label>
+        <span>Active</span>
+        <input type="checkbox" [(ngModel)]="form.is_active" name="is_active" />
+      </label>
+
+      <footer class="modal__actions modal__full">
+        <button type="button" class="button button--secondary" (click)="close.emit()">Cancel</button>
+        <button type="submit" class="button button--primary" [disabled]="saving">{{ mode === 'create' ? 'Add' : 'Save' }}</button>
+      </footer>
+    </form>
+  </div>
+</app-modal-shell>

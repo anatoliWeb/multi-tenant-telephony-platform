@@ -1,0 +1,84 @@
+<app-modal-shell [open]="isOpen" (close)="close.emit()">
+  <div class="modal">
+    <header class="modal__header">
+      <div>
+        <h2>{{ mode === 'create' ? 'Create Call Queue' : 'Edit Call Queue' }}</h2>
+        <p>Configure tenant-scoped queue routing and overflow behavior.</p>
+      </div>
+    </header>
+
+    <form class="modal__form" (ngSubmit)="submit()">
+      <label>
+        <span>Name</span>
+        <input [(ngModel)]="form.name" name="name" required />
+      </label>
+      <label>
+        <span>Slug</span>
+        <input [(ngModel)]="form.slug" name="slug" />
+      </label>
+      <label class="modal__full">
+        <span>Description</span>
+        <textarea [(ngModel)]="form.description" name="description" rows="3"></textarea>
+      </label>
+      <label>
+        <span>Strategy</span>
+        <select [(ngModel)]="form.strategy" name="strategy">
+          <option *ngFor="let strategy of strategies" [value]="strategy">{{ strategy }}</option>
+        </select>
+      </label>
+      <label>
+        <span>Status</span>
+        <select [(ngModel)]="form.status" name="status">
+          <option *ngFor="let status of statuses" [value]="status">{{ status }}</option>
+        </select>
+      </label>
+      <label>
+        <span>Max wait</span>
+        <input type="number" [(ngModel)]="form.max_wait_time_seconds" name="max_wait_time_seconds" min="5" max="7200" />
+      </label>
+      <label>
+        <span>Ring timeout</span>
+        <input type="number" [(ngModel)]="form.ring_timeout_seconds" name="ring_timeout_seconds" min="1" max="600" />
+      </label>
+      <label>
+        <span>Retry delay</span>
+        <input type="number" [(ngModel)]="form.retry_delay_seconds" name="retry_delay_seconds" min="0" max="600" />
+      </label>
+      <label>
+        <span>Max attempts</span>
+        <input type="number" [(ngModel)]="form.max_attempts" name="max_attempts" min="1" max="20" />
+      </label>
+      <label>
+        <span>Music on hold</span>
+        <input [(ngModel)]="form.music_on_hold" name="music_on_hold" />
+      </label>
+      <label>
+        <span>Overflow type</span>
+        <select [(ngModel)]="form.overflow_destination_type" name="overflow_destination_type">
+          <option [ngValue]="null">None</option>
+          <option value="user">User</option>
+          <option value="extension">Extension</option>
+          <option value="ring_group">Ring Group</option>
+          <option value="queue">Queue</option>
+        </select>
+      </label>
+      <label>
+        <span>Overflow ID</span>
+        <input type="number" [(ngModel)]="form.overflow_destination_id" name="overflow_destination_id" min="1" />
+      </label>
+      <label>
+        <span>Announce position</span>
+        <input type="checkbox" [(ngModel)]="form.announce_position" name="announce_position" />
+      </label>
+      <label>
+        <span>Announce ETA</span>
+        <input type="checkbox" [(ngModel)]="form.announce_estimated_wait" name="announce_estimated_wait" />
+      </label>
+
+      <footer class="modal__actions modal__full">
+        <button type="button" class="button button--secondary" (click)="close.emit()">Cancel</button>
+        <button type="submit" class="button button--primary" [disabled]="saving">{{ mode === 'create' ? 'Create' : 'Save' }}</button>
+      </footer>
+    </form>
+  </div>
+</app-modal-shell>

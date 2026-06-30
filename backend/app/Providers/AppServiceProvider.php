@@ -6,6 +6,7 @@ use App\Models\Conversation;
 use App\Models\Contact;
 use App\Models\ContactTag;
 use App\Models\CallLog;
+use App\Models\CallQueue;
 use App\Models\Extension;
 use App\Models\PhoneNumber;
 use App\Models\RingGroup;
@@ -15,6 +16,7 @@ use App\Models\SystemTranslation;
 use App\Policies\ContactPolicy;
 use App\Policies\ContactTagPolicy;
 use App\Policies\CallLogPolicy;
+use App\Policies\CallQueuePolicy;
 use App\Policies\ExtensionPolicy;
 use App\Policies\PhoneNumberPolicy;
 use App\Policies\RingGroupPolicy;
@@ -466,6 +468,48 @@ class AppServiceProvider extends ServiceProvider
                     ->addProperty('ended_at', new StringType)
                     ->setRequired(['id', 'uuid', 'provider_id', 'provider_call_id', 'direction', 'status']);
 
+                $callQueueMemberSchema = (new ObjectType)
+                    ->addProperty('id', new IntegerType)
+                    ->addProperty('uuid', new StringType)
+                    ->addProperty('tenant_id', new StringType)
+                    ->addProperty('call_queue_id', new IntegerType)
+                    ->addProperty('member_type', new StringType)
+                    ->addProperty('member_id', new IntegerType)
+                    ->addProperty('extension_id', new IntegerType)
+                    ->addProperty('user_id', new IntegerType)
+                    ->addProperty('priority', new IntegerType)
+                    ->addProperty('penalty', new IntegerType)
+                    ->addProperty('is_active', new BooleanType)
+                    ->addProperty('is_paused', new BooleanType)
+                    ->addProperty('paused_at', new StringType)
+                    ->addProperty('pause_reason', new StringType)
+                    ->addProperty('last_call_at', new StringType)
+                    ->setRequired(['id', 'uuid', 'tenant_id', 'call_queue_id', 'member_type', 'member_id', 'priority', 'penalty', 'is_active', 'is_paused']);
+
+                $callQueueSchema = (new ObjectType)
+                    ->addProperty('id', new IntegerType)
+                    ->addProperty('uuid', new StringType)
+                    ->addProperty('tenant_id', new StringType)
+                    ->addProperty('name', new StringType)
+                    ->addProperty('slug', new StringType)
+                    ->addProperty('description', new StringType)
+                    ->addProperty('strategy', new StringType)
+                    ->addProperty('status', new StringType)
+                    ->addProperty('max_wait_time_seconds', new IntegerType)
+                    ->addProperty('ring_timeout_seconds', new IntegerType)
+                    ->addProperty('retry_delay_seconds', new IntegerType)
+                    ->addProperty('max_attempts', new IntegerType)
+                    ->addProperty('music_on_hold', new StringType)
+                    ->addProperty('announce_position', new BooleanType)
+                    ->addProperty('announce_estimated_wait', new BooleanType)
+                    ->addProperty('overflow_destination_type', new StringType)
+                    ->addProperty('overflow_destination_id', new IntegerType)
+                    ->addProperty('members_count', new IntegerType)
+                    ->addProperty('active_members_count', new IntegerType)
+                    ->addProperty('paused_members_count', new IntegerType)
+                    ->addProperty('members', (new ArrayType)->setItems($callQueueMemberSchema))
+                    ->setRequired(['id', 'uuid', 'tenant_id', 'name', 'slug', 'strategy', 'status']);
+
                 $openApi->components->addSchema('PaginationMeta', Schema::fromType($paginationMeta));
                 $openApi->components->addSchema('ApiSuccessResponse', Schema::fromType($apiSuccess));
                 $openApi->components->addSchema('ApiErrorResponse', Schema::fromType($apiError));
@@ -489,6 +533,8 @@ class AppServiceProvider extends ServiceProvider
                 $openApi->components->addSchema('Extension', Schema::fromType($extensionSchema));
                 $openApi->components->addSchema('PhoneNumber', Schema::fromType($phoneNumberSchema));
                 $openApi->components->addSchema('CallLog', Schema::fromType($callLogSchema));
+                $openApi->components->addSchema('CallQueue', Schema::fromType($callQueueSchema));
+                $openApi->components->addSchema('CallQueueMember', Schema::fromType($callQueueMemberSchema));
             });
 
             Scramble::configure()
@@ -591,6 +637,14 @@ class AppServiceProvider extends ServiceProvider
                         $addQueryParameter('provider', 'Filter by provider id.', 'fake');
                         $addQueryParameter('sort', 'Sort field.', 'started_at');
                         $addQueryParameter('direction_sort', 'Sort direction.', 'desc');
+                    }
+
+                    if ($uri === '/api/v1/call-queues' && strtolower($operation->method) === 'get') {
+                        $addQueryParameter('page', 'Pagination page number.', 1);
+                        $addQueryParameter('per_page', 'Items per page.', 15);
+                        $addQueryParameter('search', 'Search by queue name, slug, or description.', 'support');
+                        $addQueryParameter('status', 'Queue status filter.', 'active');
+                        $addQueryParameter('strategy', 'Queue strategy filter.', 'ring_all');
                     }
                 });
         }
@@ -710,6 +764,7 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(Extension::class, ExtensionPolicy::class);
         Gate::policy(PhoneNumber::class, PhoneNumberPolicy::class);
         Gate::policy(RingGroup::class, RingGroupPolicy::class);
+        Gate::policy(CallQueue::class, CallQueuePolicy::class);
         Gate::policy(CallLog::class, CallLogPolicy::class);
 
         /*

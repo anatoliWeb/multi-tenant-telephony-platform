@@ -5,6 +5,7 @@ import type {
   SupportCallLogStatistics,
   SupportContact,
   SupportExtension,
+  SupportCallQueue,
   SupportRingGroup,
   SupportListResult,
   SupportPhoneNumber,
@@ -36,6 +37,11 @@ export const tenantSupportService = {
   listRingGroups: async (): Promise<SupportListResult<SupportRingGroup>> => {
     const response = await api.get<SupportRingGroup[]>('/v1/ring-groups', { params: { per_page: 20 } });
     return normalizeListResult(response as ApiResponse<SupportRingGroup[]>);
+  },
+
+  listCallQueues: async (): Promise<SupportListResult<SupportCallQueue>> => {
+    const response = await api.get<SupportCallQueue[]>('/v1/call-queues', { params: { per_page: 20 } });
+    return normalizeListResult(response as ApiResponse<SupportCallQueue[]>);
   },
 
   listPhoneNumbers: async (): Promise<SupportListResult<SupportPhoneNumber>> => {

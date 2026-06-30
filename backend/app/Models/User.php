@@ -107,6 +107,11 @@ class User extends Authenticatable
         return $this->hasMany(Extension::class, 'assigned_user_id');
     }
 
+    public function callQueueMembers(): HasMany
+    {
+        return $this->hasMany(CallQueueMember::class, 'user_id');
+    }
+
     public function callerCallLogs(): HasMany
     {
         return $this->hasMany(CallLog::class, 'caller_user_id');

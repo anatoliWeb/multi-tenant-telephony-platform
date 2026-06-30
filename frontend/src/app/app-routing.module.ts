@@ -51,6 +51,10 @@ const routes: Routes = [
         loadChildren: () => import('./features/ring-groups/ring-groups.module').then((m) => m.RingGroupsModule),
       },
       {
+        path: 'call-queues',
+        loadChildren: () => import('./features/call-queues/call-queues.module').then((m) => m.CallQueuesModule),
+      },
+      {
         path: 'phone-numbers',
         loadChildren: () => import('./features/phone-numbers/phone-numbers.module').then((m) => m.PhoneNumbersModule),
       },

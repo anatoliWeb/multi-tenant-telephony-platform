@@ -295,6 +295,7 @@
   contacts: 'Контакти',
   extensions: 'Внутрішні номери',
   ringGroups: 'Групи дзвінка',
+  callQueues: 'Черги дзвінків',
   phoneNumbers: 'Телефонні номери',
   callLogs: 'Журнал дзвінків',
   apiDocumentation: 'API документація',
@@ -348,6 +349,15 @@
       fields: {
         members: 'Учасники',
         activeMembers: 'Активні учасники',
+      },
+    },
+    callQueues: {
+      title: 'Черги дзвінків',
+      subtitle: 'Tenant-scoped support перегляд конфігурації черг дзвінків і стану маршрутизації.',
+      fields: {
+        members: 'Учасники',
+        pausedMembers: 'Призупинені учасники',
+        overflow: 'Overflow',
       },
     },
     phoneNumbers: {

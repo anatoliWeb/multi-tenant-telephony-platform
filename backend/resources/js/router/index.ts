@@ -22,6 +22,7 @@ import TenantsPage from '../modules/tenant-support/pages/TenantsPage.vue';
 import ContactsSupportPage from '../modules/tenant-support/pages/ContactsSupportPage.vue';
 import ExtensionsSupportPage from '../modules/tenant-support/pages/ExtensionsSupportPage.vue';
 import RingGroupsSupportPage from '../modules/tenant-support/pages/RingGroupsSupportPage.vue';
+import CallQueuesSupportPage from '../modules/tenant-support/pages/CallQueuesSupportPage.vue';
 import PhoneNumbersSupportPage from '../modules/tenant-support/pages/PhoneNumbersSupportPage.vue';
 import CallLogsSupportPage from '../modules/tenant-support/pages/CallLogsSupportPage.vue';
 import NotFoundView from '../shared/components/NotFoundView.vue';
@@ -206,6 +207,16 @@ const routes: RouteRecordRaw[] = [
           title: 'Ring Groups',
           subtitle: 'Tenant support ring groups',
           permission: 'ring_groups.view',
+        },
+      },
+      {
+        path: 'call-queues',
+        name: 'call-queues',
+        component: CallQueuesSupportPage,
+        meta: {
+          title: 'Call Queues',
+          subtitle: 'Tenant support call queues',
+          permission: 'call_queues.view',
         },
       },
       {

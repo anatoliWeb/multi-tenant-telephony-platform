@@ -295,6 +295,7 @@
   contacts: 'Kontakte',
   extensions: 'Nebenstellen',
   ringGroups: 'Rufgruppen',
+  callQueues: 'Warteschlangen',
   phoneNumbers: 'Rufnummern',
   callLogs: 'Anrufprotokolle',
   apiDocumentation: 'API-Dokumentation',
@@ -348,6 +349,15 @@
       fields: {
         members: 'Mitglieder',
         activeMembers: 'Aktive Mitglieder',
+      },
+    },
+    callQueues: {
+      title: 'Warteschlangen',
+      subtitle: 'Mandantenbezogene Supportansicht für Warteschlangen-Konfiguration und Routing-Status.',
+      fields: {
+        members: 'Mitglieder',
+        pausedMembers: 'Pausierte Mitglieder',
+        overflow: 'Overflow',
       },
     },
     phoneNumbers: {
