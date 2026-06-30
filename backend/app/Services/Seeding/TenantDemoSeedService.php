@@ -9,6 +9,9 @@ use App\Enums\CallQueues\CallQueueMemberType;
 use App\Enums\CallQueues\CallQueueStatus;
 use App\Enums\CallQueues\CallQueueStrategy;
 use App\Enums\Contacts\ContactStatus;
+use App\Enums\Ivr\IvrActionType;
+use App\Enums\Ivr\IvrDestinationType;
+use App\Enums\Ivr\IvrMenuStatus;
 use App\Enums\PhoneNumbers\PhoneNumberAssignmentStatus;
 use App\Enums\PhoneNumbers\PhoneNumberStatus;
 use App\Enums\PhoneNumbers\PhoneNumberType;
@@ -23,6 +26,8 @@ use App\Models\CallLog;
 use App\Models\CallQueue;
 use App\Models\CallQueueMember;
 use App\Models\Contact;
+use App\Models\IvrMenu;
+use App\Models\IvrOption;
 use App\Models\Extension;
 use App\Models\ExtensionCredential;
 use App\Models\QueueMemberPause;
@@ -83,6 +88,8 @@ class TenantDemoSeedService
             'call_queues' => 0,
             'call_queue_members' => 0,
             'queue_member_pauses' => 0,
+            'ivr_menus' => 0,
+            'ivr_options' => 0,
             'phone_numbers' => 0,
             'call_logs' => 0,
         ];
@@ -164,6 +171,12 @@ class TenantDemoSeedService
         $counts['call_queues'] += $queueCounts['call_queues'];
         $counts['call_queue_members'] += $queueCounts['call_queue_members'];
         $counts['queue_member_pauses'] += $queueCounts['queue_member_pauses'];
+        $ivrCounts = $this->seedIvrMenus($defaultTenant, 'tenant-a');
+        $counts['ivr_menus'] += $ivrCounts['ivr_menus'];
+        $counts['ivr_options'] += $ivrCounts['ivr_options'];
+        $ivrCounts = $this->seedIvrMenus($secondaryTenant, 'tenant-b');
+        $counts['ivr_menus'] += $ivrCounts['ivr_menus'];
+        $counts['ivr_options'] += $ivrCounts['ivr_options'];
         $counts['phone_numbers'] += $this->seedPhoneNumbers($defaultTenant, 'tenant-a');
         $counts['phone_numbers'] += $this->seedPhoneNumbers($secondaryTenant, 'tenant-b');
         $counts['call_logs'] += $this->seedCallLogs($defaultTenant, 'tenant-a');
@@ -822,6 +835,188 @@ class TenantDemoSeedService
             substr($hash, 16, 4),
             substr($hash, 20, 12),
         );
+    }
+
+    private function stableIvrMenuUuid(Tenant $tenant, string $slug): string
+    {
+        $hash = substr(sha1((string) $tenant->getKey().':ivr-menu:'.$slug), 0, 32);
+
+        return sprintf(
+            '%s-%s-%s-%s-%s',
+            substr($hash, 0, 8),
+            substr($hash, 8, 4),
+            substr($hash, 12, 4),
+            substr($hash, 16, 4),
+            substr($hash, 20, 12),
+        );
+    }
+
+    private function stableIvrOptionUuid(Tenant $tenant, string $slug, string $digit): string
+    {
+        $hash = substr(sha1((string) $tenant->getKey().':ivr-option:'.$slug.':'.$digit), 0, 32);
+
+        return sprintf(
+            '%s-%s-%s-%s-%s',
+            substr($hash, 0, 8),
+            substr($hash, 8, 4),
+            substr($hash, 12, 4),
+            substr($hash, 16, 4),
+            substr($hash, 20, 12),
+        );
+    }
+
+    /**
+     * @return array{ivr_menus:int, ivr_options:int}
+     */
+    private function seedIvrMenus(Tenant $tenant, string $tenantPrefix): array
+    {
+        $owner = User::query()->where('email', sprintf('%s-owner@test.local', $tenantPrefix))->first();
+        $telephony = User::query()->where('email', sprintf('%s-telephony@test.local', $tenantPrefix))->first();
+        $supportRingGroup = RingGroup::query()->where('tenant_id', $tenant->getKey())->where('slug', 'support-ring-group')->first();
+        $supportQueue = CallQueue::query()->where('tenant_id', $tenant->getKey())->where('slug', 'support-queue')->first();
+        $salesQueue = CallQueue::query()->where('tenant_id', $tenant->getKey())->where('slug', 'sales-queue')->first();
+
+        if (! $owner instanceof User || ! $telephony instanceof User || ! $supportRingGroup instanceof RingGroup || ! $supportQueue instanceof CallQueue || ! $salesQueue instanceof CallQueue) {
+            return [
+                'ivr_menus' => 0,
+                'ivr_options' => 0,
+            ];
+        }
+
+        $created = [
+            'ivr_menus' => 0,
+            'ivr_options' => 0,
+        ];
+
+        // The demo IVR graph is deterministic so tests and portfolio screenshots
+        // can rely on stable menu and option identifiers across repeated seeds.
+        $menus = [
+            [
+                'slug' => 'main-business-hours-ivr',
+                'name' => Str::title($tenantPrefix).' Main IVR',
+                'description' => 'Primary business-hours IVR for incoming callers.',
+                'greeting_text' => 'Welcome to '.Str::title($tenantPrefix).'. Press 1 for support or 2 for sales.',
+                'repeat_count' => 2,
+                'input_timeout_seconds' => 6,
+                'max_invalid_attempts' => 3,
+                'timeout_action_type' => IvrActionType::Route->value,
+                'timeout_destination_type' => IvrDestinationType::RingGroup->value,
+                'timeout_destination_id' => $supportRingGroup->getKey(),
+                'invalid_action_type' => IvrActionType::Repeat->value,
+                'invalid_destination_type' => null,
+                'invalid_destination_id' => null,
+                'options' => [
+                    ['digit' => '1', 'label' => 'Support', 'destination_type' => IvrDestinationType::RingGroup->value, 'destination_id' => $supportRingGroup->getKey(), 'priority' => 1],
+                    ['digit' => '2', 'label' => 'Sales', 'destination_type' => IvrDestinationType::CallQueue->value, 'destination_id' => $salesQueue->getKey(), 'priority' => 2],
+                    ['digit' => '9', 'label' => 'After hours', 'destination_type' => IvrDestinationType::IvrMenu->value, 'destination_id' => null, 'priority' => 3],
+                ],
+            ],
+            [
+                'slug' => 'after-hours-ivr',
+                'name' => Str::title($tenantPrefix).' After Hours IVR',
+                'description' => 'Secondary IVR for outside business hours.',
+                'greeting_text' => 'You have reached '.Str::title($tenantPrefix).'. Press 1 for the support queue.',
+                'repeat_count' => 1,
+                'input_timeout_seconds' => 5,
+                'max_invalid_attempts' => 2,
+                'timeout_action_type' => IvrActionType::Hangup->value,
+                'timeout_destination_type' => null,
+                'timeout_destination_id' => null,
+                'invalid_action_type' => IvrActionType::Route->value,
+                'invalid_destination_type' => IvrDestinationType::CallQueue->value,
+                'invalid_destination_id' => $supportQueue->getKey(),
+                'options' => [
+                    ['digit' => '1', 'label' => 'Support Queue', 'destination_type' => IvrDestinationType::CallQueue->value, 'destination_id' => $supportQueue->getKey(), 'priority' => 1],
+                ],
+            ],
+        ];
+
+        $this->tenantContext->setTenant($tenant);
+
+        try {
+            $menuIdMap = [];
+
+            foreach ($menus as $menuRow) {
+                $menu = IvrMenu::query()->updateOrCreate(
+                    [
+                        'tenant_id' => $tenant->getKey(),
+                        'slug' => $menuRow['slug'],
+                    ],
+                    [
+                        'uuid' => $this->stableIvrMenuUuid($tenant, $menuRow['slug']),
+                        'name' => $menuRow['name'],
+                        'description' => $menuRow['description'],
+                        'status' => IvrMenuStatus::Active->value,
+                        'greeting_text' => $menuRow['greeting_text'],
+                        'greeting_audio_path' => null,
+                        'repeat_count' => $menuRow['repeat_count'],
+                        'input_timeout_seconds' => $menuRow['input_timeout_seconds'],
+                        'max_invalid_attempts' => $menuRow['max_invalid_attempts'],
+                        'timeout_action_type' => $menuRow['timeout_action_type'],
+                        'timeout_destination_type' => $menuRow['timeout_destination_type'],
+                        'timeout_destination_id' => $menuRow['timeout_destination_id'],
+                        'invalid_action_type' => $menuRow['invalid_action_type'],
+                        'invalid_destination_type' => $menuRow['invalid_destination_type'],
+                        'invalid_destination_id' => $menuRow['invalid_destination_id'],
+                        'settings' => [
+                            'demo' => true,
+                            'inventory_source' => 'demo_seeder',
+                        ],
+                        'metadata' => [
+                            'inventory_source' => 'demo_seeder',
+                        ],
+                        'created_by' => $owner->getKey(),
+                        'updated_by' => $owner->getKey(),
+                    ]
+                );
+
+                $menuIdMap[$menuRow['slug']] = $menu->getKey();
+                $created['ivr_menus']++;
+            }
+
+            foreach ($menus as $menuRow) {
+                $menu = IvrMenu::query()->where('tenant_id', $tenant->getKey())->where('slug', $menuRow['slug'])->first();
+                if (! $menu instanceof IvrMenu) {
+                    continue;
+                }
+
+                foreach ($menuRow['options'] as $optionRow) {
+                    $destinationId = $optionRow['destination_id'];
+                    if ($optionRow['destination_type'] === IvrDestinationType::IvrMenu->value) {
+                        $destinationId = $menuIdMap['after-hours-ivr'] ?? null;
+                    }
+
+                    if (! $destinationId) {
+                        continue;
+                    }
+
+                    IvrOption::query()->updateOrCreate(
+                        [
+                            'tenant_id' => $tenant->getKey(),
+                            'ivr_menu_id' => $menu->getKey(),
+                            'digit' => $optionRow['digit'],
+                        ],
+                        [
+                            'uuid' => $this->stableIvrOptionUuid($tenant, $menuRow['slug'], $optionRow['digit']),
+                            'label' => $optionRow['label'],
+                            'destination_type' => $optionRow['destination_type'],
+                            'destination_id' => $destinationId,
+                            'priority' => $optionRow['priority'],
+                            'is_active' => true,
+                            'metadata' => [
+                                'inventory_source' => 'demo_seeder',
+                            ],
+                        ]
+                    );
+
+                    $created['ivr_options']++;
+                }
+            }
+        } finally {
+            $this->tenantContext->clear();
+        }
+
+        return $created;
     }
 
     private function stableQueueMemberPauseUuid(Tenant $tenant, string $slug, string $memberUuid): string

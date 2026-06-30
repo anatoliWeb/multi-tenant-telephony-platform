@@ -207,3 +207,23 @@ Verified behavior:
 - statistics follow the same own-vs-all boundary;
 - active membership is required for ordinary tenant users;
 - platform permissions alone do not grant tenant call-log access.
+
+## IVR Permissions
+
+The IVR module also uses tenant-scoped permissions only.
+
+Implemented permissions:
+
+- `ivr.view`
+- `ivr.create`
+- `ivr.update`
+- `ivr.delete`
+- `ivr.manage_options`
+- `ivr.test_route`
+
+Verified behavior:
+
+- platform permissions alone do not grant tenant IVR access;
+- suspended memberships cannot manage tenant IVR menus;
+- IVR options stay tenant-local and cannot target another tenant's extensions, queues, ring groups, or menus;
+- route testing is tenant-scoped and returns a dry-run plan instead of executing media or PBX actions.

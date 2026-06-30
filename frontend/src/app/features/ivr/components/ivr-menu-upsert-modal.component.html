@@ -1,0 +1,115 @@
+<div class="modal-backdrop" *ngIf="open">
+  <section class="modal-card">
+    <header class="modal-card__header">
+      <div>
+        <h3>{{ mode === 'create' ? ('ivr.menuModal.create' | t) : ('ivr.menuModal.edit' | t) }}</h3>
+        <p>{{ 'ivr.menuModal.subtitle' | t }}</p>
+      </div>
+      <button type="button" class="icon-button" (click)="close.emit()">{{ 'common.actions.close' | t }}</button>
+    </header>
+
+    <div class="modal-grid">
+      <label>
+        <span>{{ 'ivr.fields.name' | t }}</span>
+        <input [(ngModel)]="form.name" />
+      </label>
+      <label>
+        <span>{{ 'ivr.fields.slug' | t }}</span>
+        <input [(ngModel)]="form.slug" />
+      </label>
+      <label>
+        <span>{{ 'ivr.fields.status' | t }}</span>
+        <select [(ngModel)]="form.status">
+          <option *ngFor="let status of statusOptions()" [ngValue]="status">{{ ('ivr.status.' + status) | t }}</option>
+        </select>
+      </label>
+      <label>
+        <span>{{ 'ivr.fields.repeatCount' | t }}</span>
+        <input type="number" [(ngModel)]="form.repeat_count" min="1" max="10" />
+      </label>
+      <label>
+        <span>{{ 'ivr.fields.inputTimeoutSeconds' | t }}</span>
+        <input type="number" [(ngModel)]="form.input_timeout_seconds" min="3" max="120" />
+      </label>
+      <label>
+        <span>{{ 'ivr.fields.maxInvalidAttempts' | t }}</span>
+        <input type="number" [(ngModel)]="form.max_invalid_attempts" min="1" max="10" />
+      </label>
+      <label class="modal-grid__full">
+        <span>{{ 'ivr.fields.description' | t }}</span>
+        <textarea rows="3" [(ngModel)]="form.description"></textarea>
+      </label>
+      <label class="modal-grid__full">
+        <span>{{ 'ivr.fields.greetingText' | t }}</span>
+        <textarea rows="4" [(ngModel)]="form.greeting_text"></textarea>
+      </label>
+      <label class="modal-grid__full">
+        <span>{{ 'ivr.fields.greetingAudioPath' | t }}</span>
+        <input [(ngModel)]="form.greeting_audio_path" />
+      </label>
+    </div>
+
+    <section class="subsection">
+      <h4>{{ 'ivr.menuModal.timeoutRouting' | t }}</h4>
+      <div class="modal-grid">
+        <label>
+          <span>{{ 'ivr.fields.actionType' | t }}</span>
+          <select [ngModel]="form.timeout_action_type" (ngModelChange)="form.timeout_action_type = $event">
+            <option *ngFor="let action of actionOptions()" [ngValue]="action">{{ ('ivr.action.' + action) | t }}</option>
+          </select>
+        </label>
+        <label>
+          <span>{{ 'ivr.fields.destinationType' | t }}</span>
+          <select [ngModel]="form.timeout_destination_type" (ngModelChange)="onTimeoutDestinationTypeChange($event)">
+            <option [ngValue]="null">{{ 'common.filters.all' | t }}</option>
+            <option *ngFor="let type of destinationTypeOptions()" [ngValue]="type">{{ ('ivr.destinationType.' + type) | t }}</option>
+          </select>
+        </label>
+        <label *ngIf="requiresDestinationId(form.timeout_destination_type)">
+          <span>{{ 'ivr.fields.destinationId' | t }}</span>
+          <select [ngModel]="form.timeout_destination_id" (ngModelChange)="form.timeout_destination_id = $event">
+            <option [ngValue]="null">{{ 'common.filters.all' | t }}</option>
+            <option *ngFor="let target of destinationChoices(form.timeout_destination_type)" [ngValue]="target.id">
+              {{ target.label }}{{ target.sub_label ? ' - ' + target.sub_label : '' }}
+            </option>
+          </select>
+        </label>
+      </div>
+    </section>
+
+    <section class="subsection">
+      <h4>{{ 'ivr.menuModal.invalidRouting' | t }}</h4>
+      <div class="modal-grid">
+        <label>
+          <span>{{ 'ivr.fields.actionType' | t }}</span>
+          <select [ngModel]="form.invalid_action_type" (ngModelChange)="form.invalid_action_type = $event">
+            <option *ngFor="let action of actionOptions()" [ngValue]="action">{{ ('ivr.action.' + action) | t }}</option>
+          </select>
+        </label>
+        <label>
+          <span>{{ 'ivr.fields.destinationType' | t }}</span>
+          <select [ngModel]="form.invalid_destination_type" (ngModelChange)="onInvalidDestinationTypeChange($event)">
+            <option [ngValue]="null">{{ 'common.filters.all' | t }}</option>
+            <option *ngFor="let type of destinationTypeOptions()" [ngValue]="type">{{ ('ivr.destinationType.' + type) | t }}</option>
+          </select>
+        </label>
+        <label *ngIf="requiresDestinationId(form.invalid_destination_type)">
+          <span>{{ 'ivr.fields.destinationId' | t }}</span>
+          <select [ngModel]="form.invalid_destination_id" (ngModelChange)="form.invalid_destination_id = $event">
+            <option [ngValue]="null">{{ 'common.filters.all' | t }}</option>
+            <option *ngFor="let target of destinationChoices(form.invalid_destination_type)" [ngValue]="target.id">
+              {{ target.label }}{{ target.sub_label ? ' - ' + target.sub_label : '' }}
+            </option>
+          </select>
+        </label>
+      </div>
+    </section>
+
+    <footer class="modal-card__footer">
+      <button type="button" class="button button--secondary" (click)="close.emit()">{{ 'common.actions.cancel' | t }}</button>
+      <button type="button" class="button button--primary" [disabled]="saving" (click)="submit()">
+        {{ saving ? ('common.states.saving' | t) : ('common.actions.save' | t) }}
+      </button>
+    </footer>
+  </section>
+</div>

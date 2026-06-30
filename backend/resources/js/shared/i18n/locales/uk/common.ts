@@ -296,6 +296,7 @@
   extensions: 'Внутрішні номери',
   ringGroups: 'Групи дзвінка',
   callQueues: 'Черги дзвінків',
+  ivr: 'IVR',
   phoneNumbers: 'Телефонні номери',
   callLogs: 'Журнал дзвінків',
   apiDocumentation: 'API документація',
@@ -358,6 +359,15 @@
         members: 'Учасники',
         pausedMembers: 'Призупинені учасники',
         overflow: 'Overflow',
+      },
+    },
+    ivr: {
+      title: 'IVR',
+      subtitle: 'Tenant-scoped support перегляд IVR меню, опцій та маршрутних підсумків.',
+      fields: {
+        options: 'Опції',
+        timeoutRouting: 'Маршрут тайм-ауту',
+        invalidRouting: 'Маршрут невалідного вводу',
       },
     },
     phoneNumbers: {

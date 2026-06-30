@@ -55,6 +55,10 @@ const routes: Routes = [
         loadChildren: () => import('./features/call-queues/call-queues.module').then((m) => m.CallQueuesModule),
       },
       {
+        path: 'ivr',
+        loadChildren: () => import('./features/ivr/ivr.module').then((m) => m.IvrModule),
+      },
+      {
         path: 'phone-numbers',
         loadChildren: () => import('./features/phone-numbers/phone-numbers.module').then((m) => m.PhoneNumbersModule),
       },

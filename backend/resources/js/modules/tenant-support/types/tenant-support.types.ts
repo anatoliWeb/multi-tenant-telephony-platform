@@ -74,6 +74,18 @@ export interface SupportCallQueue {
   overflow_destination_summary?: string | null;
 }
 
+export interface SupportIvrMenu {
+  id: number;
+  uuid: string;
+  name: string;
+  slug: string;
+  status: string;
+  options_count?: number | null;
+  active_options_count?: number | null;
+  timeout_destination_summary?: string | null;
+  invalid_destination_summary?: string | null;
+}
+
 export interface SupportPhoneNumber {
   id: number;
   uuid: string;

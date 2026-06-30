@@ -296,6 +296,7 @@
   extensions: 'Extensions',
   ringGroups: 'Ring Groups',
   callQueues: 'Call Queues',
+  ivr: 'IVR',
   phoneNumbers: 'Phone Numbers',
   callLogs: 'Call Logs',
   apiDocumentation: 'API Documentation',
@@ -358,6 +359,15 @@
         members: 'Members',
         pausedMembers: 'Paused members',
         overflow: 'Overflow',
+      },
+    },
+    ivr: {
+      title: 'IVR',
+      subtitle: 'Tenant-scoped support view for IVR menus, options, and route summaries.',
+      fields: {
+        options: 'Options',
+        timeoutRouting: 'Timeout routing',
+        invalidRouting: 'Invalid routing',
       },
     },
     phoneNumbers: {

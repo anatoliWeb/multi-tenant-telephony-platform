@@ -1,0 +1,190 @@
+<section class="ivr-shell">
+  <ui-card>
+    <div class="hero">
+      <div>
+        <h2>{{ 'ivr.title' | t }}</h2>
+        <p>{{ 'ivr.subtitle' | t }}</p>
+      </div>
+      <div class="hero-actions">
+        <app-button *ngIf="canCreate" (click)="openCreateMenu()">{{ 'ivr.actions.createMenu' | t }}</app-button>
+        <app-button *ngIf="canTestRoute && (activeMenu$ | async) as activeMenu" (click)="testRoute(activeMenu)">{{ 'ivr.actions.testRoute' | t }}</app-button>
+      </div>
+    </div>
+
+    <div *ngIf="!hasTenant" class="state">
+      {{ 'ivr.tenantSelection' | t }}
+    </div>
+
+    <div class="filters" *ngIf="hasTenant">
+      <app-search-input
+        [value]="(filters$ | async)?.search ?? ''"
+        [placeholderKey]="'ivr.filters.searchPlaceholder'"
+        (valueChange)="onSearchChange($event)"
+      />
+      <app-select-filter
+        [labelKey]="'ivr.fields.status'"
+        [value]="(filters$ | async)?.status ?? ''"
+        [options]="[
+          { value: '', labelKey: 'common.filters.all' },
+          { value: 'active', labelKey: 'ivr.status.active' },
+          { value: 'suspended', labelKey: 'ivr.status.suspended' },
+          { value: 'archived', labelKey: 'ivr.status.archived' }
+        ]"
+        (valueChange)="onStatusChange($event)"
+      />
+    </div>
+  </ui-card>
+
+  <div class="layout" *ngIf="hasTenant">
+    <ui-card>
+      <div *ngIf="loading$ | async" class="state">{{ 'ivr.loading' | t }}</div>
+      <div *ngIf="!(loading$ | async) && (error$ | async) as error" class="state state--error">{{ error }}</div>
+      <div *ngIf="!(loading$ | async) && !(error$ | async) && ((menus$ | async)?.length ?? 0) === 0" class="state">
+        {{ 'ivr.empty' | t }}
+      </div>
+
+      <table *ngIf="!(loading$ | async) && ((menus$ | async)?.length ?? 0) > 0" class="table">
+        <thead>
+          <tr>
+            <th>{{ 'ivr.fields.name' | t }}</th>
+            <th>{{ 'ivr.fields.status' | t }}</th>
+            <th>{{ 'ivr.fields.options' | t }}</th>
+            <th>{{ 'ivr.fields.timeoutRouting' | t }}</th>
+            <th>{{ 'ivr.fields.invalidRouting' | t }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr
+            *ngFor="let menu of (menus$ | async); trackBy: trackMenu"
+            [class.active]="(activeMenu$ | async)?.id === menu.id"
+            (click)="selectMenu(menu)"
+            data-testid="ivr-menu-row"
+          >
+            <td>
+              <strong>{{ menu.name }}</strong>
+              <div class="subtle">{{ menu.slug }}</div>
+            </td>
+            <td>{{ ('ivr.status.' + menu.status) | t }}</td>
+            <td>{{ menu.active_options_count ?? 0 }} / {{ menu.options_count ?? 0 }}</td>
+            <td>{{ menu.timeout_destination_summary || '-' }}</td>
+            <td>{{ menu.invalid_destination_summary || '-' }}</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <app-pagination
+        *ngIf="pagination$ | async as pagination"
+        [currentPage]="pagination.current_page ?? 1"
+        [lastPage]="pagination.last_page ?? 1"
+        [perPage]="pagination.per_page ?? 15"
+        [total]="pagination.total ?? 0"
+        (pageChange)="onPageChange($event)"
+      />
+    </ui-card>
+
+    <ui-card>
+      <div *ngIf="detailLoading$ | async" class="state">{{ 'ivr.detailLoading' | t }}</div>
+      <div *ngIf="!(detailLoading$ | async) && !(activeMenu$ | async)" class="state">
+        {{ 'ivr.detailEmpty' | t }}
+      </div>
+
+      <div *ngIf="!(detailLoading$ | async) && (activeMenu$ | async) as menu" class="detail" data-testid="ivr-menu-detail">
+        <div class="detail__header">
+          <div>
+            <h3>{{ menu.name }}</h3>
+            <p>{{ menu.description || menu.slug }}</p>
+          </div>
+          <div class="detail__actions">
+            <app-button *ngIf="canUpdate" (click)="openEditMenu(menu)">{{ 'common.actions.edit' | t }}</app-button>
+            <app-button *ngIf="canDelete" (click)="deleteMenu(menu)">{{ 'common.actions.delete' | t }}</app-button>
+            <app-button *ngIf="canManageOptions" (click)="openCreateOption()">{{ 'ivr.actions.addOption' | t }}</app-button>
+          </div>
+        </div>
+
+        <div class="detail-grid">
+          <section>
+            <h4>{{ 'ivr.fields.status' | t }}</h4>
+            <p>{{ ('ivr.status.' + menu.status) | t }}</p>
+          </section>
+          <section>
+            <h4>{{ 'ivr.fields.repeatCount' | t }}</h4>
+            <p>{{ menu.repeat_count }}</p>
+          </section>
+          <section>
+            <h4>{{ 'ivr.fields.inputTimeoutSeconds' | t }}</h4>
+            <p>{{ menu.input_timeout_seconds }}s</p>
+          </section>
+          <section>
+            <h4>{{ 'ivr.fields.maxInvalidAttempts' | t }}</h4>
+            <p>{{ menu.max_invalid_attempts }}</p>
+          </section>
+        </div>
+
+        <section class="detail-section">
+          <h4>{{ 'ivr.menuModal.timeoutRouting' | t }}</h4>
+          <p>{{ menu.timeout_action_type }} / {{ menu.timeout_destination_summary || '-' }}</p>
+        </section>
+
+        <section class="detail-section">
+          <h4>{{ 'ivr.menuModal.invalidRouting' | t }}</h4>
+          <p>{{ menu.invalid_action_type }} / {{ menu.invalid_destination_summary || '-' }}</p>
+        </section>
+
+        <section class="detail-section">
+          <div class="detail__section-header">
+            <h4>{{ 'ivr.fields.options' | t }}</h4>
+            <span>{{ menu.active_options_count ?? 0 }} / {{ menu.options_count ?? 0 }}</span>
+          </div>
+
+          <div *ngIf="(activeOptions$ | async)?.length ?? 0; else emptyOptions" class="option-list">
+            <article *ngFor="let option of (activeOptions$ | async); trackBy: trackOption" class="option-card" data-testid="ivr-option-row">
+              <div>
+                <strong>{{ option.digit }} - {{ option.label }}</strong>
+                <div class="subtle">{{ option.destination_summary || '-' }}</div>
+              </div>
+              <div class="option-card__meta">
+                <span>#{{ option.priority }}</span>
+                <span>{{ option.is_active ? ('common.status.active' | t) : ('common.status.inactive' | t) }}</span>
+              </div>
+              <div class="option-card__actions" *ngIf="canManageOptions">
+                <app-button (click)="openEditOption(option)">{{ 'common.actions.edit' | t }}</app-button>
+                <app-button (click)="deleteOption(option)">{{ 'common.actions.delete' | t }}</app-button>
+              </div>
+            </article>
+          </div>
+
+          <ng-template #emptyOptions>
+            <div class="state">{{ 'ivr.options.empty' | t }}</div>
+          </ng-template>
+        </section>
+
+        <section class="detail-section" *ngIf="(routePlan$ | async) as routePlan">
+          <h4>{{ 'ivr.routePlan.title' | t }}</h4>
+          <p>{{ routePlan.reason }}</p>
+          <pre>{{ routePlan | json }}</pre>
+        </section>
+      </div>
+    </ui-card>
+  </div>
+
+  <app-ivr-menu-upsert-modal
+    [open]="isMenuModalOpen"
+    [mode]="menuModalMode"
+    [menu]="menuModalItem"
+    [options]="(options$ | async) ?? null"
+    [saving]="(saving$ | async) ?? false"
+    (close)="closeMenuModal()"
+    (save)="saveMenu($event)"
+  />
+
+  <app-ivr-option-upsert-modal
+    [open]="isOptionModalOpen"
+    [mode]="optionModalMode"
+    [menu]="(activeMenu$ | async) ?? null"
+    [option]="optionModalItem"
+    [options]="(options$ | async) ?? null"
+    [saving]="(saving$ | async) ?? false"
+    (close)="closeOptionModal()"
+    (save)="saveOption($event)"
+  />
+</section>

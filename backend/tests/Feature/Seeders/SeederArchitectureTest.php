@@ -117,6 +117,8 @@ class SeederArchitectureTest extends TestCase
         $this->assertGreaterThanOrEqual(6, CallQueue::count());
         $this->assertGreaterThanOrEqual(8, CallQueueMember::count());
         $this->assertGreaterThanOrEqual(2, QueueMemberPause::count());
+        $this->assertGreaterThanOrEqual(4, \App\Models\IvrMenu::count());
+        $this->assertGreaterThanOrEqual(8, \App\Models\IvrOption::count());
         $this->assertSame(500, CallLog::query()->where('tenant_id', $defaultTenant->id)->where('provider_call_id', 'like', 'tenant-a-volume-%')->count());
         $this->assertSame(500, CallLog::query()->where('tenant_id', $secondaryTenant->id)->where('provider_call_id', 'like', 'tenant-b-volume-%')->count());
         $this->assertGreaterThanOrEqual(500, CallLog::query()->where('tenant_id', $defaultTenant->id)->count());
@@ -237,6 +239,8 @@ class SeederArchitectureTest extends TestCase
             'call_queues' => CallQueue::count(),
             'call_queue_members' => CallQueueMember::count(),
             'queue_member_pauses' => QueueMemberPause::count(),
+            'ivr_menus' => \App\Models\IvrMenu::count(),
+            'ivr_options' => \App\Models\IvrOption::count(),
         ];
     }
 

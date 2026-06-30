@@ -157,6 +157,9 @@ Verified:
 - The two frontend warnings above remain accepted technical debt.
 - Some local backend verification runs can still enter a broken `saas_testing`
   migration state if resets or suites overlap; use sequential reruns only.
+- Stage 13.3 IVR foundation is implemented in code, but the current report still
+  needs fresh automated and browser verification before it can be treated as a
+  fully revalidated milestone alongside the earlier baseline work.
 
 ## Final Verdict
 

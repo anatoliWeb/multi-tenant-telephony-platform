@@ -1,0 +1,54 @@
+<div class="modal-backdrop" *ngIf="open">
+  <section class="modal-card">
+    <header class="modal-card__header">
+      <div>
+        <h3>{{ mode === 'create' ? ('ivr.optionModal.create' | t) : ('ivr.optionModal.edit' | t) }}</h3>
+        <p>{{ 'ivr.optionModal.subtitle' | t }}</p>
+      </div>
+      <button type="button" class="icon-button" (click)="close.emit()">{{ 'common.actions.close' | t }}</button>
+    </header>
+
+    <div class="modal-grid">
+      <label>
+        <span>{{ 'ivr.fields.digit' | t }}</span>
+        <select [(ngModel)]="form.digit">
+          <option *ngFor="let digit of options?.digits ?? ['0','1','2','3','4','5','6','7','8','9','*','#']" [ngValue]="digit">{{ digit }}</option>
+        </select>
+      </label>
+      <label>
+        <span>{{ 'ivr.fields.priority' | t }}</span>
+        <input type="number" [(ngModel)]="form.priority" min="1" max="100" />
+      </label>
+      <label class="modal-grid__full">
+        <span>{{ 'ivr.fields.label' | t }}</span>
+        <input [(ngModel)]="form.label" />
+      </label>
+      <label>
+        <span>{{ 'ivr.fields.destinationType' | t }}</span>
+        <select [ngModel]="form.destination_type" (ngModelChange)="onDestinationTypeChange($event)">
+          <option *ngFor="let type of destinationTypeOptions()" [ngValue]="type">{{ ('ivr.destinationType.' + type) | t }}</option>
+        </select>
+      </label>
+      <label *ngIf="requiresDestinationId(form.destination_type)">
+        <span>{{ 'ivr.fields.destinationId' | t }}</span>
+        <select [ngModel]="form.destination_id" (ngModelChange)="form.destination_id = $event">
+          <option [ngValue]="null">{{ 'common.filters.all' | t }}</option>
+          <option *ngFor="let target of destinationChoices(form.destination_type)" [ngValue]="target.id">
+            {{ target.label }}{{ target.sub_label ? ' - ' + target.sub_label : '' }}
+          </option>
+        </select>
+      </label>
+      <label class="modal-grid__full">
+        <span>{{ 'ivr.fields.active' | t }}</span>
+        <input type="checkbox" [(ngModel)]="form.is_active" />
+      </label>
+    </div>
+
+    <footer class="modal-card__footer">
+      <button type="button" class="button button--secondary" (click)="close.emit()">{{ 'common.actions.cancel' | t }}</button>
+      <button type="button" class="button button--primary" [disabled]="saving" (click)="submit()">
+        {{ saving ? ('common.states.saving' | t) : ('common.actions.save' | t) }}
+      </button>
+    </footer>
+  </section>
+</div>

@@ -80,12 +80,23 @@ The boundaries below are planning rules for new code. They do not require a whol
 ## Telephony
 
 - Responsibility: telephony domain behavior and provider-neutral call lifecycle.
-- Owned entities: extensions, extension credentials, active call sessions, call legs, routing decisions, extension bindings.
-- Public application services: `TelephonyService`, `ExtensionService`, `ExtensionProvisioningService`, `ExtensionCredentialService`, `ExtensionQueryService`, `CallRecordingService`.
-- Events emitted: call started, call answered, call ended, routing changed, provider-neutral call lifecycle notifications for history recording.
+- Owned entities: extensions, extension credentials, active call sessions, call legs, routing decisions, extension bindings, and tenant-scoped IVR configuration.
+- Public application services: `TelephonyService`, `ExtensionService`, `ExtensionProvisioningService`, `ExtensionCredentialService`, `ExtensionQueryService`, `CallRecordingService`, `IvrMenuService`, `IvrRoutingService`.
+- Events emitted: call started, call answered, call ended, routing changed, IVR menu changed, provider-neutral call lifecycle notifications for history recording.
 - Contracts consumed: Integrations, Contacts, AccessControl, Tenancy.
 - Allowed dependencies: Shared, Integrations, Contacts, AccessControl.
 - Forbidden dependencies: direct FreeSWITCH class references.
+
+## IVR
+
+- Responsibility: tenant-scoped IVR menus, IVR options, routing validation, timeout behavior, and invalid-input behavior.
+- Owned entities: IVR menus, IVR options, routing plans.
+- Public application services: `IvrMenuService`, `IvrRoutingService`, `IvrMenuQueryService`.
+- Events emitted: IVR menu created, IVR menu updated, IVR menu deleted, IVR option changed.
+- Contracts consumed: Telephony, Tenancy, AccessControl.
+- Allowed dependencies: Shared, Telephony, Tenancy, AccessControl.
+- Forbidden dependencies: direct provider execution, media playback, or other tenant's routing graphs.
+- The IVR module is intentionally configuration-first: it validates routing and returns dry-run plans for later call-control integration.
 
 ## CallManagement
 

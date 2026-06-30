@@ -23,6 +23,7 @@ import ContactsSupportPage from '../modules/tenant-support/pages/ContactsSupport
 import ExtensionsSupportPage from '../modules/tenant-support/pages/ExtensionsSupportPage.vue';
 import RingGroupsSupportPage from '../modules/tenant-support/pages/RingGroupsSupportPage.vue';
 import CallQueuesSupportPage from '../modules/tenant-support/pages/CallQueuesSupportPage.vue';
+import IvrSupportPage from '../modules/tenant-support/pages/IvrSupportPage.vue';
 import PhoneNumbersSupportPage from '../modules/tenant-support/pages/PhoneNumbersSupportPage.vue';
 import CallLogsSupportPage from '../modules/tenant-support/pages/CallLogsSupportPage.vue';
 import NotFoundView from '../shared/components/NotFoundView.vue';
@@ -217,6 +218,16 @@ const routes: RouteRecordRaw[] = [
           title: 'Call Queues',
           subtitle: 'Tenant support call queues',
           permission: 'call_queues.view',
+        },
+      },
+      {
+        path: 'ivr',
+        name: 'ivr',
+        component: IvrSupportPage,
+        meta: {
+          title: 'IVR',
+          subtitle: 'Tenant support IVR routing',
+          permission: 'ivr.view',
         },
       },
       {

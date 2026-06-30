@@ -93,6 +93,11 @@ class Tenant extends Model
         return $this->hasMany(CallQueue::class);
     }
 
+    public function ivrMenus(): HasMany
+    {
+        return $this->hasMany(IvrMenu::class);
+    }
+
     public function callLogs(): HasMany
     {
         return $this->hasMany(CallLog::class);

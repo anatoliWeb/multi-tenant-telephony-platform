@@ -296,6 +296,7 @@
   extensions: 'Nebenstellen',
   ringGroups: 'Rufgruppen',
   callQueues: 'Warteschlangen',
+  ivr: 'IVR',
   phoneNumbers: 'Rufnummern',
   callLogs: 'Anrufprotokolle',
   apiDocumentation: 'API-Dokumentation',
@@ -358,6 +359,15 @@
         members: 'Mitglieder',
         pausedMembers: 'Pausierte Mitglieder',
         overflow: 'Overflow',
+      },
+    },
+    ivr: {
+      title: 'IVR',
+      subtitle: 'Mandantenbezogene Supportansicht für IVR-Menüs, Optionen und Routen-Zusammenfassungen.',
+      fields: {
+        options: 'Optionen',
+        timeoutRouting: 'Timeout-Routing',
+        invalidRouting: 'Ungültiges Routing',
       },
     },
     phoneNumbers: {

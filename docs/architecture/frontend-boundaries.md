@@ -57,6 +57,7 @@ Vue owns:
 ## Current State Notes
 
 - Angular already owns the tenant chat and realtime experience.
-- Vue already owns the platform dashboard and admin monitoring surface.
-- Telephony UI work has not started yet.
+- Angular now also owns the tenant IVR foundation UI under `/ivr`.
+- Vue already owns the platform dashboard, admin monitoring surface, and the tenant-support IVR visibility page.
+- Telephony UI work has started for routing foundation slices, but the reusable call-control layer is still planned.
 - The reusable call-control layer is a planned future Angular boundary.

@@ -27,6 +27,7 @@ export class SidebarComponent {
     { route: '/extensions', labelKey: 'layout.nav.extensions', permissions: ['extensions.view'], scope: 'tenant' },
     { route: '/ring-groups', labelKey: 'layout.nav.ringGroups', permissions: ['ring_groups.view'], scope: 'tenant' },
     { route: '/call-queues', labelKey: 'layout.nav.callQueues', permissions: ['call_queues.view'], scope: 'tenant' },
+    { route: '/ivr', labelKey: 'layout.nav.ivr', permissions: ['ivr.view'], scope: 'tenant' },
     { route: '/phone-numbers', labelKey: 'layout.nav.phoneNumbers', permissions: ['phone_numbers.view'], scope: 'tenant' },
     { route: '/call-logs', labelKey: 'layout.nav.callLogs', permissions: ['call_logs.view'], scope: 'tenant' },
   ];

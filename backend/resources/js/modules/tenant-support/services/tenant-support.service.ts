@@ -6,6 +6,7 @@ import type {
   SupportContact,
   SupportExtension,
   SupportCallQueue,
+  SupportIvrMenu,
   SupportRingGroup,
   SupportListResult,
   SupportPhoneNumber,
@@ -42,6 +43,11 @@ export const tenantSupportService = {
   listCallQueues: async (): Promise<SupportListResult<SupportCallQueue>> => {
     const response = await api.get<SupportCallQueue[]>('/v1/call-queues', { params: { per_page: 20 } });
     return normalizeListResult(response as ApiResponse<SupportCallQueue[]>);
+  },
+
+  listIvrMenus: async (): Promise<SupportListResult<SupportIvrMenu>> => {
+    const response = await api.get<SupportIvrMenu[]>('/v1/ivr-menus', { params: { per_page: 20 } });
+    return normalizeListResult(response as ApiResponse<SupportIvrMenu[]>);
   },
 
   listPhoneNumbers: async (): Promise<SupportListResult<SupportPhoneNumber>> => {

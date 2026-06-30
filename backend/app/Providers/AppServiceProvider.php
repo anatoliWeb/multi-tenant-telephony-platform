@@ -8,6 +8,7 @@ use App\Models\ContactTag;
 use App\Models\CallLog;
 use App\Models\CallQueue;
 use App\Models\Extension;
+use App\Models\IvrMenu;
 use App\Models\PhoneNumber;
 use App\Models\RingGroup;
 use App\Models\ActivityLog;
@@ -18,6 +19,7 @@ use App\Policies\ContactTagPolicy;
 use App\Policies\CallLogPolicy;
 use App\Policies\CallQueuePolicy;
 use App\Policies\ExtensionPolicy;
+use App\Policies\IvrMenuPolicy;
 use App\Policies\PhoneNumberPolicy;
 use App\Policies\RingGroupPolicy;
 use App\Services\Rbac\PermissionCacheService;
@@ -510,6 +512,46 @@ class AppServiceProvider extends ServiceProvider
                     ->addProperty('members', (new ArrayType)->setItems($callQueueMemberSchema))
                     ->setRequired(['id', 'uuid', 'tenant_id', 'name', 'slug', 'strategy', 'status']);
 
+                $ivrOptionSchema = (new ObjectType)
+                    ->addProperty('id', new IntegerType)
+                    ->addProperty('uuid', new StringType)
+                    ->addProperty('tenant_id', new StringType)
+                    ->addProperty('ivr_menu_id', new IntegerType)
+                    ->addProperty('digit', new StringType)
+                    ->addProperty('label', new StringType)
+                    ->addProperty('destination_type', new StringType)
+                    ->addProperty('destination_id', new IntegerType)
+                    ->addProperty('destination_summary', new StringType)
+                    ->addProperty('priority', new IntegerType)
+                    ->addProperty('is_active', new BooleanType)
+                    ->setRequired(['id', 'uuid', 'tenant_id', 'ivr_menu_id', 'digit', 'label', 'destination_type', 'priority', 'is_active']);
+
+                $ivrMenuSchema = (new ObjectType)
+                    ->addProperty('id', new IntegerType)
+                    ->addProperty('uuid', new StringType)
+                    ->addProperty('tenant_id', new StringType)
+                    ->addProperty('name', new StringType)
+                    ->addProperty('slug', new StringType)
+                    ->addProperty('description', new StringType)
+                    ->addProperty('status', new StringType)
+                    ->addProperty('greeting_text', new StringType)
+                    ->addProperty('greeting_audio_path', new StringType)
+                    ->addProperty('repeat_count', new IntegerType)
+                    ->addProperty('input_timeout_seconds', new IntegerType)
+                    ->addProperty('max_invalid_attempts', new IntegerType)
+                    ->addProperty('timeout_action_type', new StringType)
+                    ->addProperty('timeout_destination_type', new StringType)
+                    ->addProperty('timeout_destination_id', new IntegerType)
+                    ->addProperty('invalid_action_type', new StringType)
+                    ->addProperty('invalid_destination_type', new StringType)
+                    ->addProperty('invalid_destination_id', new IntegerType)
+                    ->addProperty('timeout_destination_summary', new StringType)
+                    ->addProperty('invalid_destination_summary', new StringType)
+                    ->addProperty('options_count', new IntegerType)
+                    ->addProperty('active_options_count', new IntegerType)
+                    ->addProperty('options', (new ArrayType)->setItems($ivrOptionSchema))
+                    ->setRequired(['id', 'uuid', 'tenant_id', 'name', 'slug', 'status']);
+
                 $openApi->components->addSchema('PaginationMeta', Schema::fromType($paginationMeta));
                 $openApi->components->addSchema('ApiSuccessResponse', Schema::fromType($apiSuccess));
                 $openApi->components->addSchema('ApiErrorResponse', Schema::fromType($apiError));
@@ -535,6 +577,8 @@ class AppServiceProvider extends ServiceProvider
                 $openApi->components->addSchema('CallLog', Schema::fromType($callLogSchema));
                 $openApi->components->addSchema('CallQueue', Schema::fromType($callQueueSchema));
                 $openApi->components->addSchema('CallQueueMember', Schema::fromType($callQueueMemberSchema));
+                $openApi->components->addSchema('IvrMenu', Schema::fromType($ivrMenuSchema));
+                $openApi->components->addSchema('IvrOption', Schema::fromType($ivrOptionSchema));
             });
 
             Scramble::configure()
@@ -765,6 +809,7 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(PhoneNumber::class, PhoneNumberPolicy::class);
         Gate::policy(RingGroup::class, RingGroupPolicy::class);
         Gate::policy(CallQueue::class, CallQueuePolicy::class);
+        Gate::policy(IvrMenu::class, IvrMenuPolicy::class);
         Gate::policy(CallLog::class, CallLogPolicy::class);
 
         /*

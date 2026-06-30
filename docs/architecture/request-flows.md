@@ -143,6 +143,17 @@ The same pattern is used for support views for extensions, phone numbers, and
 call logs. Vue Admin must require explicit tenant selection before these
 requests.
 
+### Example: platform support IVR page
+
+`backend/resources/js/modules/tenant-support/pages/IvrSupportPage.vue`
+-> `tenant-support.service.ts`
+-> `backend/resources/js/services/api/http.ts`
+-> `/api/v1/ivr-menus` with selected `X-Tenant-ID`
+-> Laravel tenant-scoped API response
+
+The IVR support page is read-only and shows menu summaries, option counts, and
+timeout or invalid-input routing summaries for the selected tenant only.
+
 ## Realtime Flow
 
 ### Example: chat message broadcast
@@ -214,6 +225,17 @@ Follow-up state changes use:
 -> recomputed durations and final disposition
 
 This flow is simulated only. No real SIP signaling, RTP, or FreeSWITCH event stream is active.
+
+### Example: tenant-aware IVR dry-run routing
+
+`TenantContext`
+-> `App\Http\Controllers\Api\V1\Ivr\IvrMenuController::testRoute()`
+-> `App\Http\Requests\Api\TestIvrMenuRouteRequest`
+-> `App\Services\Ivr\IvrMenuService::testRoute()`
+-> `App\Services\Ivr\IvrRoutingService::resolve()`
+-> normalized dry-run route plan
+
+This flow validates IVR configuration only. It does not play audio, place calls, or invoke a PBX adapter yet.
 
 ## Contacts Lookup Flow
 

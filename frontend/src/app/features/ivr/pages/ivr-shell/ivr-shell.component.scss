@@ -1,0 +1,140 @@
+.ivr-shell {
+  display: grid;
+  gap: 16px;
+}
+
+.hero {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: center;
+}
+
+.hero-actions,
+.detail__actions,
+.option-card__actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.filters {
+  margin-top: 16px;
+  display: grid;
+  grid-template-columns: minmax(280px, 1fr) minmax(220px, 240px);
+  gap: 12px;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: minmax(320px, 1fr) minmax(360px, 1.25fr);
+  gap: 16px;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table th,
+.table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.16);
+  text-align: left;
+  vertical-align: top;
+}
+
+.table tr.active,
+.option-card {
+  background: rgba(15, 23, 42, 0.84);
+}
+
+.table tr {
+  cursor: pointer;
+}
+
+.subtle {
+  font-size: 12px;
+  color: #94a3b8;
+  margin-top: 4px;
+}
+
+.detail,
+.detail-section,
+.option-list {
+  display: grid;
+  gap: 16px;
+}
+
+.detail__header,
+.detail__section-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+}
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.detail-grid section,
+.detail-section,
+.option-card {
+  padding: 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(148, 163, 184, 0.14);
+}
+
+.option-card {
+  display: grid;
+  gap: 10px;
+}
+
+.option-card__meta {
+  display: flex;
+  gap: 10px;
+  color: #cbd5e1;
+  font-size: 13px;
+}
+
+.state {
+  padding: 16px;
+  border-radius: 14px;
+  border: 1px dashed rgba(148, 163, 184, 0.26);
+  color: #cbd5e1;
+}
+
+.state--error {
+  border-color: rgba(248, 113, 113, 0.5);
+  color: #fecaca;
+}
+
+pre {
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-size: 12px;
+}
+
+@media (max-width: 1100px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 860px) {
+  .hero,
+  .detail__header,
+  .detail__section-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .filters,
+  .detail-grid {
+    grid-template-columns: 1fr;
+  }
+}

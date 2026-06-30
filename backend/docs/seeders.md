@@ -111,6 +111,17 @@ It includes:
 - reproducible high-volume volume fixtures that generate at least 1,000 total call logs for Stage 12 validation;
 - deterministic timestamps spread across the previous 30-90 days so exports and charts remain stable on rerun.
 
+IVR demo data is also tenant-specific, deterministic, and idempotent.
+
+It includes:
+
+- at least two IVR menus per active demo tenant;
+- a main business-hours IVR;
+- an after-hours IVR;
+- options that route to tenant-local demo ring groups and call queues;
+- timeout and invalid-input actions that stay within the active tenant;
+- stable digits and priorities so repeated seeding stays predictable.
+
 ### TestSeeder
 
 Seeds the test-only baseline used by feature tests:
@@ -132,6 +143,7 @@ Seeders and seed services own deterministic data creation and repair.
 - `TenantSeedService` owns base tenants and legacy membership backfill used during schema setup.
 - `TenantDemoSeedService` owns demo personas, memberships, role assignments, and tenant demo fixtures.
 - `TenantBootstrapService` is read-only and must not create or repair data.
+- IVR seed data belongs in `TenantDemoSeedService` so demo routing graphs stay repeatable and safe for screenshots, tests, and tenant-specific fixtures.
 
 ### PerformanceSeeder
 

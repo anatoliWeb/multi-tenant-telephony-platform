@@ -224,6 +224,7 @@ const routeTitleMap: Record<string, string> = {
   extensions: 'common.extensions',
   'ring-groups': 'common.ringGroups',
   'call-queues': 'common.callQueues',
+  ivr: 'common.ivr',
   'phone-numbers': 'common.phoneNumbers',
   'call-logs': 'common.callLogs',
 };
@@ -319,6 +320,12 @@ const managementLinks: NavItem[] = [
     labelKey: 'common.callQueues',
     icon: IconCallQueue,
     permission: 'call_queues.view',
+  },
+  {
+    to: '/ivr',
+    labelKey: 'common.ivr',
+    icon: IconCallQueue,
+    permission: 'ivr.view',
   },
   {
     to: '/phone-numbers',

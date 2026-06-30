@@ -23,7 +23,7 @@ Deferred:
 - FreeSWITCH adapter;
 - real calls;
 - SIP.js;
-- DIDs, call logs, recordings, queues, IVR, billing, and real provider webhooks.
+- DIDs, call logs, recordings, queues, billing, and real provider webhooks.
 - contacts-to-call integration.
 
 Implemented after this baseline:
@@ -34,6 +34,7 @@ Implemented after this baseline:
 - tenant-aware call logs and call events integrated through provider-neutral recording services;
 - bounded tenant statistics over fake-provider call history;
 - fake call lifecycle recording for originate, answer, hold, resume, and hangup flows.
+- tenant-aware IVR menus and options with dry-run route resolution, loop detection, timeout actions, and invalid-input actions.
 
 ## Contacts Dependency
 
@@ -184,3 +185,15 @@ Current behavior:
 - answer, hold, resume, and hangup transitions append provider-neutral events and reconcile lifecycle state;
 - historical caller and callee snapshots are stored even when related users, extensions, DIDs, or contacts are linked;
 - no real SIP transport, RTP, or provider webhooks are involved.
+
+## IVR Integration
+
+The IVR slice is configuration-only and reuses tenant-local telephony data.
+
+Current behavior:
+
+- menus and options are stored per tenant;
+- route validation rejects self-loops and obvious nested menu loops;
+- timeout and invalid-input actions can repeat, route, or hang up;
+- route testing returns a dry-run plan for the active tenant only;
+- no audio playback, real DTMF runtime, SIP.js, or FreeSWITCH integration is active yet.

@@ -857,15 +857,15 @@ The Laravel domain must not depend directly on FreeSWITCH-specific classes.
 - [x] Queue strategies
 - [x] Agent pause and resume
 - [x] Queue overflow destinations
-- [ ] IVR
-- [ ] IVR options
-- [ ] Timeout actions
-- [ ] Invalid-input actions
-- [ ] Route validation
-- [ ] Route-loop validation
+- [x] IVR
+- [x] IVR options
+- [x] Timeout actions
+- [x] Invalid-input actions
+- [x] Route validation
+- [x] Route-loop validation
 - [x] Policies
 - [x] Events
-- [ ] Tests
+- [x] Tests
 - [x] Demo data
 
 ---
@@ -943,6 +943,34 @@ The same call-control service must be reusable from:
 - call logs;
 - conference participants.
 
+## 19.1 Vue Admin SIP.js Softphone
+
+Vue Admin should include a real SIP.js/WebRTC softphone so platform admins and support users can place calls directly from the admin interface.
+
+- [ ] Add SIP.js dependency to the Vue admin frontend
+- [ ] Create Vue SIP client service
+- [ ] Create reusable Vue softphone modal
+- [ ] Add call button to the platform admin dashboard
+- [ ] Add call button to tenant-support telephony pages where useful
+- [ ] Support SIP registration from selected tenant/extension credentials
+- [ ] Show registration state: disconnected, connecting, registered, failed
+- [ ] Add destination input for extension or phone number
+- [ ] Start outbound audio call from Vue Admin
+- [ ] Show call states: idle, dialing, ringing, active, held, ended, failed
+- [ ] Add answer, reject, hangup controls
+- [ ] Add mute and unmute microphone
+- [ ] Add hold and resume placeholders if backend/PBX support is not ready yet
+- [ ] Add device permission checks for microphone
+- [ ] Add audio output element for remote media
+- [ ] Add local microphone stream handling
+- [ ] Clean up media tracks after call end
+- [ ] Keep SIP credentials tenant-scoped
+- [ ] Do not expose SIP passwords in logs, UI, or Vue devtools-friendly state
+- [ ] Store only safe SIP account metadata in frontend state
+- [ ] Add permission-aware visibility for platform admin/support users
+- [ ] Add useful English comments in SIP service, media handling, and security-sensitive areas
+- [ ] Add Vue tests for modal state, registration state, permission visibility, and call controls
+- [ ] Document Vue Admin SIP.js softphone setup and limitations
 ---
 
 # 20. Stage 16: Calling from Chat

@@ -219,3 +219,15 @@ Call logs extend the same shared-database tenant boundary.
 - call-event writes validate that the event tenant matches the parent call log tenant;
 - own-call and all-call visibility checks are enforced after tenant scoping, not instead of it;
 - same provider call identifiers may exist in different tenants without violating isolation.
+
+## IVR Ownership
+
+IVR menus and options use the same tenant boundary.
+
+- every `ivr_menus` row stores `tenant_id`;
+- every `ivr_options` row stores `tenant_id`;
+- route evaluation is always tenant-scoped and resolves through `TenantContext`;
+- timeout and invalid-input actions stay inside the active tenant;
+- self-loops and obvious nested menu loops are rejected before any PBX or media integration stage;
+- cross-tenant destinations are rejected instead of being silently normalized;
+- real audio playback and real call execution remain out of scope for this slice.

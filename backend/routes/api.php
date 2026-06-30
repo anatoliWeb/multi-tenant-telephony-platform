@@ -29,6 +29,8 @@ use App\Http\Controllers\Api\V1\Contacts\ContactController;
 use App\Http\Controllers\Api\V1\Contacts\ContactExportController;
 use App\Http\Controllers\Api\V1\Contacts\ContactImportController;
 use App\Http\Controllers\Api\V1\Contacts\ContactTagController;
+use App\Http\Controllers\Api\V1\Ivr\IvrMenuController;
+use App\Http\Controllers\Api\V1\Ivr\IvrOptionController;
 use App\Http\Controllers\Api\V1\CallQueues\CallQueueController;
 use App\Http\Controllers\Api\V1\CallQueues\CallQueueMemberController;
 use App\Http\Controllers\Api\V1\CallLogs\CallLogController;
@@ -866,6 +868,45 @@ Route::prefix('v1')
                     Route::post('/{callQueue}/test-route', [CallQueueController::class, 'testRoute'])
                         ->name('test-route')
                         ->middleware('permission:call_queues.test_route');
+                });
+
+                Route::prefix('ivr-menus')
+                    ->as('ivr-menus.')
+                    ->middleware('resolve.tenant')
+                    ->group(function (): void {
+                    Route::get('/', [IvrMenuController::class, 'index'])
+                        ->name('index')
+                        ->middleware('permission:ivr.view');
+                    Route::get('/options', [IvrMenuController::class, 'options'])
+                        ->name('options')
+                        ->middleware('permission:ivr.view');
+                    Route::post('/', [IvrMenuController::class, 'store'])
+                        ->name('store')
+                        ->middleware('permission:ivr.create');
+                    Route::get('/{ivrMenu}', [IvrMenuController::class, 'show'])
+                        ->name('show')
+                        ->middleware('permission:ivr.view');
+                    Route::put('/{ivrMenu}', [IvrMenuController::class, 'update'])
+                        ->name('update')
+                        ->middleware('permission:ivr.update');
+                    Route::delete('/{ivrMenu}', [IvrMenuController::class, 'destroy'])
+                        ->name('destroy')
+                        ->middleware('permission:ivr.delete');
+                    Route::get('/{ivrMenu}/options', [IvrOptionController::class, 'index'])
+                        ->name('options.index')
+                        ->middleware('permission:ivr.view');
+                    Route::post('/{ivrMenu}/options', [IvrOptionController::class, 'store'])
+                        ->name('options.store')
+                        ->middleware('permission:ivr.manage_options');
+                    Route::put('/{ivrMenu}/options/{option}', [IvrOptionController::class, 'update'])
+                        ->name('options.update')
+                        ->middleware('permission:ivr.manage_options');
+                    Route::delete('/{ivrMenu}/options/{option}', [IvrOptionController::class, 'destroy'])
+                        ->name('options.destroy')
+                        ->middleware('permission:ivr.manage_options');
+                    Route::post('/{ivrMenu}/test-route', [IvrMenuController::class, 'testRoute'])
+                        ->name('test-route')
+                        ->middleware('permission:ivr.test_route');
                 });
 
                 Route::prefix('phone-numbers')
