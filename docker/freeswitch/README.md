@@ -18,6 +18,23 @@ in this environment and remains suitable for local development.
 - enabling SIP.js or browser softphone behavior yet;
 - production deployment without a separate security review.
 
+## Local demo credential gate
+
+Stage 15.2 adds an explicit local-only gate for demo SIP credentials.
+
+The backend only returns a password when all of these are true:
+
+- `APP_ENV=local`
+- `FREESWITCH_ENABLED=true`
+- `FREESWITCH_LOCAL_DEMO_CREDENTIALS=true`
+
+The matching demo password is `change_me_local_demo_only`. It is intentionally
+unsafe for production and must never be reused outside local development.
+
+The Angular softphone keeps that password in service memory only. It is not
+written to browser storage, and the public profile response stays metadata-only
+outside the local-demo gate.
+
 ## Layout
 
 - `conf/` - reserved for future FreeSWITCH configuration files;
@@ -25,8 +42,13 @@ in this environment and remains suitable for local development.
 - `recordings/` - reserved for future local call recordings;
 - `tls/` - reserved for future local TLS certificates for WSS or SIP TLS experiments.
 
-These folders are scaffolding only in this foundation slice. The image's built-in
-defaults are used for now.
+The current repo uses the image's built-in defaults. The FreeSWITCH config tree
+inside the running container is located at `/usr/local/freeswitch/conf`, with
+the demo user directory at `/usr/local/freeswitch/conf/directory/default`.
+
+The files in `conf/directory/default/` are local scaffolding examples only.
+They exist so the repository documents the exact shape of the demo users
+without bind-mounting an incomplete `/etc/freeswitch` tree over the container.
 
 The Event Socket port is bound to `127.0.0.1` so it stays local-only and does
 not expose unsafe call-control access outside the developer machine.
@@ -82,6 +104,29 @@ docker compose --profile freeswitch stop freeswitch
 The Laravel application still defaults to the fake telephony provider until the
 future call-control integration layer explicitly switches behavior.
 
+## Demo provisioning
+
+Provision local demo users after the container is up:
+
+```bash
+docker compose --profile freeswitch up -d freeswitch
+./docker/freeswitch/scripts/provision-demo-users.sh
+docker compose exec -T freeswitch fs_cli -x "reloadxml"
+docker compose exec -T freeswitch fs_cli -x "sofia profile internal restart"
+```
+
+The script provisions `1001`, `1002`, `2001`, and `2002` by default so it can
+cover both the documented demo pair and the current Angular demo seed data.
+Override that list with `FREESWITCH_DEMO_USERS` if you need a narrower set.
+
+If you prefer to copy the example files manually, use the discovered container
+path:
+
+```bash
+docker cp docker/freeswitch/conf/directory/default/1001.xml $(docker compose ps -q freeswitch):/usr/local/freeswitch/conf/directory/default/1001.xml
+docker cp docker/freeswitch/conf/directory/default/1002.xml $(docker compose ps -q freeswitch):/usr/local/freeswitch/conf/directory/default/1002.xml
+```
+
 ## Cleanup
 
 If an earlier compose definition left stale FreeSWITCH containers behind, clean
@@ -99,4 +144,4 @@ containers.
 
 `mod_xml_curl` may log `Binding has no url` because backend-driven dynamic
 directory and dialplan integration is not configured yet. That is acceptable for
-the Stage 14 Docker profile foundation.
+the Stage 14 and Stage 15.2 foundations.

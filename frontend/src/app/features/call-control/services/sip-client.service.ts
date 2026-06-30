@@ -23,6 +23,7 @@ export class SipClientService {
   private registerer: Registerer | null = null;
   private activeSession: Session | null = null;
   private remoteAudioElement: HTMLAudioElement | null = null;
+  private authorizationPassword: string | null = null;
 
   readonly profile$ = this.profileSubject.asObservable();
   readonly callState$ = this.callStateSubject.asObservable();
@@ -80,9 +81,16 @@ export class SipClientService {
         throw new Error('SIP profile unavailable.');
       }
 
-      this.profileSubject.next(profile);
+      // SIP secrets stay in transient service memory only. The public profile
+      // stream is sanitized so Angular templates and devtools snapshots do not
+      // retain passwords after the profile is loaded.
+      this.authorizationPassword = profile.credentials_available && profile.registration_enabled && profile.local_demo_mode
+        ? profile.password ?? null
+        : null;
+      this.profileSubject.next(this.sanitizeProfile(profile));
       this.callStateSubject.next('ready');
     } catch (error) {
+      this.authorizationPassword = null;
       this.profileSubject.next(null);
       this.callStateSubject.next('failed');
       this.errorSubject.next(this.toErrorMessage(error, 'SIP profile unavailable.'));
@@ -128,10 +136,11 @@ export class SipClientService {
       return;
     }
 
-    if (!profile.registration.enabled) {
+    if (!profile.registration_enabled || !profile.credentials_available || !this.authorizationPassword) {
       this.registrationStateSubject.next('failed');
       this.callStateSubject.next('registration_failed');
-      this.errorSubject.next(profile.registration.reason ?? 'Registration is not enabled for this softphone foundation.');
+      this.errorSubject.next(profile.registration.reason ?? 'SIP credentials are not enabled for this environment.');
+      this.clearCredentials();
       return;
     }
 
@@ -155,6 +164,8 @@ export class SipClientService {
       this.registrationStateSubject.next('failed');
       this.callStateSubject.next('registration_failed');
       this.errorSubject.next(this.toErrorMessage(error, 'Registration failed.'));
+      this.clearCredentials();
+      this.destroyTransport();
     }
   }
 
@@ -165,6 +176,12 @@ export class SipClientService {
     if (!profile) {
       this.callStateSubject.next('failed');
       this.errorSubject.next('SIP profile unavailable.');
+      return;
+    }
+
+    if (this.registrationStateSubject.value !== 'registered') {
+      this.callStateSubject.next('failed');
+      this.errorSubject.next('Register before placing a call.');
       return;
     }
 
@@ -262,6 +279,7 @@ export class SipClientService {
    */
   resetForTenantChange(): void {
     this.destroyTransport();
+    this.clearCredentials();
     this.profileSubject.next(null);
     this.callStateSubject.next('idle');
     this.registrationStateSubject.next('disconnected');
@@ -276,6 +294,10 @@ export class SipClientService {
       return;
     }
 
+    if (!this.authorizationPassword) {
+      throw new Error('SIP credentials are not enabled for this environment.');
+    }
+
     const uri = UserAgent.makeURI(profile.sip_uri);
 
     if (!uri) {
@@ -286,7 +308,7 @@ export class SipClientService {
       uri,
       displayName: profile.display_name,
       authorizationUsername: profile.authorization_username,
-      authorizationPassword: profile.authorization_password ? String(profile.authorization_password) : undefined,
+      authorizationPassword: this.authorizationPassword,
       transportOptions: {
         server: profile.websocket_url,
       },
@@ -353,6 +375,17 @@ export class SipClientService {
     if (this.remoteAudioElement) {
       this.remoteAudioElement.srcObject = null;
     }
+  }
+
+  private clearCredentials(): void {
+    this.authorizationPassword = null;
+  }
+
+  private sanitizeProfile(profile: SipProfile): SipProfile {
+    return {
+      ...profile,
+      password: null,
+    };
   }
 
   private destroySession(): void {

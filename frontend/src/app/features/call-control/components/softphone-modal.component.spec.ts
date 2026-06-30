@@ -1,5 +1,6 @@
 import { BehaviorSubject } from 'rxjs';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { By } from '@angular/platform-browser';
 import { vi } from 'vitest';
 import { SoftphoneModalComponent } from './softphone-modal.component';
 import { SipClientService } from '../services/sip-client.service';
@@ -30,20 +31,24 @@ describe('SoftphoneModalComponent', () => {
   };
 
   const sipClientMock = {
-    profile$: new BehaviorSubject({
+    profile$: new BehaviorSubject<any>({
       extension_id: 42,
       extension_number: '2001',
       display_name: 'Primary Desk',
       sip_uri: 'sip:2001@localhost',
       authorization_username: '2001',
+      password: 'change_me_local_demo_only',
       websocket_url: 'wss://localhost:7443',
       domain: 'localhost',
       provider: 'freeswitch',
       expires_seconds: 300,
+      credentials_available: true,
+      registration_enabled: true,
+      local_demo_mode: true,
       registration: {
-        enabled: false,
-        state: 'disabled',
-        reason: 'SIP registration stays disabled until a safe tenant directory provisioning slice exists.',
+        enabled: true,
+        state: 'available',
+        reason: 'Local demo SIP credentials are enabled for this development environment.',
       },
       capabilities: {
         outbound_call: true,
@@ -93,6 +98,53 @@ describe('SoftphoneModalComponent', () => {
     expect(component.selectedExtensionId).toBe(42);
     expect(fixture.nativeElement.textContent).toContain('2001');
     expect(fixture.nativeElement.textContent).not.toContain('callControl.title');
+  });
+
+  it('disables register and call actions when credentials are unavailable', async () => {
+    sipClientMock.profile$.next({
+      extension_id: 42,
+      extension_number: '2001',
+      display_name: 'Primary Desk',
+      sip_uri: 'sip:2001@localhost',
+      authorization_username: '2001',
+      password: null,
+      websocket_url: 'wss://localhost:7443',
+      domain: 'localhost',
+      provider: 'freeswitch',
+      expires_seconds: 300,
+      credentials_available: false,
+      registration_enabled: false,
+      local_demo_mode: false,
+      registration: {
+        enabled: false,
+        state: 'disabled',
+        reason: 'SIP credentials are not enabled for this environment.',
+      },
+      capabilities: {
+        outbound_call: true,
+        inbound_call: false,
+        hold: false,
+        mute: true,
+      },
+      tenant_id: 'tenant-a',
+    });
+
+    component.open = true;
+    await component.prepareProfile();
+    fixture.detectChanges();
+
+    const buttons = fixture.debugElement.queryAll(By.css('.softphone__actions button'));
+    expect(buttons[1].nativeElement.disabled).toBe(true);
+    expect(buttons[2].nativeElement.disabled).toBe(true);
+  });
+
+  it('keeps the call action disabled before registration', async () => {
+    component.open = true;
+    await component.prepareProfile();
+    fixture.detectChanges();
+
+    const callButton = () => fixture.debugElement.queryAll(By.css('.softphone__actions button'))[2].nativeElement as HTMLButtonElement;
+    expect(callButton().disabled).toBe(true);
   });
 
   it('cleans up state when closed', () => {

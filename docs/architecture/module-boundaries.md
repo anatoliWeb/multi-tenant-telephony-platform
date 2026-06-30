@@ -112,6 +112,8 @@ The boundaries below are planning rules for new code. They do not require a whol
 - Forbidden dependencies: leaking SIP passwords, storing long-lived media streams in browser state, or bypassing tenant-scoped credential checks.
 - Angular owns the tenant-facing softphone first; Vue Admin can receive a separate support-oriented softphone later, but it must follow the same tenant-scoped credential and cleanup rules.
 - The current Angular slice is foundation-only: it loads a tenant-scoped SIP profile, manages permission state, and keeps registration disabled until the provisioning slice can safely supply live credentials.
+- Stage 15.2 keeps any demo password in service memory only and clears it on
+  tenant switch, logout, modal close, and registration failure.
 
 ## CallManagement
 

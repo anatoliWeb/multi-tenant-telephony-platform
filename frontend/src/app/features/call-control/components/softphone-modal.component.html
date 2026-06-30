@@ -61,11 +61,18 @@
             <p class="softphone__hint">
               {{ profile.registration.reason || ('callControl.registrationDisabled' | t) }}
             </p>
+            <p class="softphone__hint" *ngIf="profile.credentials_available; else noCredentials">
+              {{ profile.local_demo_mode ? ('callControl.localDemoCredentials' | t) : ('callControl.credentialsEnabled' | t) }}
+            </p>
           </div>
         </ng-container>
 
         <ng-template #noProfile>
           <p class="softphone__hint">{{ 'callControl.profileUnavailable' | t }}</p>
+        </ng-template>
+
+        <ng-template #noCredentials>
+          <p class="softphone__hint">{{ 'callControl.credentialsUnavailable' | t }}</p>
         </ng-template>
       </article>
 
@@ -77,6 +84,7 @@
           <input
             type="text"
             [value]="destination"
+            [disabled]="(registrationState$ | async) !== 'registered'"
             (input)="onDestinationChange($any($event.target).value)"
             [placeholder]="'callControl.destinationPlaceholder' | t"
           />
@@ -88,23 +96,27 @@
           <button type="button" (click)="checkMicrophonePermission()">
             {{ 'callControl.actions.checkMicrophone' | t }}
           </button>
-          <button type="button" (click)="register()" [disabled]="!profile?.registration?.enabled">
+          <button
+            type="button"
+            (click)="register()"
+            [disabled]="!profile?.registration_enabled || !profile?.credentials_available || (registrationState$ | async) === 'connecting' || (registrationState$ | async) === 'registered'"
+          >
             {{ 'callControl.actions.register' | t }}
           </button>
           <button
             type="button"
             (click)="placeCall()"
-            [disabled]="!profile?.registration?.enabled || !profile?.capabilities?.outbound_call"
+            [disabled]="(registrationState$ | async) !== 'registered' || !profile?.capabilities?.outbound_call"
           >
             {{ 'callControl.actions.call' | t }}
           </button>
-          <button type="button" (click)="hangup()" [disabled]="!profile?.registration?.enabled">
+          <button type="button" (click)="hangup()" [disabled]="(registrationState$ | async) !== 'registered'">
             {{ 'callControl.actions.hangup' | t }}
           </button>
           <button
             type="button"
             (click)="toggleMute()"
-            [disabled]="!profile?.registration?.enabled || !profile?.capabilities?.mute"
+            [disabled]="(registrationState$ | async) !== 'registered' || !profile?.capabilities?.mute"
           >
             {{ ((muted$ | async) ? 'callControl.actions.unmute' : 'callControl.actions.mute') | t }}
           </button>

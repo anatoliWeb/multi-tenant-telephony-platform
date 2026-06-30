@@ -1,0 +1,19 @@
+<include>
+  <!-- Local demo user for FreeSWITCH development only. Never reuse this in production. -->
+  <user id="2001">
+    <params>
+      <param name="password" value="change_me_local_demo_only"/>
+      <param name="vm-password" value="2001"/>
+    </params>
+    <variables>
+      <variable name="toll_allow" value="domestic,international,local"/>
+      <variable name="accountcode" value="2001"/>
+      <variable name="user_context" value="default"/>
+      <variable name="effective_caller_id_name" value="Extension 2001"/>
+      <variable name="effective_caller_id_number" value="2001"/>
+      <variable name="outbound_caller_id_name" value="$${outbound_caller_name}"/>
+      <variable name="outbound_caller_id_number" value="$${outbound_caller_id}"/>
+      <variable name="callgroup" value="techsupport"/>
+    </variables>
+  </user>
+</include>

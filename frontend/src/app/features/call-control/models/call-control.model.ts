@@ -35,11 +35,14 @@ export interface SipProfile {
   display_name: string;
   sip_uri: string;
   authorization_username: string;
-  authorization_password?: string | null;
+  password?: string | null;
   websocket_url: string;
   domain: string;
   provider: string;
   expires_seconds: number;
+  credentials_available: boolean;
+  registration_enabled: boolean;
+  local_demo_mode: boolean;
   capabilities: SipProfileCapabilities;
   registration: SipProfileRegistrationState;
   tenant_id: string;

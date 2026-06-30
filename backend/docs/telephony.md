@@ -216,6 +216,13 @@ Current boundary:
 - the profile endpoint is metadata-only in the normal environment, so the UI
   can render call state, microphone checks, and placeholder actions without
   leaking secrets;
+- Stage 15.2 adds a local-demo credential gate that only enables registration
+  when `APP_ENV=local`, `FREESWITCH_ENABLED=true`, and
+  `FREESWITCH_LOCAL_DEMO_CREDENTIALS=true`;
+- outside that gate the profile stays metadata-only and the frontend keeps the
+  Register action disabled with a clear environment message;
+- the softphone service keeps SIP secrets in memory only and clears them on
+  tenant switch, logout, modal close, or registration failure;
 - Vue Admin is planned to get a support-oriented SIP.js/WebRTC softphone later;
 - SIP credentials must remain tenant-scoped and must not leak into logs, browser
   storage, or devtools-friendly global state;
@@ -236,6 +243,18 @@ Current boundary:
 - Laravel reads the future FreeSWITCH placeholder config from `backend/config/freeswitch.php`;
 - real SIP credentials must stay out of git and out of browser state;
 - no SIP.js, carrier adapter, or live PBX routing is enabled by this foundation slice.
+
+Stage 15.2 local-demo notes:
+
+- the backend may return a password only for local demo mode;
+- the local-demo gate is intentionally development-only and remains disabled in
+  every non-local environment;
+- the running container exposes its config tree at `/usr/local/freeswitch/conf`,
+  including `directory/default/`, which is the provisioning target used by the
+  demo script;
+- the provisioning foundation should copy or generate only the demo user files
+  needed for local testing and should not mount an incomplete `/etc/freeswitch`
+  overlay.
 
 Operational note:
 

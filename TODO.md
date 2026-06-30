@@ -929,6 +929,10 @@ CallControlApiService
 - [x] Registration status
 - [x] Microphone permission handling
 - [x] Remote audio element handling
+- [x] Local/demo SIP credential gate
+- [x] Backend SIP profile can enable local demo registration
+- [x] FreeSWITCH demo user provisioning documented/scripted
+- [x] Angular register button gated by credential availability
 - [ ] SIP registration
 - [ ] WSS connection
 - [ ] WebRTC audio

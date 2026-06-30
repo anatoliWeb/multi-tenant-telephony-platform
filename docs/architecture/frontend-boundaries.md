@@ -60,6 +60,8 @@ Vue owns:
 - Angular now also owns the tenant IVR foundation UI under `/ivr`.
 - Angular now has the first tenant softphone foundation slice with a
   permission-aware launcher and tenant-scoped SIP profile modal.
+- Stage 15.2 adds a local-demo credential gate for Angular registration only
+  when the backend explicitly allows it in local development.
 - Vue already owns the platform dashboard, admin monitoring surface, and the tenant-support IVR visibility page.
 - Vue also has a planned SIP.js/WebRTC softphone slice for platform admin and support workflows, but it is not implemented yet.
 - Telephony UI work has started for routing foundation slices, and the reusable

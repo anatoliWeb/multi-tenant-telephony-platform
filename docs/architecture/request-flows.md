@@ -243,6 +243,9 @@ This flow validates IVR configuration only. It does not play audio, place calls,
 The softphone foundation now loads a tenant-scoped SIP profile, but it still
 keeps registration disabled until the call-control layer is explicitly wired
 to a real provider and safe tenant credentials can be provisioned.
+Stage 15.2 adds a local-demo-only credential gate so the same flow can be
+tested in development without exposing secrets outside the approved local
+environment.
 
 ## Contacts Lookup Flow
 

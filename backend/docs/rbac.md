@@ -193,6 +193,11 @@ Verified behavior:
   `call_control.view`;
 - the normal profile response is metadata-only, so SIP passwords are not
   persisted in browser state or echoed in API payloads;
+- when `APP_ENV=local`, `FREESWITCH_ENABLED=true`, and
+  `FREESWITCH_LOCAL_DEMO_CREDENTIALS=true`, the backend may return a
+  local-demo password for the selected extension only;
+- the local-demo password remains development-only, never logged, and never
+  stored in persistent browser state;
 - tenant owner, tenant admin, and tenant telephony manager remain the intended
   roles for the first softphone slice.
 
