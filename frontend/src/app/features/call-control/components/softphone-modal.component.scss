@@ -121,6 +121,51 @@
   margin-top: 4px;
 }
 
+.softphone__diagnostics {
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  border-radius: 16px;
+  border: 1px solid rgba(56, 189, 248, 0.25);
+  background: rgba(8, 15, 32, 0.8);
+}
+
+.softphone__diagnostics h5 {
+  margin: 0;
+  color: #bae6fd;
+  font-size: 0.82rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.softphone__diagnostics dl {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+}
+
+.softphone__diagnostics dl div {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: baseline;
+}
+
+.softphone__diagnostics dt,
+.softphone__diagnostics dd {
+  margin: 0;
+}
+
+.softphone__diagnostics dt {
+  color: #94a3b8;
+}
+
+.softphone__diagnostics dd {
+  color: #e2e8f0;
+  text-align: right;
+  word-break: break-word;
+}
+
 .softphone__error {
   margin: 0;
   color: #fca5a5;

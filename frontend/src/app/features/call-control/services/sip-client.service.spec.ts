@@ -209,6 +209,52 @@ describe('SipClientService', () => {
     )).toBe('The callee is not registered yet. Register the other browser session with the destination extension first.');
   });
 
+  it('maps autoplay blocked playback failures to browser interaction guidance', () => {
+    expect((service as any).toMediaErrorMessage(new Error('NotAllowedError: play() failed because the user didn\'t interact with the document first.'))).toBe(
+      'Browser autoplay blocked remote audio. Click the page once, then retry the call.',
+    );
+  });
+
+  it('resets media diagnostics on tenant cleanup', async () => {
+    callControlApiMock.getSipProfile.mockReturnValue(of({
+      success: true,
+      message: 'ok',
+      data: {
+        ...baseProfile,
+        credentials_available: true,
+        registration_enabled: true,
+        local_demo_mode: true,
+        password: 'change_me_local_demo_only',
+        registration: {
+          enabled: true,
+          state: 'available',
+          reason: 'Local demo SIP credentials are enabled for this development environment.',
+        },
+      },
+    }));
+
+    await service.loadProfile(42);
+    (service as any).mediaDiagnosticsSubject.next({
+      remote_audio_attached: true,
+      remote_audio_track_count: 1,
+      remote_audio_playing: true,
+      peer_connection_state: 'connected',
+      ice_connection_state: 'connected',
+      last_media_error: 'example',
+    });
+
+    service.resetForTenantChange();
+
+    expect(service.mediaDiagnostics).toEqual({
+      remote_audio_attached: false,
+      remote_audio_track_count: 0,
+      remote_audio_playing: false,
+      peer_connection_state: 'unknown',
+      ice_connection_state: 'unknown',
+      last_media_error: null,
+    });
+  });
+
   it('does not write SIP credentials to browser storage', async () => {
     const setItemSpy = vi.spyOn(Storage.prototype, 'setItem');
     const removeItemSpy = vi.spyOn(Storage.prototype, 'removeItem');

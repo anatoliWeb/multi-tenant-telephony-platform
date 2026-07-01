@@ -233,6 +233,9 @@ Current boundary:
   rejects the local FreeSWITCH WSS certificate chain;
 - if the browser does not trust the local FreeSWITCH certificate chain, the
   service surfaces a clear transport error instead of hiding the failure;
+- the remote audio element stays unmuted and the call-control layer exposes
+  media diagnostics so playback problems can be distinguished from SIP
+  registration or routing errors;
 - the local demo registration path remains development-only and still depends on
   the local FreeSWITCH provisioning scaffolding rather than SaaS-backed SIP
   credential storage.

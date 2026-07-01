@@ -467,5 +467,12 @@ export const DE_TRANSLATIONS: Record<string, string> = {
   'callControl.registrationDisabled': 'Die Registrierung bleibt deaktiviert, bis lokale Demo-Zugangsdaten aktiviert sind.',
   'callControl.loadingProfile': 'SIP-Profil wird geladen...',
   'callControl.destinationPlaceholder': 'SIP URI oder Nebenstellennummer eingeben',
+  'callControl.mediaDiagnostics.title': 'Mediendiagnose',
+  'callControl.mediaDiagnostics.remoteAudioAttached': 'Remote-Audio verbunden',
+  'callControl.mediaDiagnostics.remoteAudioTrackCount': 'Remote-Audio-Spuren',
+  'callControl.mediaDiagnostics.remoteAudioPlaying': 'Remote-Audio wird wiedergegeben',
+  'callControl.mediaDiagnostics.peerConnectionState': 'Peer-Connection-Status',
+  'callControl.mediaDiagnostics.iceConnectionState': 'ICE-Connection-Status',
+  'callControl.mediaDiagnostics.lastMediaError': 'Letzter Medienfehler',
   'callControl.footer.note': 'FreeSWITCH bleibt optional und der Fake-Provider ist weiterhin die Standardwahl.',
 };

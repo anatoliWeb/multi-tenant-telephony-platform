@@ -16,6 +16,15 @@ export type SipRegistrationState = 'disconnected' | 'connecting' | 'registered' 
 
 export type MicrophonePermissionState = 'unknown' | 'checking' | 'granted' | 'denied' | 'prompt' | 'unsupported';
 
+export interface SipMediaDiagnostics {
+  remote_audio_attached: boolean;
+  remote_audio_track_count: number;
+  remote_audio_playing: boolean;
+  peer_connection_state: RTCPeerConnectionState | 'unknown';
+  ice_connection_state: RTCIceConnectionState | 'unknown';
+  last_media_error: string | null;
+}
+
 export interface SipProfileCapabilities {
   outbound_call: boolean;
   inbound_call: boolean;

@@ -70,6 +70,14 @@ describe('SoftphoneModalComponent', () => {
     muted$: new BehaviorSubject(false),
     incomingCall$: new BehaviorSubject(false),
     error$: new BehaviorSubject<string | null>(null),
+    mediaDiagnostics$: new BehaviorSubject({
+      remote_audio_attached: false,
+      remote_audio_track_count: 0,
+      remote_audio_playing: false,
+      peer_connection_state: 'unknown',
+      ice_connection_state: 'unknown',
+      last_media_error: null,
+    }),
     loadProfile: vi.fn().mockResolvedValue(undefined),
     bindRemoteAudio: vi.fn(),
     resetForTenantChange: vi.fn(),
@@ -108,6 +116,18 @@ describe('SoftphoneModalComponent', () => {
     expect(fixture.nativeElement.textContent).toContain('2001');
     expect(fixture.nativeElement.textContent).toContain('2001 and 2002');
     expect(fixture.nativeElement.textContent).not.toContain('callControl.title');
+  });
+
+  it('keeps the remote audio element unmuted and shows media diagnostics', async () => {
+    component.open = true;
+    await component.prepareProfile();
+    fixture.detectChanges();
+
+    const audioElement = fixture.nativeElement.querySelector('audio') as HTMLAudioElement;
+    expect(audioElement.muted).toBe(false);
+    expect(audioElement.autoplay).toBe(true);
+    expect(audioElement.controls).toBe(true);
+    expect(fixture.nativeElement.textContent).toContain('Media diagnostics');
   });
 
   it('loads the selected extension when the picker changes', async () => {

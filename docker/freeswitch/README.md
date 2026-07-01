@@ -40,6 +40,11 @@ The Angular softphone keeps that password in service memory only. It is not
 written to browser storage, and the public profile response stays metadata-only
 outside the local-demo gate.
 
+The Angular call-control layer now also keeps the remote audio element
+unmuted and renders basic media diagnostics in the softphone modal, which
+helps separate autoplay and playback problems from SIP registration failures.
+That UI change does not add any SIP.js provider logic or FreeSWITCH coupling.
+
 Stage 15.3 adds a browser registration attempt and two-browser call path for
 local development. The browser must still trust the local FreeSWITCH
 certificate chain for `wss://localhost:7443`, otherwise SIP.js will fail the

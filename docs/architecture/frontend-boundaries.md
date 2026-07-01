@@ -65,6 +65,9 @@ Vue owns:
 - Stage 15.3 lets Angular attempt real local-demo SIP registration and local
   extension calls, but browser WSS/TLS trust still governs whether the browser
   can actually complete the handshake on a given machine.
+- The call-control layer now keeps the remote audio element unmuted and exposes
+  live media diagnostics so browser audio issues can be distinguished from SIP
+  signaling failures.
 - Angular SIP profiles must keep browser-facing SIP domains and WSS URLs
   separate from Docker runtime lookup domains used by FreeSWITCH provisioning.
 - The browser must never be given a Docker runtime IP just because the
@@ -72,5 +75,6 @@ Vue owns:
 - Vue already owns the platform dashboard, admin monitoring surface, and the tenant-support IVR visibility page.
 - Vue also has a planned SIP.js/WebRTC softphone slice for platform admin and support workflows, but it is not implemented yet.
 - Telephony UI work has started for routing foundation slices, and the reusable
-  Angular call-control layer now exists as a foundation shell, but live SIP
-  registration remains intentionally disabled until tenant-safe PBX provisioning exists.
+  Angular call-control layer now exists as a foundation shell with remote audio
+  diagnostics, but browser-side call verification still depends on local WSS
+  trust and the active demo provisioning workflow.

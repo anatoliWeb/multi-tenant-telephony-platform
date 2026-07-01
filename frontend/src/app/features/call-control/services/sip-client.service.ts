@@ -13,10 +13,21 @@ import {
 import { CallControlApiService } from './call-control-api.service';
 import type {
   MicrophonePermissionState,
+  SipMediaDiagnostics,
   SipCallState,
   SipProfile,
   SipRegistrationState,
 } from '../models/call-control.model';
+
+type SipSessionDescriptionHandler = {
+  peerConnection?: RTCPeerConnection;
+  peerConnectionDelegate?: {
+    ontrack?: (event: RTCTrackEvent) => void;
+    onconnectionstatechange?: (event: Event) => void;
+    oniceconnectionstatechange?: (event: Event) => void;
+  };
+  remoteMediaStream?: MediaStream;
+};
 
 @Injectable({ providedIn: 'root' })
 export class SipClientService {
@@ -28,6 +39,15 @@ export class SipClientService {
   private readonly incomingCallSubject = new BehaviorSubject<boolean>(false);
   private readonly destinationSubject = new BehaviorSubject<string>('');
   private readonly errorSubject = new BehaviorSubject<string | null>(null);
+  private readonly lastMediaErrorSubject = new BehaviorSubject<string | null>(null);
+  private readonly mediaDiagnosticsSubject = new BehaviorSubject<SipMediaDiagnostics>({
+    remote_audio_attached: false,
+    remote_audio_track_count: 0,
+    remote_audio_playing: false,
+    peer_connection_state: 'unknown',
+    ice_connection_state: 'unknown',
+    last_media_error: null,
+  });
 
   private userAgent: UserAgent | null = null;
   private registerer: Registerer | null = null;
@@ -46,6 +66,7 @@ export class SipClientService {
   readonly incomingCall$ = this.incomingCallSubject.asObservable();
   readonly destination$ = this.destinationSubject.asObservable();
   readonly error$ = this.errorSubject.asObservable();
+  readonly mediaDiagnostics$ = this.mediaDiagnosticsSubject.asObservable();
 
   constructor(private readonly callControlApi: CallControlApiService) {}
 
@@ -73,6 +94,10 @@ export class SipClientService {
     return this.destinationSubject.value;
   }
 
+  get mediaDiagnostics(): SipMediaDiagnostics {
+    return this.mediaDiagnosticsSubject.value;
+  }
+
   /**
    * SIP credentials stay in memory only. The browser should never persist
    * them in storage or global app state because the softphone is tenant-scoped
@@ -87,6 +112,7 @@ export class SipClientService {
     this.mutedSubject.next(false);
     this.incomingCallSubject.next(false);
     this.destinationSubject.next('');
+    this.resetMediaDiagnostics();
 
     try {
       const response = await firstValueFrom(this.callControlApi.getSipProfile(extensionId));
@@ -251,6 +277,7 @@ export class SipClientService {
 
     this.activeSession = inviter;
     this.attachSessionHandlers(inviter);
+    this.attachSessionMediaHandlers(inviter);
 
     try {
       await inviter.invite({
@@ -315,7 +342,28 @@ export class SipClientService {
   }
 
   bindRemoteAudio(element: HTMLAudioElement | null): void {
+    if (this.remoteAudioElement === element) {
+      if (this.remoteAudioElement) {
+        this.prepareRemoteAudioElement(this.remoteAudioElement);
+        void this.bindSessionAudio(this.activeSession);
+      }
+
+      return;
+    }
+
     this.remoteAudioElement = element;
+
+    if (this.remoteAudioElement) {
+      this.prepareRemoteAudioElement(this.remoteAudioElement);
+      void this.bindSessionAudio(this.activeSession);
+      return;
+    }
+
+    this.mediaDiagnosticsSubject.next({
+      ...this.mediaDiagnosticsSubject.value,
+      remote_audio_attached: false,
+      remote_audio_playing: false,
+    });
   }
 
   /**
@@ -349,6 +397,7 @@ export class SipClientService {
     this.destinationSubject.next('');
     this.incomingCallSubject.next(false);
     this.errorSubject.next(null);
+    this.resetMediaDiagnostics();
   }
 
   private async ensureTransport(profile: SipProfile): Promise<void> {
@@ -460,6 +509,7 @@ export class SipClientService {
     // Accepting the invitation promotes the incoming call into the same
     // session lifecycle as an outgoing call so cleanup stays centralized.
     this.attachSessionHandlers(this.incomingInvitation);
+    this.attachSessionMediaHandlers(this.incomingInvitation);
 
     try {
       await this.incomingInvitation.accept({
@@ -506,7 +556,7 @@ export class SipClientService {
 
         this.callStateSubject.next('active');
         this.registrationStateSubject.next('registered');
-        this.bindSessionAudio(session);
+        void this.bindSessionAudio(session);
       }
 
       if (state === SessionState.Terminated) {
@@ -516,23 +566,88 @@ export class SipClientService {
     });
   }
 
-  private bindSessionAudio(session: Session): void {
-    if (!this.remoteAudioElement) {
+  private async bindSessionAudio(session: Session | null): Promise<void> {
+    if (!session) {
+      this.mediaDiagnosticsSubject.next({
+        ...this.mediaDiagnosticsSubject.value,
+        remote_audio_attached: false,
+        remote_audio_track_count: 0,
+        remote_audio_playing: false,
+      });
       return;
     }
 
+    const audioElement = this.remoteAudioElement;
     const stream = (session as Session & {
       sessionDescriptionHandler?: { remoteMediaStream?: MediaStream };
     }).sessionDescriptionHandler?.remoteMediaStream;
 
-    if (!stream) {
+    if (!audioElement || !stream) {
+      const lastMediaError = !audioElement
+        ? 'Remote audio element is not attached yet.'
+        : 'Remote audio stream is not available yet.';
+      this.mediaDiagnosticsSubject.next({
+        ...this.mediaDiagnosticsSubject.value,
+        remote_audio_attached: Boolean(audioElement && stream),
+        remote_audio_track_count: stream?.getTracks().length ?? 0,
+        remote_audio_playing: false,
+        last_media_error: lastMediaError,
+      });
+
+      this.lastMediaErrorSubject.next(lastMediaError);
+
       return;
     }
 
-    // The remote audio element must be rebound per call so we do not leave a
-    // dangling stream reference behind after tenant switches or hangup.
-    this.remoteAudioElement.srcObject = stream;
-    void this.remoteAudioElement.play().catch(() => undefined);
+    // The browser must play the remote stream through the single reusable
+    // audio element so we can observe autoplay blocks and cleanup one source.
+    this.prepareRemoteAudioElement(audioElement);
+    audioElement.srcObject = stream;
+
+    const trackCount = stream.getTracks().length;
+    this.mediaDiagnosticsSubject.next({
+      ...this.mediaDiagnosticsSubject.value,
+      remote_audio_attached: true,
+      remote_audio_track_count: trackCount,
+      remote_audio_playing: false,
+      last_media_error: trackCount > 0 ? null : 'Remote audio track has not arrived yet.',
+    });
+
+    if (trackCount === 0) {
+      this.lastMediaErrorSubject.next('Remote audio track has not arrived yet.');
+      return;
+    }
+
+    try {
+      const playResult = audioElement.play();
+      if (playResult) {
+        await playResult;
+      }
+
+      if (this.remoteAudioElement === audioElement && audioElement.srcObject === stream) {
+        this.mediaDiagnosticsSubject.next({
+          ...this.mediaDiagnosticsSubject.value,
+          remote_audio_attached: true,
+          remote_audio_track_count: trackCount,
+          remote_audio_playing: true,
+          last_media_error: null,
+        });
+        this.lastMediaErrorSubject.next(null);
+      }
+    } catch (error) {
+      const mediaError = this.toMediaErrorMessage(error);
+      if (this.remoteAudioElement === audioElement && audioElement.srcObject === stream) {
+        this.mediaDiagnosticsSubject.next({
+          ...this.mediaDiagnosticsSubject.value,
+          remote_audio_attached: true,
+          remote_audio_track_count: trackCount,
+          remote_audio_playing: false,
+          last_media_error: mediaError,
+        });
+      }
+      this.lastMediaErrorSubject.next(mediaError);
+      this.errorSubject.next(mediaError);
+    }
   }
 
   private destroyTransport(): void {
@@ -550,7 +665,10 @@ export class SipClientService {
 
     if (this.remoteAudioElement) {
       this.remoteAudioElement.srcObject = null;
+      this.prepareRemoteAudioElement(this.remoteAudioElement);
     }
+
+    this.resetMediaDiagnostics();
   }
 
   private clearCredentials(): void {
@@ -587,12 +705,19 @@ export class SipClientService {
 
     if (this.remoteAudioElement) {
       this.remoteAudioElement.srcObject = null;
+      this.prepareRemoteAudioElement(this.remoteAudioElement);
     }
 
     this.incomingInvitation = null;
     this.incomingCallSubject.next(false);
     this.activeSession = null;
     this.mutedSubject.next(false);
+    this.mediaDiagnosticsSubject.next({
+      ...this.mediaDiagnosticsSubject.value,
+      remote_audio_attached: false,
+      remote_audio_track_count: 0,
+      remote_audio_playing: false,
+    });
   }
 
   private toErrorMessage(error: unknown, fallback: string): string;
@@ -637,11 +762,123 @@ export class SipClientService {
     return /USER_NOT_REGISTERED/i.test(message) || /\b480\b/.test(message) || /\b481\b/.test(message);
   }
 
+  private isAutoplayBlockedError(message: string): boolean {
+    return /notallowederror/i.test(message) || /autoplay/i.test(message) || /user gesture/i.test(message) || /play\(\)/i.test(message);
+  }
+
+  private isRemoteMediaConnectionError(message: string): boolean {
+    return /\bICE\b/i.test(message) || /\bDTLS\b/i.test(message) || /\bRTP\b/i.test(message) || /\bSDP\b/i.test(message);
+  }
+
   private isSelfCallTarget(target: ReturnType<typeof UserAgent.makeURI>, currentExtensionNumber: string): boolean {
     const targetUser = target?.user?.trim() ?? '';
     const current = currentExtensionNumber.trim();
 
     return targetUser !== '' && current !== '' && targetUser === current;
+  }
+
+  private toMediaErrorMessage(error: unknown): string {
+    const message = error instanceof Error ? error.message.trim() : '';
+
+    if (message && this.isAutoplayBlockedError(message)) {
+      return 'Browser autoplay blocked remote audio. Click the page once, then retry the call.';
+    }
+
+    if (message && /permission/i.test(message)) {
+      return 'Media permission was denied. Check browser microphone and speaker permissions.';
+    }
+
+    if (message && this.isRemoteMediaConnectionError(message)) {
+      return 'Remote media transport failed. Check FreeSWITCH RTP, ICE, DTLS, and SDP direction.';
+    }
+
+    return message || 'Remote audio playback failed.';
+  }
+
+  private attachSessionMediaHandlers(session: Session): void {
+    const sessionDelegate = session.delegate ?? {};
+    session.delegate = {
+      ...sessionDelegate,
+      onSessionDescriptionHandler: (sessionDescriptionHandler, provisional) => {
+        sessionDelegate.onSessionDescriptionHandler?.(sessionDescriptionHandler, provisional);
+        this.attachPeerConnectionDiagnostics(sessionDescriptionHandler);
+      },
+    };
+
+    if (session.sessionDescriptionHandler) {
+      this.attachPeerConnectionDiagnostics(session.sessionDescriptionHandler);
+    }
+  }
+
+  private attachPeerConnectionDiagnostics(sessionDescriptionHandler: NonNullable<Session['sessionDescriptionHandler']>): void {
+    const handler = sessionDescriptionHandler as NonNullable<Session['sessionDescriptionHandler']> & SipSessionDescriptionHandler;
+    const peerConnection = handler.peerConnection;
+
+    if (!peerConnection) {
+      return;
+    }
+
+    const existingDelegate = handler.peerConnectionDelegate ?? {};
+    handler.peerConnectionDelegate = {
+      ...existingDelegate,
+      ontrack: (event: RTCTrackEvent) => {
+        existingDelegate.ontrack?.(event);
+        const activeHandler = this.activeSession?.sessionDescriptionHandler as
+          | (NonNullable<Session['sessionDescriptionHandler']> & SipSessionDescriptionHandler)
+          | undefined;
+        this.mediaDiagnosticsSubject.next({
+          ...this.mediaDiagnosticsSubject.value,
+          remote_audio_track_count: this.activeSession
+            ? (activeHandler?.remoteMediaStream?.getTracks().length ?? 0)
+            : this.mediaDiagnosticsSubject.value.remote_audio_track_count,
+        });
+        void this.bindSessionAudio(this.activeSession);
+      },
+      onconnectionstatechange: (event: Event) => {
+        existingDelegate.onconnectionstatechange?.(event);
+        this.updateConnectionDiagnostics(peerConnection.connectionState, peerConnection.iceConnectionState);
+      },
+      oniceconnectionstatechange: (event: Event) => {
+        existingDelegate.oniceconnectionstatechange?.(event);
+        this.updateConnectionDiagnostics(peerConnection.connectionState, peerConnection.iceConnectionState);
+      },
+    };
+
+    this.updateConnectionDiagnostics(peerConnection.connectionState, peerConnection.iceConnectionState);
+  }
+
+  private updateConnectionDiagnostics(connectionState: RTCPeerConnectionState | 'unknown', iceConnectionState: RTCIceConnectionState | 'unknown'): void {
+    const nextDiagnostics = {
+      ...this.mediaDiagnosticsSubject.value,
+      peer_connection_state: connectionState,
+      ice_connection_state: iceConnectionState,
+    };
+
+    if (connectionState === 'failed' || iceConnectionState === 'failed') {
+      nextDiagnostics.last_media_error = 'Peer connection failed. Check FreeSWITCH RTP, ICE, DTLS, and browser network logs.';
+      this.lastMediaErrorSubject.next(nextDiagnostics.last_media_error);
+      this.errorSubject.next(nextDiagnostics.last_media_error);
+    }
+
+    this.mediaDiagnosticsSubject.next(nextDiagnostics);
+  }
+
+  private prepareRemoteAudioElement(element: HTMLAudioElement): void {
+    element.autoplay = true;
+    element.controls = true;
+    element.muted = false;
+  }
+
+  private resetMediaDiagnostics(): void {
+    this.mediaDiagnosticsSubject.next({
+      remote_audio_attached: false,
+      remote_audio_track_count: 0,
+      remote_audio_playing: false,
+      peer_connection_state: 'unknown',
+      ice_connection_state: 'unknown',
+      last_media_error: null,
+    });
+    this.lastMediaErrorSubject.next(null);
   }
 
   private toSipError(response: unknown): Error {

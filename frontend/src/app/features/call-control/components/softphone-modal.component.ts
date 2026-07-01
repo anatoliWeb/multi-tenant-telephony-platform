@@ -1,10 +1,11 @@
 import { CommonModule } from '@angular/common';
 import { Component, ElementRef, EventEmitter, Input, OnChanges, OnDestroy, Output, SimpleChanges, ViewChild } from '@angular/core';
-import { firstValueFrom } from 'rxjs';
+import { firstValueFrom, Observable } from 'rxjs';
 import { SharedModule } from '../../../shared/shared.module';
 import { TenantContextService } from '../../../core/services/tenant-context.service';
 import { ExtensionsStateService } from '../../extensions/services/extensions-state.service';
 import { SipClientService } from '../services/sip-client.service';
+import type { SipMediaDiagnostics } from '../models/call-control.model';
 
 @Component({
   selector: 'app-softphone-modal',
@@ -33,6 +34,7 @@ export class SoftphoneModalComponent implements OnChanges, OnDestroy {
   readonly muted$;
   readonly incomingCall$;
   readonly error$;
+  readonly mediaDiagnostics$: Observable<SipMediaDiagnostics>;
 
   constructor(
     private readonly sipClient: SipClientService,
@@ -46,6 +48,7 @@ export class SoftphoneModalComponent implements OnChanges, OnDestroy {
     this.muted$ = this.sipClient.muted$;
     this.incomingCall$ = this.sipClient.incomingCall$;
     this.error$ = this.sipClient.error$;
+    this.mediaDiagnostics$ = this.sipClient.mediaDiagnostics$;
     this.extensions$ = this.extensionsState.extensions$;
   }
 

@@ -103,7 +103,37 @@
           />
         </label>
 
-        <audio #remoteAudio controls autoplay muted></audio>
+        <audio #remoteAudio controls autoplay></audio>
+
+        <section class="softphone__diagnostics" *ngIf="mediaDiagnostics$ | async as diagnostics">
+          <h5>{{ 'callControl.mediaDiagnostics.title' | t }}</h5>
+          <dl>
+            <div>
+              <dt>{{ 'callControl.mediaDiagnostics.remoteAudioAttached' | t }}</dt>
+              <dd>{{ diagnostics.remote_audio_attached ? ('dashboard.fields.yes' | t) : ('dashboard.fields.no' | t) }}</dd>
+            </div>
+            <div>
+              <dt>{{ 'callControl.mediaDiagnostics.remoteAudioTrackCount' | t }}</dt>
+              <dd>{{ diagnostics.remote_audio_track_count }}</dd>
+            </div>
+            <div>
+              <dt>{{ 'callControl.mediaDiagnostics.remoteAudioPlaying' | t }}</dt>
+              <dd>{{ diagnostics.remote_audio_playing ? ('dashboard.fields.yes' | t) : ('dashboard.fields.no' | t) }}</dd>
+            </div>
+            <div>
+              <dt>{{ 'callControl.mediaDiagnostics.peerConnectionState' | t }}</dt>
+              <dd>{{ diagnostics.peer_connection_state }}</dd>
+            </div>
+            <div>
+              <dt>{{ 'callControl.mediaDiagnostics.iceConnectionState' | t }}</dt>
+              <dd>{{ diagnostics.ice_connection_state }}</dd>
+            </div>
+            <div>
+              <dt>{{ 'callControl.mediaDiagnostics.lastMediaError' | t }}</dt>
+              <dd>{{ diagnostics.last_media_error || '—' }}</dd>
+            </div>
+          </dl>
+        </section>
 
         <div class="softphone__actions">
           <button type="button" (click)="checkMicrophonePermission()">

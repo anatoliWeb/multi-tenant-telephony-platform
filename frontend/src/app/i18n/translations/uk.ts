@@ -189,6 +189,13 @@
   'callControl.registrationDisabled': 'Реєстрацію вимкнено, доки не буде ввімкнено локальні demo-облікові дані.',
   'callControl.loadingProfile': 'Завантаження SIP-профілю...',
   'callControl.destinationPlaceholder': 'Введіть SIP URI або внутрішній номер',
+  'callControl.mediaDiagnostics.title': 'Діагностика медіа',
+  'callControl.mediaDiagnostics.remoteAudioAttached': 'Віддалене аудіо підключено',
+  'callControl.mediaDiagnostics.remoteAudioTrackCount': 'Кількість аудіодоріжок',
+  'callControl.mediaDiagnostics.remoteAudioPlaying': 'Віддалене аудіо відтворюється',
+  'callControl.mediaDiagnostics.peerConnectionState': 'Стан peer connection',
+  'callControl.mediaDiagnostics.iceConnectionState': 'Стан ICE connection',
+  'callControl.mediaDiagnostics.lastMediaError': 'Остання помилка медіа',
   'callControl.footer.note': 'FreeSWITCH лишається опційним, а fake provider і далі є типовим.',
 
   'contacts.title': 'Контакти',

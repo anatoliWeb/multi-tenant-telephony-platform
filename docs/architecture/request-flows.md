@@ -148,6 +148,11 @@ When registration succeeds, the same service can build a local SIP URI such as
 `sip:1002@localhost`, create an outbound `Inviter`, and handle an incoming
 `Invitation` for the answer/reject path used in the two-browser demo.
 
+The softphone modal also binds a single remote audio element, keeps it
+unmuted, and reads media diagnostics from `SipClientService` so autoplay
+blocks, missing tracks, and peer-connection failures surface as explicit UI
+state instead of silent browser failures.
+
 The FreeSWITCH runtime directory lookup domain is resolved separately by the
 local provisioning script from `global_getvar local_ip_v4` when needed, so the
 browser profile never has to inherit a Docker runtime IP just to reach the
@@ -283,6 +288,11 @@ to a real provider and safe tenant credentials can be provisioned.
 Stage 15.2 adds a local-demo-only credential gate so the same flow can be
 tested in development without exposing secrets outside the approved local
 environment.
+
+Stage 15.3 and the current media-stabilization slice keep the browser-facing
+domain on `localhost`, the transport on `ws://localhost:5066` or trusted WSS,
+and the remote audio element unmuted so manual browser verification can observe
+actual playback behavior.
 
 ## Contacts Lookup Flow
 

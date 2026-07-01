@@ -219,6 +219,9 @@ Verified:
   WSS/TLS trust still needs confirmation on the target machine. Local demo
   mode can fall back to `ws://localhost:5066` when the browser rejects the
   self-signed WSS certificate.
+- The current call-control stabilization slice keeps the remote audio element
+  unmuted and surfaces media diagnostics for autoplay, playback, and
+  connection-state failures.
 - Docker-side FreeSWITCH readiness was also rechecked on 2026-07-01: the
   runtime reports `WS-BIND-URL` and `WSS-BIND-URL`, and demo users `1001` and
   `1002` resolve in the runtime domain `172.18.0.12`; live browser registration
