@@ -12,6 +12,10 @@ if (is_array($argv) && $argv !== []) {
         || preg_match('/\s--env\s+testing(\s|$)/', ' '.$flatArgs.' ') === 1;
 }
 $isTestingEnvironment = strtolower($runtimeAppEnv) === 'testing' || $isTestingArgument;
+$defaultMysqlSslVerifyServerCert = in_array(strtolower($runtimeAppEnv), ['local', 'testing'], true)
+    ? false
+    : null;
+$mysqlSslVerifyServerCert = env('MYSQL_ATTR_SSL_VERIFY_SERVER_CERT', $defaultMysqlSslVerifyServerCert);
 $databaseName = $isTestingEnvironment
     ? env('DB_TEST_DATABASE', env('TEST_DB_DATABASE', env('DB_DATABASE', 'laravel')))
     : env('DB_DATABASE', 'laravel');
@@ -78,12 +82,13 @@ return [
             'prefix_indexes' => true,
             'strict' => true,
             'engine' => null,
-            // Keep the testing SSL-verify flag even when it is `false` so the
-            // schema loader can disable certificate verification for the local
-            // MySQL service during isolated backend test runs.
+            // Local and testing database resets must load schema dumps through
+            // the MySQL CLI without trusting a self-signed Docker certificate
+            // chain, so default the verification flag off unless the project
+            // explicitly overrides it.
             'options' => extension_loaded('pdo_mysql') ? array_filter([
                 (PHP_VERSION_ID >= 80500 ? Mysql::ATTR_SSL_CA : PDO::MYSQL_ATTR_SSL_CA) => env('MYSQL_ATTR_SSL_CA'),
-                (PHP_VERSION_ID >= 80500 ? Mysql::ATTR_SSL_VERIFY_SERVER_CERT : PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT) => env('MYSQL_ATTR_SSL_VERIFY_SERVER_CERT'),
+                (PHP_VERSION_ID >= 80500 ? Mysql::ATTR_SSL_VERIFY_SERVER_CERT : PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT) => $mysqlSslVerifyServerCert,
             ], static fn ($value) => $value !== null) : [],
         ],
 
@@ -104,7 +109,7 @@ return [
             'engine' => null,
             'options' => extension_loaded('pdo_mysql') ? array_filter([
                 (PHP_VERSION_ID >= 80500 ? Mysql::ATTR_SSL_CA : PDO::MYSQL_ATTR_SSL_CA) => env('MYSQL_ATTR_SSL_CA'),
-                (PHP_VERSION_ID >= 80500 ? Mysql::ATTR_SSL_VERIFY_SERVER_CERT : PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT) => env('MYSQL_ATTR_SSL_VERIFY_SERVER_CERT'),
+                (PHP_VERSION_ID >= 80500 ? Mysql::ATTR_SSL_VERIFY_SERVER_CERT : PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT) => $mysqlSslVerifyServerCert,
             ], static fn ($value) => $value !== null) : [],
         ],
 

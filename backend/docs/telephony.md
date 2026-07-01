@@ -252,6 +252,7 @@ Current boundary:
 - no SIP.js, carrier adapter, or live PBX routing is enabled by this foundation slice.
 - the local demo provisioning script copies only the demo user XML files needed for the running image and reuses the container's live lookup domain when `FREESWITCH_SIP_DOMAIN` is not set;
 - the correct FreeSWITCH user lookup syntax is `user_exists id <user> <domain>`.
+- local and testing database resets default `MYSQL_ATTR_SSL_VERIFY_SERVER_CERT=false` when the flag is not set, so the schema dump loader can keep working against the same Docker MySQL service that backs the telephony demo data.
 
 Stage 15.2 local-demo notes:
 

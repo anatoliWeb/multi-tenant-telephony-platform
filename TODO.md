@@ -17,6 +17,7 @@
 - [x] `TenantBootstrapService` is read-only.
 - [x] Platform Admin tenant access is centralized through tenant permission resolution.
 - [x] Tenant route middleware uses canonical unprefixed tenant permissions against the active tenant scope.
+- [x] Local Docker database resets load schema dumps with `MYSQL_ATTR_SSL_VERIFY_SERVER_CERT=false` by default so the MySQL CLI does not reject the self-signed container certificate chain.
 - PARTIAL Live browser verification still depends on a working local browser-control path, and backend testing reruns must stay sequential against `saas_testing`.
 
 # 1. Project Strategy

@@ -14,7 +14,10 @@ class SeederEnvironmentService
 
     public function environment(): string
     {
-        return strtolower((string) config('app.env', app()->environment()));
+        // Artisan may boot with `config('app.env')` still set to the base
+        // local value even when `--env=testing` is active, so use Laravel's
+        // resolved runtime environment here to keep seed branching accurate.
+        return strtolower((string) app()->environment());
     }
 
     public function isProduction(): bool

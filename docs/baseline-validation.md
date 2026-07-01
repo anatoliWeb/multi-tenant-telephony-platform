@@ -113,6 +113,7 @@ Limitations:
 
 - The full backend suite was not rerun in this follow-up because the task only required the telephony runtime stabilization slice.
 - The schema-dump-backed loader depends on the backend image having the MySQL client installed, which is now part of `docker/php/Dockerfile`.
+- Local and testing database resets now default `MYSQL_ATTR_SSL_VERIFY_SERVER_CERT=false` when the flag is not set, so Laravel's schema-dump loader can call the container MySQL client without tripping over the self-signed Docker certificate chain.
 - Stage 14 FreeSWITCH support is now scaffolded as an optional Docker profile and was validated with the working image shown below.
 - The FreeSWITCH profile uses `servicebots/freeswitch:latest`, keeps the Event Socket bound to localhost, and relies on image defaults instead of a `/etc/freeswitch` bind mount.
 - The stable local container name is `multi-tenant-telephony-platform-freeswitch`, and the old generated container can be removed once if it still exists from an earlier run.
