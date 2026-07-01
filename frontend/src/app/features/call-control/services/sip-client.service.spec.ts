@@ -172,6 +172,43 @@ describe('SipClientService', () => {
     expect((service as any).resolveSipTarget('sip:2002@localhost', 'localhost')).toBe('sip:2002@localhost');
   });
 
+  it('blocks self calls with a friendly local demo message', async () => {
+    callControlApiMock.getSipProfile.mockReturnValue(of({
+      success: true,
+      message: 'ok',
+      data: {
+        ...baseProfile,
+        credentials_available: true,
+        registration_enabled: true,
+        local_demo_mode: true,
+        password: 'change_me_local_demo_only',
+        registration: {
+          enabled: true,
+          state: 'available',
+          reason: 'Local demo SIP credentials are enabled for this development environment.',
+        },
+      },
+    }));
+
+    await service.loadProfile(42);
+
+    (service as any).registrationStateSubject.next('registered');
+    (service as any).userAgent = {};
+
+    await service.call('2001');
+
+    expect(service.callState).toBe('failed');
+    expect((service as any).errorSubject.value).toBe('Choose a different registered extension for this local demo call.');
+  });
+
+  it('maps user-not-registered call rejections to browser-session guidance', () => {
+    expect((service as any).toErrorMessage(
+      new Error('USER_NOT_REGISTERED'),
+      'fallback',
+      baseProfile,
+    )).toBe('The callee is not registered yet. Register the other browser session with the destination extension first.');
+  });
+
   it('does not write SIP credentials to browser storage', async () => {
     const setItemSpy = vi.spyOn(Storage.prototype, 'setItem');
     const removeItemSpy = vi.spyOn(Storage.prototype, 'removeItem');

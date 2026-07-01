@@ -459,6 +459,7 @@ export const DE_TRANSLATIONS: Record<string, string> = {
   'callControl.noTenant': 'Kein aktiver Mandant ausgewaehlt',
   'callControl.noExtension': 'Noch keine Nebenstelle ausgewaehlt',
   'callControl.fields.extensionSelector': 'Nebenstellenauswahl',
+  'callControl.hints.localDemoPair': 'Verwende fuer lokale Zwei-Browser-Tests die sichtbaren Nebenstellen des Mandanten. Im Standard-Demo sind das 2001 und 2002.',
   'callControl.fields.selectExtension': 'Nebenstelle waehlen',
   'callControl.credentialsUnavailable': 'SIP-Zugangsdaten sind fuer diese Umgebung nicht aktiviert.',
   'callControl.credentialsEnabled': 'SIP-Zugangsdaten sind fuer diese Mandanten-Nebenstelle verfuegbar.',

@@ -166,6 +166,7 @@ export const EN_TRANSLATIONS: Record<string, string> = {
   'callControl.noTenant': 'No active tenant selected',
   'callControl.noExtension': 'No extension selected yet',
   'callControl.fields.extensionSelector': 'Extension selector',
+  'callControl.hints.localDemoPair': 'Use the visible tenant extensions for local two-browser testing. In the default demo tenant, that pair is 2001 and 2002.',
   'callControl.fields.selectExtension': 'Select an extension',
   'callControl.credentialsUnavailable': 'SIP credentials are not enabled for this environment.',
   'callControl.credentialsEnabled': 'SIP credentials are available for this tenant extension.',

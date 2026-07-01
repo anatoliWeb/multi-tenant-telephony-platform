@@ -8,8 +8,8 @@ This directory holds the optional local FreeSWITCH profile scaffolding for Stage
 - future SIP/WebRTC and call-control wiring;
 - keeping FreeSWITCH runtime boundaries outside the Laravel telephony domain.
 
-The current profile uses `servicebots/freeswitch:latest`, which boots reliably
-in this environment and remains suitable for local development. The Compose
+The current profile uses `servicebots/freeswitch:latest`, which boots cleanly
+in this workspace and remains the verified image for this project. The Compose
 service now uses the stable container name
 `multi-tenant-telephony-platform-freeswitch` so local docs and scripts do not
 depend on Compose's generated suffix. Because `container_name` fixes the
@@ -76,15 +76,21 @@ user. A pointer-only directory entry is not enough for browser SIP
 registration. The provisioning script also generates a temporary copy of that
 same XML for the runtime profile domain detected from
 `global_getvar local_ip_v4`, then copies both files into the running container
-without committing the runtime-domain file to git. On this image,
-`find_user_xml id <user> <domain>` is the most reliable way to verify the
-resolved auth XML.
+without committing the runtime-domain file to git. It also copies a local demo
+dialplan fixture into the public and default contexts so `2001`, `2002`, and
+the `1001`/`1002` fallback pair can bridge to the registered browser session.
+On this image, `find_user_xml id <user> <domain>` is the most reliable way to
+verify the resolved auth XML.
 
 The Event Socket port is bound to `127.0.0.1` so it stays local-only and does
 not expose unsafe call-control access outside the developer machine.
 
 The foundation slice does not bind-mount `/etc/freeswitch`. An incomplete local
 config tree can shadow the image defaults and prevent FreeSWITCH from booting.
+
+If you run `docker compose --profile freeswitch down` or recreate the container,
+the runtime-copied XML files and SIP registrations are cleared with it. Re-run
+the provisioning script before testing browser registration again.
 
 ## Local startup
 
@@ -110,6 +116,9 @@ docker compose --profile freeswitch stop freeswitch
 docker rm multi-tenant-telephony-platform-freeswitch-1
 docker compose --profile freeswitch up -d freeswitch
 ```
+
+If Bash provisioning cannot run after recreate, use the manual Docker copy and
+reload sequence from the demo provisioning section below.
 
 Check the running container:
 
@@ -163,6 +172,28 @@ docker compose --profile freeswitch up -d freeswitch
 ./docker/freeswitch/scripts/provision-demo-users.sh
 ```
 
+PowerShell fallback when the shell script cannot be launched directly:
+
+```powershell
+$runtime = (docker compose exec -T freeswitch fs_cli -x "global_getvar local_ip_v4").Trim()
+$directoryTemplate = Get-Content -Raw -LiteralPath "docker\freeswitch\conf\directory\localhost.xml"
+$runtimeDirectory = $directoryTemplate -replace '<domain name="localhost">', "<domain name=`"$runtime`">"
+$runtimeDirectoryPath = Join-Path $env:TEMP "$runtime.xml"
+$dialplanTemplate = Get-Content -Raw -LiteralPath "docker\freeswitch\conf\dialplan\local-demo-extensions.xml"
+$runtimeDialplan = $dialplanTemplate -replace '__RUNTIME_DOMAIN__', $runtime
+$runtimeDialplanPath = Join-Path $env:TEMP "local-demo-extensions.xml"
+Set-Content -LiteralPath $runtimeDirectoryPath -Value $runtimeDirectory
+Set-Content -LiteralPath $runtimeDialplanPath -Value $runtimeDialplan
+docker cp "docker\freeswitch\conf\directory\localhost.xml" "multi-tenant-telephony-platform-freeswitch:/usr/local/freeswitch/conf/directory/localhost.xml"
+docker cp $runtimeDirectoryPath "multi-tenant-telephony-platform-freeswitch:/usr/local/freeswitch/conf/directory/${runtime}.xml"
+docker cp $runtimeDialplanPath "multi-tenant-telephony-platform-freeswitch:/usr/local/freeswitch/conf/dialplan/public/local-demo-extensions.xml"
+docker cp $runtimeDialplanPath "multi-tenant-telephony-platform-freeswitch:/usr/local/freeswitch/conf/dialplan/default/local-demo-extensions.xml"
+docker compose exec -T freeswitch fs_cli -x "reloadxml"
+docker compose exec -T freeswitch fs_cli -x "sofia profile internal restart"
+docker compose exec -T freeswitch fs_cli -x "xml_locate dialplan context name public"
+docker compose exec -T freeswitch fs_cli -x "xml_locate dialplan context name default"
+```
+
 The script provisions `1001`, `1002`, `2001`, and `2002` by default so it can
 cover both the documented demo pair and the current Angular demo seed data.
 Override that list with `FREESWITCH_DEMO_USERS` if you need a narrower set.
@@ -200,8 +231,9 @@ into browser-facing SIP URIs or commit it to the repository.
 
 Docker-side provisioning for `1001`, `1002`, `2001`, and `2002` has been
 verified with both `user_exists` and `find_user_xml` on the browser domain and
-the runtime domain, but live browser registration is still a manual follow-up
-when the in-app browser-control bridge is unavailable.
+the runtime domain, and the demo dialplan now bridges the local visible pair
+through the runtime realm. Live browser registration is still a manual
+follow-up when the in-app browser-control bridge is unavailable.
 
 Host port mappings for the optional profile:
 
@@ -242,6 +274,11 @@ containers.
 `mod_xml_curl` may log `Binding has no url` because backend-driven dynamic
 directory and dialplan integration is not configured yet. That is acceptable for
 the Stage 14 and Stage 15.2 foundations.
+
+In this workspace `safarov/freeswitch:1.10.12` was tried during a regression
+check, but it left the container unhealthy and `fs_cli` unreachable. Do not
+switch this project to that image unless it is revalidated end-to-end on the
+target machine.
 
 The static XML demo users in `conf/directory/default/` remain fallback
 scaffolding. They document the local demo shape, but they are not the SaaS

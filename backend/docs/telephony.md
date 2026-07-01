@@ -257,6 +257,8 @@ Current boundary:
 - no SIP.js, carrier adapter, or live PBX routing is enabled by this foundation slice.
 - the local demo provisioning script copies only the demo user XML files needed for the running image and reuses the container's live lookup domain when `FREESWITCH_SIP_DOMAIN` is not set;
 - the provisioning script also copies a local `localhost` domain alias and a temporary runtime-domain XML copy so browser-facing SIP auth can resolve `1001@localhost`, `1002@localhost`, `2001@localhost`, and `2002@localhost` under both domains;
+- the provisioning script also copies a local demo dialplan fixture into the running container so `2001 -> 2002`, `2002 -> 2001`, `1001 -> 1002`, and `1002 -> 1001` can bridge against the runtime realm without exposing that realm to Angular;
+- if the FreeSWITCH container is recreated, the runtime-copied XML and active SIP registrations are cleared and the provisioning script must be run again before browser testing;
 - the `localhost` alias and the runtime-domain copy must both contain full auth XML with a password param for each demo user; pointer-only XML is not enough for SIP registration;
 - if `user_data <user>@localhost attr password` returns `-ERR no reply` on this image, `find_user_xml id <user> <domain>` is the authoritative check for the resolved auth XML;
 - the correct FreeSWITCH user lookup syntax is `user_exists id <user> <domain>`.
@@ -302,8 +304,10 @@ Stage 15.3 browser notes:
   `7443/tcp` for browser access;
 - browser trust for the local certificate chain still needs manual
   confirmation when WSS is used;
-- 1001 -> 1002 calling is the intended demo pair, but end-to-end browser
-  verification remains a manual follow-up in this environment.
+- the tenant-visible local demo pairs are `1001 <-> 1002` and `2001 <-> 2002`;
+- the currently visible local demo pair for this workspace is `2001` and `2002`;
+- if `USER_NOT_REGISTERED` appears, the callee is not registered in the other
+  browser session yet.
 - the FreeSWITCH runtime readiness and demo provisioning for `1001` and `1002`
   were verified in Docker against `user_exists id <user> 172.18.0.12`, but
   live browser registration remains partial here because the in-app browser

@@ -27,6 +27,7 @@
               </option>
             </select>
           </label>
+          <p class="softphone__hint">{{ 'callControl.hints.localDemoPair' | t }}</p>
           <div>
             <span>{{ 'callControl.fields.tenant' | t }}</span>
             <strong>{{ (tenantContext.activeTenant$ | async)?.name || ('callControl.noTenant' | t) }}</strong>

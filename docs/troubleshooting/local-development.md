@@ -516,10 +516,17 @@ docker compose exec -T freeswitch fs_cli -x "user_exists id 2001 localhost"
 docker compose exec -T freeswitch fs_cli -x "find_user_xml id 2001 localhost"
 docker compose exec -T freeswitch fs_cli -x "user_exists id 2001 <runtime-domain>"
 docker compose exec -T freeswitch fs_cli -x "find_user_xml id 2001 <runtime-domain>"
+docker compose exec -T freeswitch fs_cli -x "xml_locate dialplan context name public"
+docker compose exec -T freeswitch fs_cli -x "xml_locate dialplan context name default"
 docker compose exec -T freeswitch fs_cli -x "show registrations"
 ```
 
+If the FreeSWITCH container was recreated, expect the runtime-copied XML files
+and SIP registrations to be empty until you run provisioning again and re-register
+the browsers.
+
 If `user_data <user>@localhost attr password` returns `-ERR no reply` on this
 image, treat `find_user_xml id <user> <domain>` as the authoritative auth
-check. The `localhost` alias and the runtime-domain copy must both expose a
-real password param, not only a pointer XML entry.
+check. The `localhost` alias, the runtime-domain copy, and the demo dialplan
+fixture must all expose the expected local-demo routing behavior, not only a
+pointer XML entry.

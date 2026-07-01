@@ -70,6 +70,13 @@ fi
 # They validate the optional PBX container and local demo provisioning only.
 "$SCRIPT_DIR/provision-demo-users.sh"
 
+for context in public default; do
+  if ! run_fs_cli "xml_locate dialplan context name $context" | grep -q 'local-demo-extension-bridge'; then
+    echo "FreeSWITCH smoke test could not verify the local demo dialplan in $context context." >&2
+    exit 1
+  fi
+done
+
 if ! printf '%s\n' "$INTERNAL_PROFILE_STATUS" | grep -q 'WS-BIND-URL'; then
   echo "FreeSWITCH internal profile is missing WS-BIND-URL." >&2
   exit 1

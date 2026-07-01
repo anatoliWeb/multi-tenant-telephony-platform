@@ -122,6 +122,7 @@ trap 'rm -rf "$TMP_DIR"' EXIT
 # can use a different runtime domain inside Docker, so we resolve it separately
 # for provisioning checks instead of assuming both values are identical.
 BROWSER_DOMAIN_FILE="$SCRIPT_DIR/../conf/directory/localhost.xml"
+LOCAL_DEMO_DIALPLAN_FILE="$SCRIPT_DIR/../conf/dialplan/local-demo-extensions.xml"
 DIRECTORY_DOMAIN="$(resolve_directory_domain)"
 RUNTIME_DOMAIN="$(run_fs_cli "global_getvar local_ip_v4" | trim_output)"
 
@@ -132,8 +133,15 @@ if [ ! -f "$BROWSER_DOMAIN_FILE" ]; then
   exit 1
 fi
 
+if [ ! -f "$LOCAL_DEMO_DIALPLAN_FILE" ]; then
+  echo "Local demo dialplan template is missing: $LOCAL_DEMO_DIALPLAN_FILE" >&2
+  exit 1
+fi
+
 RUNTIME_DOMAIN_FILE="$TMP_DIR/$RUNTIME_DOMAIN.xml"
 sed "s/<domain name=\"localhost\">/<domain name=\"$RUNTIME_DOMAIN\">/" "$BROWSER_DOMAIN_FILE" > "$RUNTIME_DOMAIN_FILE"
+RUNTIME_DIALPLAN_FILE="$TMP_DIR/local-demo-extensions.xml"
+sed "s/__RUNTIME_DOMAIN__/$RUNTIME_DOMAIN/g" "$LOCAL_DEMO_DIALPLAN_FILE" > "$RUNTIME_DIALPLAN_FILE"
 
 for user in $USERS; do
   USER_FILE="$TMP_DIR/$user.xml"
@@ -167,6 +175,8 @@ done
 
 copy_file_into_container "$BROWSER_DOMAIN_FILE" "/usr/local/freeswitch/conf/directory/localhost.xml"
 copy_file_into_container "$RUNTIME_DOMAIN_FILE" "/usr/local/freeswitch/conf/directory/$RUNTIME_DOMAIN.xml"
+copy_file_into_container "$RUNTIME_DIALPLAN_FILE" "/usr/local/freeswitch/conf/dialplan/public/local-demo-extensions.xml"
+copy_file_into_container "$RUNTIME_DIALPLAN_FILE" "/usr/local/freeswitch/conf/dialplan/default/local-demo-extensions.xml"
 
 run_fs_cli "reloadxml" >/dev/null
 run_fs_cli "sofia profile internal restart" >/dev/null
@@ -176,6 +186,13 @@ echo "Browser SIP domain: $BROWSER_SIP_DOMAIN"
 echo "Browser SIP WSS URL: $BROWSER_WSS_URL"
 echo "FreeSWITCH directory lookup domain: $DIRECTORY_DOMAIN"
 echo "FreeSWITCH runtime SIP domain: $RUNTIME_DOMAIN"
+
+for DIALPLAN_CONTEXT in public default; do
+  if ! run_fs_cli "xml_locate dialplan context name $DIALPLAN_CONTEXT" | grep -q "local-demo-extension-bridge"; then
+    echo "FreeSWITCH dialplan verification failed for $DIALPLAN_CONTEXT context." >&2
+    exit 1
+  fi
+done
 
 for domain in "$BROWSER_SIP_DOMAIN" "$RUNTIME_DOMAIN"; do
   for user in 1001 1002 2001 2002; do
@@ -191,4 +208,12 @@ for domain in "$BROWSER_SIP_DOMAIN" "$RUNTIME_DOMAIN"; do
   done
 done
 
-echo "Demo directory provisioning completed successfully."
+REGISTRATIONS_OUTPUT="$(run_fs_cli "show registrations")"
+printf '%s\n' "$REGISTRATIONS_OUTPUT"
+
+if printf '%s\n' "$REGISTRATIONS_OUTPUT" | grep -q '0 total'; then
+  echo "No active browser registrations yet; this is normal after container recreate until the browsers register again."
+fi
+
+echo "FreeSWITCH runtime demo provisioning complete."
+echo "Browser softphones must be registered again after container recreate."

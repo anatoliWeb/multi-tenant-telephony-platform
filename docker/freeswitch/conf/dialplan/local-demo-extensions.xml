@@ -1,0 +1,12 @@
+<include>
+  <!-- Local demo bridge rules for FreeSWITCH development only.
+       The provisioning script copies this file into the running container
+       for both the public and default dialplan contexts after substituting the
+       runtime-domain value detected from global_getvar local_ip_v4. -->
+  <extension name="local-demo-extension-bridge">
+    <condition field="destination_number" expression="^(1001|1002|2001|2002)$">
+      <action application="set" data="hangup_after_bridge=true"/>
+      <action application="bridge" data="user/${destination_number}@__RUNTIME_DOMAIN__"/>
+    </condition>
+  </extension>
+</include>

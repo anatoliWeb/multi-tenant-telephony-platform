@@ -229,6 +229,12 @@ export class SipClientService {
       return;
     }
 
+    if (this.isSelfCallTarget(target, profile.extension_number)) {
+      this.callStateSubject.next('failed');
+      this.errorSubject.next('Choose a different registered extension for this local demo call.');
+      return;
+    }
+
     this.errorSubject.next(null);
     this.callStateSubject.next('dialing');
 
@@ -255,9 +261,9 @@ export class SipClientService {
           onProgress: () => {
             this.callStateSubject.next('ringing');
           },
-          onReject: () => {
+          onReject: (response: unknown) => {
             this.callStateSubject.next('failed');
-            this.errorSubject.next('Call failed.');
+            this.errorSubject.next(this.toErrorMessage(this.toSipError(response), 'Call failed.'));
             this.destroySession();
           },
         },
@@ -609,6 +615,10 @@ export class SipClientService {
         return 'SIP registration was rejected by FreeSWITCH. Check the local demo password, realm, and directory domain.';
       }
 
+      if (this.isUserNotRegisteredError(message)) {
+        return 'The callee is not registered yet. Register the other browser session with the destination extension first.';
+      }
+
       return message;
     }
 
@@ -621,5 +631,30 @@ export class SipClientService {
 
   private isSipAuthRejectedError(message: string): boolean {
     return /\b403\b/.test(message) || /forbidden/i.test(message) || /digest.*rejected/i.test(message);
+  }
+
+  private isUserNotRegisteredError(message: string): boolean {
+    return /USER_NOT_REGISTERED/i.test(message) || /\b480\b/.test(message) || /\b481\b/.test(message);
+  }
+
+  private isSelfCallTarget(target: ReturnType<typeof UserAgent.makeURI>, currentExtensionNumber: string): boolean {
+    const targetUser = target?.user?.trim() ?? '';
+    const current = currentExtensionNumber.trim();
+
+    return targetUser !== '' && current !== '' && targetUser === current;
+  }
+
+  private toSipError(response: unknown): Error {
+    if (response && typeof response === 'object') {
+      const message = (response as { message?: { reasonPhrase?: string; statusCode?: number } }).message;
+      const reasonPhrase = message?.reasonPhrase?.trim();
+      const statusCode = message?.statusCode;
+
+      if (reasonPhrase || statusCode) {
+        return new Error([statusCode, reasonPhrase].filter(Boolean).join(' ').trim());
+      }
+    }
+
+    return new Error('Call failed.');
   }
 }

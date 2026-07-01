@@ -106,6 +106,7 @@ describe('SoftphoneModalComponent', () => {
     expect(sipClientMock.loadProfile).toHaveBeenCalledWith(42);
     expect(component.selectedExtensionId).toBe(42);
     expect(fixture.nativeElement.textContent).toContain('2001');
+    expect(fixture.nativeElement.textContent).toContain('2001 and 2002');
     expect(fixture.nativeElement.textContent).not.toContain('callControl.title');
   });
 

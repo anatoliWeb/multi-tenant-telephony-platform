@@ -901,7 +901,7 @@ Stage status: `COMPLETE`
 - [x] FreeSWITCH config volume documented
 - [x] Tests do not require FreeSWITCH
 
-Note: The selected local FreeSWITCH image is `servicebots/freeswitch:latest`, which boots reliably in this environment. Stage 15.6 adds the DB-backed provisioning test harness and keeps the live smoke script optional/manual rather than part of the default backend suite.
+Note: The selected local FreeSWITCH image is `servicebots/freeswitch:latest`, which boots cleanly in this environment. Stage 15.6 adds the DB-backed provisioning test harness and keeps the live smoke script optional/manual rather than part of the default backend suite. The previously tried `safarov/freeswitch:1.10.12` image left the container unhealthy here and should not be used unless it is revalidated end-to-end.
 
 Target command:
 
@@ -972,7 +972,7 @@ CallControlApiService
 - [x] Tests
 - [ ] Browser verification
 
-Note: FreeSWITCH runtime readiness and demo provisioning for `1001` and `1002` were verified in Docker. Local SIP transport now falls back to `ws://localhost:5066` in local demo mode when the browser rejects the self-signed WSS certificate. The new `localhost` browser-domain alias is provisioned separately, and the provisioning script now generates a temporary runtime-domain XML copy so auth can resolve `1001`, `1002`, `2001`, and `2002` under both browser and runtime domains. Live browser registration and `1001 -> 1002` call verification remain partial in this workspace because the in-app browser-control bridge is unavailable here.
+Note: FreeSWITCH runtime readiness and demo provisioning for `1001` and `1002` were verified in Docker. Local SIP transport now falls back to `ws://localhost:5066` in local demo mode when the browser rejects the self-signed WSS certificate. The new `localhost` browser-domain alias is provisioned separately, and the provisioning script now generates a temporary runtime-domain XML copy plus a local demo dialplan fixture so auth can resolve `1001`, `1002`, `2001`, and `2002` under both browser and runtime domains. If the FreeSWITCH container is recreated, the runtime-copied XML and browser registrations are cleared and provisioning must be run again before manual browser registration. Live browser registration and `1001 -> 1002` call verification remain partial in this workspace because the in-app browser-control bridge is unavailable here.
 
 The same call-control service must be reusable from:
 
