@@ -40,7 +40,7 @@ class SipProfileService
             'display_name' => $extension->label ?: sprintf('Extension %s', $extension->number),
             'sip_uri' => sprintf('sip:%s@%s', $credentialUsername, $domain),
             'authorization_username' => $credentialUsername,
-            'websocket_url' => $this->resolveWebSocketUrl($domain),
+            'websocket_url' => $this->resolveWebSocketUrl(),
             'domain' => $domain,
             'provider' => 'freeswitch',
             'expires_seconds' => 300,
@@ -85,8 +85,19 @@ class SipProfileService
         return is_string($host) && $host !== '' ? $host : 'localhost';
     }
 
-    private function resolveWebSocketUrl(string $domain): string
+    private function resolveWebSocketUrl(): string
     {
+        if ($this->isLocalEnvironment()) {
+            $configuredWsUrl = trim((string) config('freeswitch.sip_ws_url', ''));
+
+            if ($configuredWsUrl !== '') {
+                // Local demo registration prefers a plain WebSocket when the
+                // browser would otherwise reject a self-signed FreeSWITCH WSS
+                // certificate. Production should keep using trusted WSS.
+                return $configuredWsUrl;
+            }
+        }
+
         $configuredUrl = trim((string) config('freeswitch.sip_wss_url', ''));
 
         if ($configuredUrl !== '') {
@@ -101,7 +112,7 @@ class SipProfileService
 
         $scheme = config('freeswitch.enabled', false) ? 'wss' : 'ws';
 
-        return sprintf('%s://%s:%d', $scheme, $domain, (int) config('freeswitch.ports.wss', 7443));
+        return sprintf('%s://%s:%d', $scheme, $this->resolveDomain(), (int) config('freeswitch.ports.wss', 7443));
     }
 
     private function isLocalDemoMode(): bool
@@ -109,6 +120,11 @@ class SipProfileService
         return config('app.env') === 'local'
             && config('freeswitch.enabled', false)
             && config('freeswitch.local_demo_credentials', false);
+    }
+
+    private function isLocalEnvironment(): bool
+    {
+        return config('app.env') === 'local';
     }
 
     private function resolveDemoPassword(bool $localDemoMode): ?string

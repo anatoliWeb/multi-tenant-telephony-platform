@@ -461,3 +461,65 @@ Expected local demo users include `platform-admin@test.local` and `platform-supp
 Expected testing fixtures include `test-platform-admin@test.local`, `test-tenant-owner@test.local`, `test-tenant-admin@test.local`, and `test-tenant-agent@test.local`.
 
 Seed-only orchestration belongs in `backend/database/seeders`, not in `App\Services`.
+
+## Local SIP transport: WebSocket close `1006`
+
+If the Angular softphone shows:
+
+```text
+WebSocket closed ... code: 1006
+```
+
+the browser usually could not complete the local FreeSWITCH transport handshake.
+
+Check these local-only values:
+
+- `ws://localhost:5066` for the local demo fallback;
+- `wss://localhost:7443` for the trusted-TLS path;
+- `docker-compose.yml` publishes both `5066/tcp` and `7443/tcp` on the optional FreeSWITCH profile.
+
+Recommended checks:
+
+```powershell
+docker compose --profile freeswitch up -d freeswitch
+docker compose exec -T freeswitch fs_cli -x "sofia status profile internal"
+docker compose exec -T freeswitch fs_cli -x "show registrations"
+```
+
+If the browser still rejects WSS, use the local demo fallback only for development and keep production on trusted WSS.
+
+## FreeSWITCH browser auth domain mismatch
+
+If the browser sends:
+
+```text
+REGISTER sip:localhost SIP/2.0
+401 Unauthorized
+REGISTER ... realm="localhost"
+403 Forbidden
+```
+
+then FreeSWITCH is still resolving the browser-facing SIP domain differently
+from the browser profile.
+
+In this repository the fix is a local `localhost` directory alias that is
+copied into the running FreeSWITCH container during demo provisioning. That
+keeps the browser SIP domain as `localhost` while still preserving the runtime
+domain checks for Docker diagnostics.
+
+Verify with:
+
+```powershell
+./docker/freeswitch/scripts/provision-demo-users.sh
+docker compose exec -T freeswitch fs_cli -x "global_getvar local_ip_v4"
+docker compose exec -T freeswitch fs_cli -x "user_exists id 2001 localhost"
+docker compose exec -T freeswitch fs_cli -x "find_user_xml id 2001 localhost"
+docker compose exec -T freeswitch fs_cli -x "user_exists id 2001 <runtime-domain>"
+docker compose exec -T freeswitch fs_cli -x "find_user_xml id 2001 <runtime-domain>"
+docker compose exec -T freeswitch fs_cli -x "show registrations"
+```
+
+If `user_data <user>@localhost attr password` returns `-ERR no reply` on this
+image, treat `find_user_xml id <user> <domain>` as the authoritative auth
+check. The `localhost` alias and the runtime-domain copy must both expose a
+real password param, not only a pointer XML entry.

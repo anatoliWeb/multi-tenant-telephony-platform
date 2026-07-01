@@ -109,6 +109,38 @@ describe('SipClientService', () => {
     expect((service as any).authorizationPassword).toBeNull();
   });
 
+  it('maps websocket close errors to local transport guidance', () => {
+    const wsProfile = {
+      ...baseProfile,
+      websocket_url: 'ws://localhost:5066',
+    };
+
+    const wssProfile = {
+      ...baseProfile,
+      websocket_url: 'wss://localhost:7443',
+    };
+
+    expect((service as any).toErrorMessage(
+      new Error('WebSocket closed wss://localhost:7443 code: 1006'),
+      'fallback',
+      wssProfile,
+    )).toBe('SIP WebSocket closed before registration. Check local FreeSWITCH WS/WSS port mapping and browser TLS trust.');
+
+    expect((service as any).toErrorMessage(
+      new Error('WebSocket closed ws://localhost:5066 code: 1006'),
+      'fallback',
+      wsProfile,
+    )).toBe('SIP WebSocket closed before registration. Check local FreeSWITCH WS port mapping.');
+  });
+
+  it('maps forbidden SIP auth errors to domain and password guidance', () => {
+    expect((service as any).toErrorMessage(
+      new Error('SIP/2.0 403 Forbidden'),
+      'fallback',
+      baseProfile,
+    )).toBe('SIP registration was rejected by FreeSWITCH. Check the local demo password, realm, and directory domain.');
+  });
+
   it('clears the in-memory password on tenant reset', async () => {
     callControlApiMock.getSipProfile.mockReturnValue(of({
       success: true,

@@ -116,12 +116,14 @@ Limitations:
 - Local and testing database resets now default `MYSQL_ATTR_SSL_VERIFY_SERVER_CERT=false` when the flag is not set, so Laravel's schema-dump loader can call the container MySQL client without tripping over the self-signed Docker certificate chain.
 - `migrate:fresh --seed` now repopulates the local demo baseline, and `migrate:fresh --seed --env=testing` repopulates the deterministic test fixtures.
 - Stage 14 FreeSWITCH support is now scaffolded as an optional Docker profile and was validated with the working image shown below.
-- The FreeSWITCH profile uses `servicebots/freeswitch:latest`, keeps the Event Socket bound to localhost, and relies on image defaults instead of a `/etc/freeswitch` bind mount.
+- The FreeSWITCH profile uses `servicebots/freeswitch:latest`, keeps the Event Socket bound to localhost, publishes both `5066/tcp` and `7443/tcp` for browser SIP transport, and relies on image defaults instead of a `/etc/freeswitch` bind mount.
 - The stable local container name is `multi-tenant-telephony-platform-freeswitch`, and the old generated container can be removed once if it still exists from an earlier run.
 - Stage 15.4 demo-directory provisioning now copies the local XML users into the running container and verifies `1001` / `1002` with the FreeSWITCH lookup syntax `user_exists id <user> <domain>`.
-- Stage 15.5 keeps the browser SIP domain and WSS URL browser-reachable while allowing the FreeSWITCH directory lookup domain to remain Docker-runtime specific during local provisioning checks.
+- Stage 15.5 keeps the browser SIP domain browser-reachable while allowing the FreeSWITCH directory lookup domain to remain Docker-runtime specific during local provisioning checks.
 - Stage 15.6 adds a DB-backed provisioning test harness: XML contract tests cover directory and dialplan output, tenant-isolation security tests keep secrets out of generated XML and logs, and a live smoke script verifies the optional FreeSWITCH container without folding it into the default backend suite.
 - Stage 15.7 scaffolds a Laravel-backed directory endpoint that stays local-only, uses an explicit tenant id, and returns XML from DB extensions without guessing tenant identity.
+- Stage 15 browser auth now also provisions a local `localhost` directory alias plus a temporary runtime-domain XML copy so the browser-facing SIP domain can authenticate `1001`, `1002`, `2001`, and `2002` without exposing Docker runtime IPs.
+- The `localhost` alias and runtime-domain copy must include real password params for browser auth; pointer-only XML is insufficient, and `find_user_xml id <user> <domain>` is the most reliable verification step in this image.
 - Laravel contract tests are complete/pass; the live smoke script remains optional/manual and depends on the local Docker runtime.
 
 ## Stage 14 Validation
@@ -212,7 +214,9 @@ Verified:
   local development only.
 - Stage 15.3 wires a local-registration attempt and local extension-call flow,
   but end-to-end browser verification remains a manual follow-up because local
-  WSS/TLS trust still needs confirmation on the target machine.
+  WSS/TLS trust still needs confirmation on the target machine. Local demo
+  mode can fall back to `ws://localhost:5066` when the browser rejects the
+  self-signed WSS certificate.
 - Docker-side FreeSWITCH readiness was also rechecked on 2026-07-01: the
   runtime reports `WS-BIND-URL` and `WSS-BIND-URL`, and demo users `1001` and
   `1002` resolve in the runtime domain `172.18.0.12`; live browser registration

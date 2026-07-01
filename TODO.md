@@ -934,8 +934,10 @@ CallControlApiService
 - [x] Remote audio element handling
 - [x] Local/demo SIP credential gate
 - [x] Backend SIP profile can enable local demo registration
+- [x] Local-only SIP WS fallback for browser trust failures
 - [x] FreeSWITCH demo user provisioning documented/scripted
 - [x] FreeSWITCH demo directory provisioning resolves `1001` and `1002` in the live container domain
+- [x] FreeSWITCH browser-domain alias resolves `1001`, `1002`, `2001`, and `2002` under `localhost`
 - [x] Angular register button gated by credential availability
 - [x] Angular SIP.js registration attempt wired for local demo mode
 - [x] Clear registration failure message for local WSS/TLS issues
@@ -970,7 +972,7 @@ CallControlApiService
 - [x] Tests
 - [ ] Browser verification
 
-Note: FreeSWITCH runtime readiness and demo provisioning for `1001` and `1002` were verified in Docker. Live browser registration and `1001 -> 1002` call verification remain partial in this workspace because the in-app browser-control bridge is unavailable here.
+Note: FreeSWITCH runtime readiness and demo provisioning for `1001` and `1002` were verified in Docker. Local SIP transport now falls back to `ws://localhost:5066` in local demo mode when the browser rejects the self-signed WSS certificate. The new `localhost` browser-domain alias is provisioned separately, and the provisioning script now generates a temporary runtime-domain XML copy so auth can resolve `1001`, `1002`, `2001`, and `2002` under both browser and runtime domains. Live browser registration and `1001 -> 1002` call verification remain partial in this workspace because the in-app browser-control bridge is unavailable here.
 
 The same call-control service must be reusable from:
 

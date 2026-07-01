@@ -227,9 +227,12 @@ Current boundary:
 - SIP credentials must remain tenant-scoped and must not leak into logs, browser
   storage, or devtools-friendly global state;
 - Stage 15.3 wires the Angular SIP.js softphone to attempt live local-demo
-  registration and extension-to-extension calling against `wss://localhost:7443`;
+  registration and extension-to-extension calling against a browser-reachable
+  transport URL from the SIP profile;
+- local development can fall back to `ws://localhost:5066` when the browser
+  rejects the local FreeSWITCH WSS certificate chain;
 - if the browser does not trust the local FreeSWITCH certificate chain, the
-  service surfaces a clear WSS/TLS error instead of hiding the failure;
+  service surfaces a clear transport error instead of hiding the failure;
 - the local demo registration path remains development-only and still depends on
   the local FreeSWITCH provisioning scaffolding rather than SaaS-backed SIP
   credential storage.
@@ -246,11 +249,16 @@ Current boundary:
 - the FreeSWITCH profile only prepares container, SIP, WSS, RTP, and Event Socket boundaries;
 - the foundation slice avoids bind-mounting `/etc/freeswitch` so the image defaults can boot cleanly;
 - Laravel reads the future FreeSWITCH placeholder config from `backend/config/freeswitch.php`;
-- browser-facing SIP URIs and WSS URLs stay on browser-reachable values such as `localhost` and `wss://localhost:7443`;
+- browser-facing SIP URIs stay on browser-reachable values such as `localhost`;
+- the browser SIP profile resolves `ws://localhost:5066` in local demo mode
+  when `FREESWITCH_SIP_WS_URL` is set and otherwise keeps using trusted WSS;
 - the FreeSWITCH runtime directory lookup domain can differ inside Docker, so provisioning verification must resolve it separately and must not reuse the browser SIP domain by assumption;
 - real SIP credentials must stay out of git and out of browser state;
 - no SIP.js, carrier adapter, or live PBX routing is enabled by this foundation slice.
 - the local demo provisioning script copies only the demo user XML files needed for the running image and reuses the container's live lookup domain when `FREESWITCH_SIP_DOMAIN` is not set;
+- the provisioning script also copies a local `localhost` domain alias and a temporary runtime-domain XML copy so browser-facing SIP auth can resolve `1001@localhost`, `1002@localhost`, `2001@localhost`, and `2002@localhost` under both domains;
+- the `localhost` alias and the runtime-domain copy must both contain full auth XML with a password param for each demo user; pointer-only XML is not enough for SIP registration;
+- if `user_data <user>@localhost attr password` returns `-ERR no reply` on this image, `find_user_xml id <user> <domain>` is the authoritative check for the resolved auth XML;
 - the correct FreeSWITCH user lookup syntax is `user_exists id <user> <domain>`.
 - local and testing database resets default `MYSQL_ATTR_SSL_VERIFY_SERVER_CERT=false` when the flag is not set, so the schema dump loader can keep working against the same Docker MySQL service that backs the telephony demo data.
 
@@ -269,8 +277,8 @@ Stage 15.2 local-demo notes:
   source of truth for SIP credentials.
 - the container's current runtime domain has been observed as `172.18.0.12` in
   this environment, but the provisioning script resolves it dynamically from
-  `global_getvar local_ip_v4` so the same workflow keeps working on other Docker
-  networks.
+  `global_getvar local_ip_v4` and generates a temporary runtime-domain XML copy
+  so the same workflow keeps working on other Docker networks.
 - the future target is DB-backed provisioning behind Laravel, with the current
   static XML files serving only as a local-demo bridge until that integration
   exists.
@@ -287,10 +295,13 @@ Stage 15.2 local-demo notes:
 Stage 15.3 browser notes:
 
 - local browser registration uses the browser-reachable SIP WebSocket endpoint
-  on `wss://localhost:7443`;
+  from the SIP profile, which can be `ws://localhost:5066` for local demo
+  fallback or `wss://localhost:7443` for trusted-TLS transport;
 - the current FreeSWITCH image advertises both `WS-BIND-URL` and
-  `WSS-BIND-URL`, but browser trust for the local certificate chain still needs
-  manual confirmation;
+  `WSS-BIND-URL`, and the optional profile publishes both `5066/tcp` and
+  `7443/tcp` for browser access;
+- browser trust for the local certificate chain still needs manual
+  confirmation when WSS is used;
 - 1001 -> 1002 calling is the intended demo pair, but end-to-end browser
   verification remains a manual follow-up in this environment.
 - the FreeSWITCH runtime readiness and demo provisioning for `1001` and `1002`

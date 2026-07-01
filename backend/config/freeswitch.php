@@ -5,6 +5,7 @@ return [
     'local_demo_credentials' => (bool) env('FREESWITCH_LOCAL_DEMO_CREDENTIALS', false),
     'host' => env('FREESWITCH_HOST', 'freeswitch'),
     'sip_domain' => env('FREESWITCH_SIP_DOMAIN', 'localhost'),
+    'sip_ws_url' => env('FREESWITCH_SIP_WS_URL'),
     'sip_wss_url' => env('FREESWITCH_SIP_WSS_URL', env('FREESWITCH_WEBRTC_WSS_URL', 'wss://localhost:7443')),
     'webrtc_wss_url' => env('FREESWITCH_WEBRTC_WSS_URL', 'wss://localhost:7443'),
     'directory_domain' => env('FREESWITCH_DIRECTORY_DOMAIN'),

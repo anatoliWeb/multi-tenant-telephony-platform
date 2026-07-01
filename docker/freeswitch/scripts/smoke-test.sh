@@ -5,10 +5,15 @@ SCRIPT_DIR="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
 PROJECT_ROOT="$(CDPATH= cd -- "$SCRIPT_DIR/../../.." && pwd)"
 COMPOSE_FILE="$PROJECT_ROOT/docker-compose.yml"
 BROWSER_SIP_DOMAIN="${FREESWITCH_SIP_DOMAIN:-localhost}"
+BROWSER_WS_URL="${FREESWITCH_SIP_WS_URL:-ws://localhost:5066}"
 BROWSER_WSS_URL="${FREESWITCH_SIP_WSS_URL:-${FREESWITCH_WEBRTC_WSS_URL:-}}"
 
 if [ -z "$BROWSER_WSS_URL" ]; then
   BROWSER_WSS_URL="wss://${BROWSER_SIP_DOMAIN}:7443"
+fi
+
+if [ -z "$BROWSER_WS_URL" ]; then
+  BROWSER_WS_URL="ws://localhost:5066"
 fi
 
 run_fs_cli() {
@@ -47,8 +52,19 @@ INTERNAL_PROFILE_STATUS="$(run_fs_cli "sofia status profile internal")"
 printf '%s\n' "$INTERNAL_PROFILE_STATUS"
 
 echo "Browser SIP domain: $BROWSER_SIP_DOMAIN"
+echo "Browser SIP WS URL: $BROWSER_WS_URL"
 echo "Browser SIP WSS URL: $BROWSER_WSS_URL"
 echo "FreeSWITCH directory lookup domain: $DIRECTORY_DOMAIN"
+
+if ! docker compose -f "$COMPOSE_FILE" port freeswitch 5066 >/dev/null 2>&1; then
+  echo "FreeSWITCH WS port 5066 is not published. Local browser fallback may fail." >&2
+  exit 1
+fi
+
+if ! docker compose -f "$COMPOSE_FILE" port freeswitch 7443 >/dev/null 2>&1; then
+  echo "FreeSWITCH WSS port 7443 is not published." >&2
+  exit 1
+fi
 
 # Live smoke tests are intentionally separate from the default Laravel suite.
 # They validate the optional PBX container and local demo provisioning only.

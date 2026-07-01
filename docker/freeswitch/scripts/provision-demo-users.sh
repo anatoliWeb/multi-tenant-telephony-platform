@@ -33,6 +33,75 @@ resolve_directory_domain() {
   printf '%s\n' localhost
 }
 
+validate_runtime_domain() {
+  runtime_domain="$1"
+
+  if [ -z "$runtime_domain" ]; then
+    echo "FreeSWITCH runtime domain is empty." >&2
+    exit 1
+  fi
+
+  case "$runtime_domain" in
+    *[!0-9A-Za-z.-]*)
+      echo "FreeSWITCH runtime domain looks invalid: $runtime_domain" >&2
+      exit 1
+      ;;
+  esac
+}
+
+copy_file_into_container() {
+  source_file="$1"
+  target_path="$2"
+  docker cp "$source_file" "$CONTAINER_ID:$target_path" >/dev/null
+}
+
+trim_output() {
+  tr -d '\r' | awk 'NF { value = $0 } END { print value }'
+}
+
+assert_full_user_xml() {
+  user="$1"
+  domain="$2"
+  xml="$(run_fs_cli "find_user_xml id $user $domain")"
+
+  if printf '%s\n' "$xml" | grep -q 'type="pointer"'; then
+    echo "FreeSWITCH returned pointer XML for $user@$domain; full auth XML is required." >&2
+    exit 1
+  fi
+
+  if ! printf '%s\n' "$xml" | grep -q '<param name="password" value="'; then
+    echo "FreeSWITCH XML for $user@$domain is missing a password parameter." >&2
+    exit 1
+  fi
+
+  if ! printf '%s\n' "$xml" | grep -q "<user id=\"$user\""; then
+    echo "FreeSWITCH XML for $user@$domain is missing the expected user entry." >&2
+    exit 1
+  fi
+}
+
+assert_user_password() {
+  user="$1"
+  domain="$2"
+  password="$3"
+  direct_lookup="$(run_fs_cli "user_data $user@$domain attr password" | trim_output)"
+
+  if [ "$direct_lookup" = "$password" ]; then
+    echo "Verified password lookup for $user@$domain."
+    return 0
+  fi
+
+  xml="$(run_fs_cli "find_user_xml id $user $domain")"
+
+  if printf '%s\n' "$xml" | grep -q "<param name=\"password\" value=\"$password\""; then
+    echo "Verified password param for $user@$domain via find_user_xml."
+    return 0
+  fi
+
+  echo "FreeSWITCH password lookup failed for $user@$domain." >&2
+  exit 1
+}
+
 if [ -z "$(docker compose -f "$COMPOSE_FILE" ps -q freeswitch)" ]; then
   echo "FreeSWITCH must be running before provisioning demo users." >&2
   echo "Start it with: docker compose --profile freeswitch up -d freeswitch" >&2
@@ -52,7 +121,19 @@ trap 'rm -rf "$TMP_DIR"' EXIT
 # Browser SIP values must stay browser-reachable. FreeSWITCH directory lookup
 # can use a different runtime domain inside Docker, so we resolve it separately
 # for provisioning checks instead of assuming both values are identical.
+BROWSER_DOMAIN_FILE="$SCRIPT_DIR/../conf/directory/localhost.xml"
 DIRECTORY_DOMAIN="$(resolve_directory_domain)"
+RUNTIME_DOMAIN="$(run_fs_cli "global_getvar local_ip_v4" | trim_output)"
+
+validate_runtime_domain "$RUNTIME_DOMAIN"
+
+if [ ! -f "$BROWSER_DOMAIN_FILE" ]; then
+  echo "Browser domain template is missing: $BROWSER_DOMAIN_FILE" >&2
+  exit 1
+fi
+
+RUNTIME_DOMAIN_FILE="$TMP_DIR/$RUNTIME_DOMAIN.xml"
+sed "s/<domain name=\"localhost\">/<domain name=\"$RUNTIME_DOMAIN\">/" "$BROWSER_DOMAIN_FILE" > "$RUNTIME_DOMAIN_FILE"
 
 for user in $USERS; do
   USER_FILE="$TMP_DIR/$user.xml"
@@ -84,6 +165,9 @@ EOF
   docker cp "$USER_FILE" "$CONTAINER_ID:/usr/local/freeswitch/conf/directory/default/$user.xml" >/dev/null
 done
 
+copy_file_into_container "$BROWSER_DOMAIN_FILE" "/usr/local/freeswitch/conf/directory/localhost.xml"
+copy_file_into_container "$RUNTIME_DOMAIN_FILE" "/usr/local/freeswitch/conf/directory/$RUNTIME_DOMAIN.xml"
+
 run_fs_cli "reloadxml" >/dev/null
 run_fs_cli "sofia profile internal restart" >/dev/null
 
@@ -91,14 +175,20 @@ echo "Provisioned local demo users: $USERS"
 echo "Browser SIP domain: $BROWSER_SIP_DOMAIN"
 echo "Browser SIP WSS URL: $BROWSER_WSS_URL"
 echo "FreeSWITCH directory lookup domain: $DIRECTORY_DOMAIN"
+echo "FreeSWITCH runtime SIP domain: $RUNTIME_DOMAIN"
 
-for user in 1001 1002; do
-  if [ "$(run_fs_cli "user_exists id $user $DIRECTORY_DOMAIN" | tr -d '\r' | awk 'NF { value = $0 } END { print value }')" != "true" ]; then
-    echo "FreeSWITCH did not resolve demo user $user in domain $DIRECTORY_DOMAIN." >&2
-    exit 1
-  fi
+for domain in "$BROWSER_SIP_DOMAIN" "$RUNTIME_DOMAIN"; do
+  for user in 1001 1002 2001 2002; do
+    if [ "$(run_fs_cli "user_exists id $user $domain" | trim_output)" != "true" ]; then
+      echo "FreeSWITCH did not resolve demo user $user in domain $domain." >&2
+      exit 1
+    fi
 
-  echo "Verified demo user $user in domain $DIRECTORY_DOMAIN."
+    echo "Verified demo user $user in domain $domain."
+
+    assert_user_password "$user" "$domain" "$PASSWORD"
+    assert_full_user_xml "$user" "$domain"
+  done
 done
 
 echo "Demo directory provisioning completed successfully."

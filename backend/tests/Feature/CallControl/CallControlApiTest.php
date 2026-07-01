@@ -24,6 +24,8 @@ class CallControlApiTest extends TestCase
 
     public function test_sip_profile_is_tenant_scoped_and_omits_secrets_in_normal_mode(): void
     {
+        config()->set('app.env', 'production');
+        config()->set('freeswitch.sip_ws_url', 'ws://localhost:5066');
         config()->set('freeswitch.sip_domain', 'localhost');
         config()->set('freeswitch.sip_wss_url', 'wss://localhost:7443');
         config()->set('freeswitch.directory_domain', '172.18.0.12');
@@ -66,6 +68,7 @@ class CallControlApiTest extends TestCase
         config()->set('app.env', 'local');
         config()->set('freeswitch.enabled', true);
         config()->set('freeswitch.local_demo_credentials', true);
+        config()->set('freeswitch.sip_ws_url', 'ws://localhost:5066');
         config()->set('freeswitch.sip_domain', 'localhost');
         config()->set('freeswitch.sip_wss_url', 'wss://localhost:7443');
         config()->set('freeswitch.directory_domain', '172.18.0.12');
@@ -84,13 +87,39 @@ class CallControlApiTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.domain', 'localhost')
             ->assertJsonPath('data.sip_uri', 'sip:1001@localhost')
-            ->assertJsonPath('data.websocket_url', 'wss://localhost:7443')
+            ->assertJsonPath('data.websocket_url', 'ws://localhost:5066')
             ->assertJsonPath('data.credentials_available', true)
             ->assertJsonPath('data.registration_enabled', true)
             ->assertJsonPath('data.local_demo_mode', true)
             ->assertJsonPath('data.password', 'change_me_local_demo_only')
             ->assertJsonPath('data.registration.state', 'available')
             ->assertJsonMissingPath('data.directory_domain');
+    }
+
+    public function test_sip_profile_falls_back_to_wss_outside_local_environment(): void
+    {
+        config()->set('app.env', 'production');
+        config()->set('freeswitch.enabled', true);
+        config()->set('freeswitch.local_demo_credentials', true);
+        config()->set('freeswitch.sip_ws_url', 'ws://localhost:5066');
+        config()->set('freeswitch.sip_domain', 'localhost');
+        config()->set('freeswitch.sip_wss_url', 'wss://localhost:7443');
+        config()->set('freeswitch.directory_domain', '172.18.0.12');
+
+        $tenant = $this->createTenant('call-control-prod-fallback');
+        $user = $this->actingAsTenantUser($this->createUser('call-control-prod-fallback-user'));
+        $extension = $this->createExtensionFixture($tenant, $user, [
+            'number' => '3001',
+            'label' => 'Production Desk',
+        ]);
+
+        $this->createMembership($tenant, $user);
+        $this->assignTenantPermissions($user, $tenant, ['call_control.view']);
+
+        $this->getJson("/api/v1/extensions/{$extension->id}/sip-profile", ['X-Tenant-ID' => $tenant->id])
+            ->assertOk()
+            ->assertJsonPath('data.websocket_url', 'wss://localhost:7443')
+            ->assertJsonMissingPath('data.password');
     }
 
     public function test_sip_profile_rejects_missing_permission_inactive_extensions_and_missing_tenant_context(): void
@@ -130,6 +159,7 @@ class CallControlApiTest extends TestCase
         config()->set('app.env', 'local');
         config()->set('freeswitch.enabled', true);
         config()->set('freeswitch.local_demo_credentials', false);
+        config()->set('freeswitch.sip_ws_url', 'ws://localhost:5066');
         config()->set('freeswitch.sip_domain', 'localhost');
         config()->set('freeswitch.sip_wss_url', 'wss://localhost:7443');
         config()->set('freeswitch.directory_domain', '172.18.0.12');
@@ -148,7 +178,7 @@ class CallControlApiTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.domain', 'localhost')
             ->assertJsonPath('data.sip_uri', 'sip:1002@localhost')
-            ->assertJsonPath('data.websocket_url', 'wss://localhost:7443')
+            ->assertJsonPath('data.websocket_url', 'ws://localhost:5066')
             ->assertJsonPath('data.credentials_available', false)
             ->assertJsonPath('data.registration_enabled', false)
             ->assertJsonPath('data.local_demo_mode', false)

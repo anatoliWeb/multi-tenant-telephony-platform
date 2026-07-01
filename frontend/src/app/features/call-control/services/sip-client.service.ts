@@ -402,7 +402,7 @@ export class SipClientService {
         // yet, not that the SIP credentials themselves are wrong.
         this.registrationStateSubject.next('failed');
         this.callStateSubject.next('failed');
-        this.errorSubject.next(this.registrationFailureMessage);
+        this.errorSubject.next(this.toErrorMessage(error, this.registrationFailureMessage, this.profileSubject.value));
       },
     };
   }
@@ -589,11 +589,37 @@ export class SipClientService {
     this.mutedSubject.next(false);
   }
 
-  private toErrorMessage(error: unknown, fallback: string): string {
+  private toErrorMessage(error: unknown, fallback: string): string;
+
+  private toErrorMessage(error: unknown, fallback: string, profile: SipProfile | null): string;
+
+  private toErrorMessage(error: unknown, fallback: string, profile: SipProfile | null = this.profileSubject.value): string {
     if (error instanceof Error && error.message.trim()) {
-      return error.message;
+      const message = error.message.trim();
+
+      if (this.isWebSocketTransportError(message)) {
+        if (profile?.websocket_url?.startsWith('ws://')) {
+          return 'SIP WebSocket closed before registration. Check local FreeSWITCH WS port mapping.';
+        }
+
+        return 'SIP WebSocket closed before registration. Check local FreeSWITCH WS/WSS port mapping and browser TLS trust.';
+      }
+
+      if (this.isSipAuthRejectedError(message)) {
+        return 'SIP registration was rejected by FreeSWITCH. Check the local demo password, realm, and directory domain.';
+      }
+
+      return message;
     }
 
     return fallback;
+  }
+
+  private isWebSocketTransportError(message: string): boolean {
+    return /websocket closed/i.test(message) || /\b1006\b/.test(message);
+  }
+
+  private isSipAuthRejectedError(message: string): boolean {
+    return /\b403\b/.test(message) || /forbidden/i.test(message) || /digest.*rejected/i.test(message);
   }
 }

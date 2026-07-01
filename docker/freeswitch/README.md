@@ -44,6 +44,10 @@ Stage 15.3 adds a browser registration attempt and two-browser call path for
 local development. The browser must still trust the local FreeSWITCH
 certificate chain for `wss://localhost:7443`, otherwise SIP.js will fail the
 transport handshake with a clear local WSS/TLS error.
+When the browser does not trust that local certificate chain, the Angular demo
+can fall back to `ws://localhost:5066` in local development only. That fallback
+exists to avoid browser TLS trust problems with self-signed local WSS
+certificates; production should keep using trusted WSS.
 
 ## Layout
 
@@ -61,6 +65,20 @@ They exist so the repository documents the exact shape of the demo users
 without bind-mounting an incomplete `/etc/freeswitch` tree over the container.
 They remain the local-demo fallback only; the Laravel-backed directory
 endpoint scaffold is the target source of truth for DB-driven provisioning.
+
+The provisioning script also copies a small `localhost` domain alias into the
+running container so browser-facing SIP auth can resolve `1001@localhost`,
+`1002@localhost`, `2001@localhost`, and `2002@localhost` without changing the
+browser SIP domain or exposing Docker runtime IPs to Angular.
+
+The alias must be full auth XML with a `password` parameter for each demo
+user. A pointer-only directory entry is not enough for browser SIP
+registration. The provisioning script also generates a temporary copy of that
+same XML for the runtime profile domain detected from
+`global_getvar local_ip_v4`, then copies both files into the running container
+without committing the runtime-domain file to git. On this image,
+`find_user_xml id <user> <domain>` is the most reliable way to verify the
+resolved auth XML.
 
 The Event Socket port is bound to `127.0.0.1` so it stays local-only and does
 not expose unsafe call-control access outside the developer machine.
@@ -162,6 +180,8 @@ Browser-facing SIP values stay separate from the FreeSWITCH runtime directory
 lookup domain:
 
 - browser SIP domain: `localhost` by default in local development;
+- browser SIP WS URL: `ws://localhost:5066` when the local demo fallback is
+  enabled;
 - browser SIP WSS URL: `wss://localhost:7443` by default in local development;
 - FreeSWITCH directory lookup domain: `FREESWITCH_DIRECTORY_DOMAIN` when set,
   otherwise the running container's `global_getvar local_ip_v4`.
@@ -174,11 +194,20 @@ wiring is ready yet.
 
 In this environment the runtime lookup domain has been observed as
 `172.18.0.12`, but that value is container-network specific and may differ on
-another machine. Do not hardcode it into browser-facing SIP URIs.
+another machine. The provisioning script resolves it dynamically and writes a
+temporary runtime-domain XML copy for the running container. Do not hardcode it
+into browser-facing SIP URIs or commit it to the repository.
 
-Docker-side provisioning for `1001` and `1002` has been verified with
-`user_exists id <user> 172.18.0.12`, but live browser registration is still a
-manual follow-up when the in-app browser-control bridge is unavailable.
+Docker-side provisioning for `1001`, `1002`, `2001`, and `2002` has been
+verified with both `user_exists` and `find_user_xml` on the browser domain and
+the runtime domain, but live browser registration is still a manual follow-up
+when the in-app browser-control bridge is unavailable.
+
+Host port mappings for the optional profile:
+
+- `5066/tcp` for local browser SIP WS fallback;
+- `7443/tcp` for browser SIP WSS;
+- `127.0.0.1:8021/tcp` for the local-only Event Socket.
 
 If you need to inspect the resolved XML directly, use:
 
