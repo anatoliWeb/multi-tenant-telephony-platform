@@ -6,6 +6,8 @@ This project now separates seeding into four explicit layers:
 - `DemoSeeder` for deterministic local/demo tenant data;
 - `TestSeeder` for test-only tenant fixtures;
 - `PerformanceSeeder` for explicit high-volume data generation.
+- Seeder support classes live under `backend/database/seeders/Support` and
+  are reserved for seed-only orchestration helpers.
 
 ## Safety Rules
 
@@ -34,6 +36,14 @@ docker compose exec -T backend php artisan app:seed-demo --force
 ```
 
 This command is idempotent for the demo baseline, refreshes tenant role-permission pivots, and avoids destructive resets such as `migrate:fresh`.
+
+Canonical database reset for the runtime environment:
+
+```bash
+docker compose exec -T backend php artisan migrate:fresh --seed
+```
+
+Local development runs `DemoSeeder`, while testing runs `TestSeeder`.
 
 Canonical clean development reset:
 
@@ -141,12 +151,12 @@ Seeds the test-only baseline used by feature tests:
 
 ## Boundary Rule
 
-Seeders and seed services own deterministic data creation and repair.
+Seeders and seeder support classes own deterministic data creation and repair.
 
-- `TenantSeedService` owns base tenants and legacy membership backfill used during schema setup.
-- `TenantDemoSeedService` owns demo personas, memberships, role assignments, and tenant demo fixtures.
+- `Database\Seeders\Support\TenantSeedService` owns base tenants and legacy membership backfill used during schema setup.
+- `Database\Seeders\Support\TenantDemoSeedService` owns demo personas, memberships, role assignments, and tenant demo fixtures.
 - `TenantBootstrapService` is read-only and must not create or repair data.
-- IVR seed data belongs in `TenantDemoSeedService` so demo routing graphs stay repeatable and safe for screenshots, tests, and tenant-specific fixtures.
+- IVR seed data belongs in `Database\Seeders\Support\TenantDemoSeedService` so demo routing graphs stay repeatable and safe for screenshots, tests, and tenant-specific fixtures.
 
 ### PerformanceSeeder
 

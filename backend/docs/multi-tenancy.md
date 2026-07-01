@@ -116,7 +116,7 @@ It must not:
 - repair role-permission pivots;
 - attach Platform Admin to tenants as a side effect.
 
-Deterministic tenant and membership creation now lives in `App\Services\Seeding\TenantSeedService` and the seeder layer.
+Deterministic tenant and membership creation now lives in `Database\Seeders\Support\TenantSeedService` and the seeder layer.
 
 ## Seeder Layout
 

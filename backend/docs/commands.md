@@ -71,6 +71,7 @@ Seeder notes:
 - `app:seed-demo` is local/demo only and refuses production.
 - `app:seed-performance` is explicit and should be used only when high-volume fixtures are needed.
 - Use `--allow-production` only for controlled performance validation.
+- `migrate:fresh --seed` now routes through `DatabaseSeeder`, so local runs get the demo baseline and testing runs get deterministic fixtures automatically.
 - The generic `migrate --seed` flow should be reserved for environments that intentionally want the full default database seed path.
 
 Clear framework caches:

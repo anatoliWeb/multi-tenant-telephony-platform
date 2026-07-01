@@ -6,8 +6,8 @@ use App\Models\Permission;
 use App\Models\Role;
 use App\Models\SystemSetting;
 use App\Models\SystemTranslation;
-use App\Services\Seeding\RbacSeedService;
 use Database\Seeders\settings\SettingsSeeder;
+use Database\Seeders\Support\RbacSeedService;
 use Database\Seeders\translations\TranslationsSeeder;
 use Illuminate\Database\Seeder;
 

@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Services\Seeding;
+namespace Database\Seeders\Support;
 
 use App\Enums\Rbac\PermissionScope;
 use App\Enums\Rbac\RoleScope;

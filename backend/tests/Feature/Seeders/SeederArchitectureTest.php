@@ -19,13 +19,13 @@ use App\Models\RingGroupMember;
 use App\Models\QueueMemberPause;
 use App\Models\PhoneNumber;
 use App\Models\User;
-use App\Services\Seeding\PerformanceSeedService;
-use App\Services\Seeding\TenantSeedService;
 use App\Services\Tenancy\TenantBootstrapService;
 use Illuminate\Support\Collection;
 use Database\Seeders\CoreSeeder;
 use Database\Seeders\DemoSeeder;
 use Database\Seeders\TestSeeder;
+use Database\Seeders\Support\PerformanceSeedService;
+use Database\Seeders\Support\TenantSeedService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use RuntimeException;
@@ -188,30 +188,20 @@ class SeederArchitectureTest extends TestCase
 
     public function test_test_seeder_refuses_non_testing_environment(): void
     {
-        $previousEnv = config('app.env');
-        config(['app.env' => 'production']);
-
-        try {
+        $this->runWithEnvironment('production', function (): void {
             $this->expectException(RuntimeException::class);
             $this->expectExceptionMessage('TestSeeder may only run in the testing environment.');
 
             app(TestSeeder::class)->run();
-        } finally {
-            config(['app.env' => $previousEnv]);
-        }
+        });
     }
 
     public function test_performance_seeder_refuses_production_and_is_repeatable(): void
     {
-        $previousEnv = config('app.env');
-        config(['app.env' => 'production']);
-
-        try {
+        $this->runWithEnvironment('production', function (): void {
             $this->expectException(RuntimeException::class);
             app(PerformanceSeedService::class)->seed(1, 1, false);
-        } finally {
-            config(['app.env' => $previousEnv]);
-        }
+        });
 
         $service = app(PerformanceSeedService::class);
         $firstReport = $service->seed(2, 3, false);
@@ -264,6 +254,25 @@ class SeederArchitectureTest extends TestCase
                 $actual->contains($permission),
                 sprintf('Role [%s] for tenant [%s] is missing permission [%s].', $roleName, $tenant->slug, $permission)
             );
+        }
+    }
+
+    /**
+     * @template T
+     *
+     * @param callable():T $callback
+     * @return T
+     */
+    private function runWithEnvironment(string $environment, callable $callback)
+    {
+        $previousEnvironment = app()->environment();
+
+        try {
+            app()->detectEnvironment(fn (): string => $environment);
+
+            return $callback();
+        } finally {
+            app()->detectEnvironment(fn (): string => $previousEnvironment);
         }
     }
 }

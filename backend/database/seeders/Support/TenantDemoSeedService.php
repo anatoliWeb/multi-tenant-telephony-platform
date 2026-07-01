@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Services\Seeding;
+namespace Database\Seeders\Support;
 
 use App\Enums\CallLogs\CallBillingStatus;
 use App\Enums\CallLogs\CallDisposition;
@@ -38,7 +38,7 @@ use App\Models\Tenant;
 use App\Models\TenantMembership;
 use App\Models\User;
 use App\Services\Extensions\ExtensionService;
-use App\Services\Seeding\TenantSeedService;
+use Database\Seeders\Support\TenantSeedService;
 use App\Services\Tenancy\TenantContext;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Hash;

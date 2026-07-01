@@ -2,8 +2,8 @@
 
 namespace Database\Seeders;
 
-use App\Services\Seeding\TenantSeedService;
 use Illuminate\Database\Seeder;
+use Database\Seeders\Support\TenantSeedService;
 
 class TenantSeeder extends Seeder
 {

@@ -1,5 +1,20 @@
 <?php
 
+$runtimeAppEnv = strtolower((string) env('APP_ENV', 'production'));
+$isLocalViteEnvironment = in_array($runtimeAppEnv, ['local', 'testing'], true);
+
+// Local Vite serves ES modules from browser-reachable localhost origins and uses
+// WebSocket HMR, so we only open those sources for local/test development.
+$scriptSrc = "'self' 'unsafe-inline' 'unsafe-eval'";
+$connectSrc = "'self' ws: wss:";
+
+if ($isLocalViteEnvironment) {
+    $scriptSrc .= ' http://localhost:* http://127.0.0.1:*';
+    $connectSrc .= ' http://localhost:* http://127.0.0.1:* ws://localhost:* ws://127.0.0.1:* wss://localhost:* wss://127.0.0.1:*';
+}
+
+$contentSecurityPolicy = "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'self'; img-src 'self' data: blob:; font-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src {$scriptSrc}; connect-src {$connectSrc};";
+
 return [
     'headers' => [
         'enabled' => (bool) env('SECURITY_HEADERS_ENABLED', true),
@@ -14,10 +29,7 @@ return [
         'content_security_policy' => [
             'enabled' => (bool) env('SECURITY_CSP_ENABLED', true),
             'report_only' => (bool) env('SECURITY_CSP_REPORT_ONLY', false),
-            'value' => env(
-                'SECURITY_CSP_VALUE',
-                "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'self'; img-src 'self' data: blob:; font-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; connect-src 'self' ws: wss: http://localhost:* http://127.0.0.1:*;"
-            ),
+            'value' => env('SECURITY_CSP_VALUE', $contentSecurityPolicy),
         ],
     ],
     'rate_limits' => [

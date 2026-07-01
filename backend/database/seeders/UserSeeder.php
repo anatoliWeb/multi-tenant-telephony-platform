@@ -8,11 +8,11 @@ use App\Models\Permission;
 use App\Models\Role;
 use App\Models\Tenant;
 use App\Models\User;
-use App\Services\Seeding\TenantSeedService;
 use App\Services\Tenancy\TenantBootstrapService;
 use Faker\Factory as Faker;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
+use Database\Seeders\Support\TenantSeedService;
 
 /**
  * Seed full RBAC demo data.

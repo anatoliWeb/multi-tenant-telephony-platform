@@ -13,7 +13,7 @@
 
 ## Current Access Baseline
 
-- [x] Demo and test data creation live in seeders and seed services.
+- [x] Demo and test data creation live in Laravel seeders and seeder support classes.
 - [x] `TenantBootstrapService` is read-only.
 - [x] Platform Admin tenant access is centralized through tenant permission resolution.
 - [x] Tenant route middleware uses canonical unprefixed tenant permissions against the active tenant scope.

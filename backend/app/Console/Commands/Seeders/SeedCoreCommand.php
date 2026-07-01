@@ -3,8 +3,8 @@
 namespace App\Console\Commands\Seeders;
 
 use App\Console\Commands\BaseCommand;
-use App\Services\Seeding\SeederEnvironmentService;
 use Database\Seeders\CoreSeeder;
+use Database\Seeders\Support\SeederEnvironmentService;
 
 class SeedCoreCommand extends BaseCommand
 {

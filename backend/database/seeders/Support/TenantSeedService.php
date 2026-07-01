@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Services\Seeding;
+namespace Database\Seeders\Support;
 
 use App\Enums\TenantMembershipStatus;
 use App\Enums\TenantStatus;

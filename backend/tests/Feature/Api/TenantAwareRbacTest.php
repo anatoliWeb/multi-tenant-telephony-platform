@@ -10,13 +10,13 @@ use App\Models\Tenant;
 use App\Models\TenantMembership;
 use App\Models\User;
 use App\Services\Rbac\PermissionCacheService;
-use App\Services\Seeding\TenantSeedService;
 use App\Services\Tenancy\TenantBootstrapService;
 use App\Services\Tenancy\TenantContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
+use Database\Seeders\Support\TenantSeedService;
 
 class TenantAwareRbacTest extends TestCase
 {

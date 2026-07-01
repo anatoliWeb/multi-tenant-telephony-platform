@@ -1,0 +1,463 @@
+# Local Development Troubleshooting
+
+Цей документ призначений для швидких нотаток про типові локальні проблеми в `multi-tenant-telephony-platform`: Docker, Laravel, Vue Admin, Angular, FreeSWITCH, база даних, Vite, CSP, локальні сертифікати та інші дрібні граблі, які можуть повторюватися.
+
+Рекомендований шлях у репозиторії:
+
+```text
+ docs/troubleshooting/local-development.md
+```
+
+---
+
+## Vue Admin: біла сторінка через CSP і Vite dev server
+
+### Симптоми
+
+Відкриваємо Vue Admin login:
+
+```text
+http://localhost:8080/admin/login
+```
+
+Сторінка завантажується, але залишається білою.
+
+У Chrome DevTools → Network видно:
+
+```text
+login        200
+@vite/client blocked:csp
+main.ts      blocked:csp
+```
+
+Або може показуватися коротше:
+
+```text
+client  blocked:csp
+main.ts blocked:csp
+```
+
+У відповіді `curl` для сторінки видно CSP header без дозволу для Vite dev server:
+
+```powershell
+curl.exe -I http://localhost:8080/admin/login
+```
+
+Проблемний приклад:
+
+```text
+Content-Security-Policy: default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'self'; img-src 'self' data: blob:; font-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; connect-src 'self' ws: wss: http://localhost:* http://127.0.0.1:*;
+```
+
+Головна ознака проблеми:
+
+```text
+script-src 'self' 'unsafe-inline' 'unsafe-eval';
+```
+
+У `script-src` немає локальних Vite origins:
+
+```text
+http://localhost:*
+http://127.0.0.1:*
+```
+
+---
+
+### Причина
+
+Vue Admin login HTML підключає Vite dev scripts приблизно так:
+
+```text
+http://localhost:5173/@vite/client
+http://localhost:5173/resources/js/main.ts
+```
+
+Але Laravel security/CSP header дозволяв scripts тільки з `'self'`.
+
+Через це браузер блокував `@vite/client` і `main.ts` ще до завантаження. Тому HTML сторінки приходив із кодом `200`, але Vue Admin не стартував, і сторінка виглядала порожньою.
+
+Важливо: це не проблема бази даних, не проблема seeders і не проблема авторизації. Це саме блокування JavaScript через `Content-Security-Policy`.
+
+---
+
+### Виправлення
+
+Файл:
+
+```text
+backend/config/security.php
+```
+
+CSP має бути environment-aware.
+
+Для `local` і `testing` потрібно дозволити browser-reachable Vite dev origins.
+
+Очікуваний local/testing варіант для `script-src`:
+
+```text
+script-src 'self' 'unsafe-inline' 'unsafe-eval' http://localhost:* http://127.0.0.1:*;
+```
+
+Очікуваний local/testing варіант для `connect-src`:
+
+```text
+connect-src 'self' ws: wss: http://localhost:* http://127.0.0.1:* ws://localhost:* ws://127.0.0.1:* wss://localhost:* wss://127.0.0.1:*;
+```
+
+Для production не треба додавати localhost exceptions.
+
+Не можна виправляти це так:
+
+```text
+script-src *
+connect-src *
+```
+
+І не треба повністю вимикати CSP.
+
+---
+
+### Як перевірити після виправлення
+
+Очистити кеш Laravel:
+
+```powershell
+docker compose exec -T backend php artisan optimize:clear
+```
+
+Перезапустити контейнери, які віддають backend/nginx/Vue Admin:
+
+```powershell
+docker compose restart backend nginx vue-frontend
+```
+
+Перевірити CSP header:
+
+```powershell
+curl.exe -I http://localhost:8080/admin/login
+```
+
+У відповіді має бути `script-src`, який містить:
+
+```text
+http://localhost:* http://127.0.0.1:*
+```
+
+Перевірити Vite client:
+
+```powershell
+curl.exe http://localhost:5173/@vite/client
+```
+
+Очікувано: повертається JavaScript код Vite client.
+
+Після цього відкрити:
+
+```text
+http://localhost:8080/admin/login
+```
+
+У DevTools → Network очікувано:
+
+```text
+login         200
+@vite/client  200
+main.ts       200
+```
+
+Або мінімум:
+
+```text
+@vite/client  більше не blocked:csp
+main.ts       більше не blocked:csp
+```
+
+---
+
+### Важливий нюанс із `curl -I`
+
+У цьому проєкті може бути така ситуація:
+
+```powershell
+curl.exe -I http://localhost:5173/@vite/client
+```
+
+повертає:
+
+```text
+404 Not Found
+```
+
+Але звичайний GET працює:
+
+```powershell
+curl.exe http://localhost:5173/@vite/client
+```
+
+і повертає Vite client JavaScript.
+
+Це може бути особливість HEAD-запиту в цьому dev setup. Для браузера важливий саме GET, тому `curl.exe http://localhost:5173/@vite/client` є кориснішою перевіркою.
+
+---
+
+### Тести, які підтвердили виправлення
+
+Після виправлення було додано regression test у:
+
+```text
+backend/tests/Feature/Api/SecurityHeadersTest.php
+```
+
+Перевірка:
+
+```powershell
+docker compose exec -T backend php artisan test --env=testing tests/Feature/Api/SecurityHeadersTest.php --stop-on-failure
+```
+
+Очікувано:
+
+```text
+PASS
+```
+
+Також перевірити вручну:
+
+```powershell
+curl.exe -I http://localhost:8080/admin/login
+curl.exe http://localhost:5173/@vite/client
+```
+
+---
+
+### Короткий чеклист
+
+Якщо Vue Admin знову білий:
+
+1. Відкрити DevTools → Network.
+2. Перевірити, чи `@vite/client` або `main.ts` мають `blocked:csp`.
+3. Виконати:
+
+   ```powershell
+   curl.exe -I http://localhost:8080/admin/login
+   ```
+
+4. Перевірити, чи `script-src` містить:
+
+   ```text
+   http://localhost:* http://127.0.0.1:*
+   ```
+
+5. Якщо не містить, перевірити `backend/config/security.php`.
+6. Очистити кеш:
+
+   ```powershell
+   docker compose exec -T backend php artisan optimize:clear
+   ```
+
+7. Перезапустити:
+
+   ```powershell
+   docker compose restart backend nginx vue-frontend
+   ```
+
+---
+
+## MySQL schema dump: `migrate:fresh --seed` падає через self-signed SSL
+
+### Симптоми
+
+Команда:
+
+```powershell
+docker compose exec -T backend php artisan migrate:fresh --seed
+```
+
+падає на завантаженні schema dump:
+
+```text
+database/schema/mysql-schema.sql FAIL
+```
+
+Помилка:
+
+```text
+ERROR 2026 (HY000): TLS/SSL error: self-signed certificate in certificate chain
+```
+
+---
+
+### Причина
+
+Laravel schema-dump loader використовує системний `mysql` client, а не звичайне Laravel PDO-підключення.
+
+MySQL CLI перевіряв SSL-сертифікат і відхиляв self-signed certificate chain у локальному Docker-середовищі.
+
+---
+
+### Виправлення
+
+У local/testing середовищі має бути вимкнена перевірка server certificate для MySQL schema loading:
+
+```env
+MYSQL_ATTR_SSL_VERIFY_SERVER_CERT=false
+```
+
+Це має бути задокументовано у:
+
+```text
+.env.example
+backend/.env.example
+```
+
+У `backend/config/database.php` local/testing default має враховувати цей прапорець.
+
+---
+
+### Перевірка
+
+```powershell
+docker compose exec -T backend php artisan optimize:clear
+docker compose exec -T backend php artisan migrate:fresh --seed
+docker compose exec -T backend php artisan migrate:fresh --seed --env=testing
+```
+
+Очікувано: schema dump завантажується, seeders проходять.
+
+---
+
+## FreeSWITCH local notes
+
+### Стабільна назва контейнера
+
+Для локального FreeSWITCH використовується стабільна назва контейнера:
+
+```text
+multi-tenant-telephony-platform-freeswitch
+```
+
+Це зроблено, щоб локальні скрипти й документація не залежали від Compose-generated імені на зразок:
+
+```text
+multi-tenant-telephony-platform-freeswitch-1
+```
+
+FreeSWITCH лишається optional profile і не входить у дефолтний запуск.
+
+---
+
+### Перевірка FreeSWITCH
+
+```powershell
+docker compose --profile freeswitch up -d freeswitch
+docker compose ps
+docker compose exec -T freeswitch fs_cli -x "status"
+docker compose exec -T freeswitch fs_cli -x "sofia status profile internal"
+docker compose exec -T freeswitch fs_cli -x "global_getvar local_ip_v4"
+```
+
+Після provisioning demo users:
+
+```powershell
+docker compose exec -T freeswitch fs_cli -x "user_exists id 1001 <runtime-domain>"
+docker compose exec -T freeswitch fs_cli -x "user_exists id 1002 <runtime-domain>"
+```
+
+`<runtime-domain>` зазвичай береться з:
+
+```powershell
+docker compose exec -T freeswitch fs_cli -x "global_getvar local_ip_v4"
+```
+
+Наприклад:
+
+```text
+172.18.0.12
+```
+
+---
+
+### Browser SIP domain і FreeSWITCH runtime domain не одне й те саме
+
+Для браузера SIP profile має використовувати browser-reachable значення:
+
+```text
+localhost
+wss://localhost:7443
+```
+
+А FreeSWITCH всередині Docker може шукати users через runtime directory domain:
+
+```text
+172.18.0.12
+```
+
+Не треба підставляти Docker runtime IP у browser-facing SIP URI.
+
+Правильно:
+
+```text
+sip:1001@localhost
+sip:1002@localhost
+```
+
+А не:
+
+```text
+sip:1001@172.18.0.12
+```
+
+---
+
+## Корисні базові команди
+
+Очистити Laravel cache:
+
+```powershell
+docker compose exec -T backend php artisan optimize:clear
+```
+
+Перезапустити backend/nginx/Vue Admin:
+
+```powershell
+docker compose restart backend nginx vue-frontend
+```
+
+Перезапустити все:
+
+```powershell
+docker compose restart
+```
+
+Повністю пересидити локальну БД:
+
+```powershell
+docker compose exec -T backend php artisan migrate:fresh --seed
+```
+
+Пересидити testing DB:
+
+```powershell
+docker compose exec -T backend php artisan migrate:fresh --seed --env=testing
+```
+
+Запустити focused backend tests:
+
+```powershell
+docker compose exec -T backend php artisan test --env=testing --filter=CallControl
+docker compose exec -T backend php artisan test --env=testing --filter=FreeSwitch
+```
+
+## Seed baseline checklist
+
+If local demo users or testing fixtures are missing after a reset, run:
+
+```powershell
+docker compose exec -T backend php artisan migrate:fresh --seed
+docker compose exec -T backend php artisan migrate:fresh --seed --env=testing
+```
+
+Expected local demo users include `platform-admin@test.local` and `platform-support@test.local`.
+Expected testing fixtures include `test-platform-admin@test.local`, `test-tenant-owner@test.local`, `test-tenant-admin@test.local`, and `test-tenant-agent@test.local`.
+
+Seed-only orchestration belongs in `backend/database/seeders`, not in `App\Services`.

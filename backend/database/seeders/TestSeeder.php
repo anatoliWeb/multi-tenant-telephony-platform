@@ -22,12 +22,12 @@ use App\Models\Extension;
 use App\Models\ExtensionCredential;
 use App\Models\PhoneNumber;
 use App\Models\User;
-use App\Services\Seeding\RbacSeedService;
-use App\Services\Seeding\SeederEnvironmentService;
-use App\Services\Seeding\TenantSeedService;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
+use Database\Seeders\Support\RbacSeedService;
+use Database\Seeders\Support\SeederEnvironmentService;
+use Database\Seeders\Support\TenantSeedService;
 use RuntimeException;
 
 class TestSeeder extends Seeder

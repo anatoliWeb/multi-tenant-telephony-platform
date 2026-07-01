@@ -2,8 +2,8 @@
 
 namespace Database\Seeders;
 
-use App\Services\Seeding\PerformanceSeedService;
 use Illuminate\Database\Seeder;
+use Database\Seeders\Support\PerformanceSeedService;
 
 class PerformanceSeeder extends Seeder
 {

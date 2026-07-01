@@ -69,4 +69,20 @@ class SecurityHeadersTest extends TestCase
         $disabled = $this->get('/api/v1/health')->assertOk();
         $this->assertFalse($disabled->headers->has('X-Content-Type-Options'));
     }
+
+    public function test_admin_login_csp_allows_local_vite_scripts_and_hmr(): void
+    {
+        config()->set('security.headers.enabled', true);
+        config()->set('security.headers.content_security_policy.enabled', true);
+        config()->set('security.headers.content_security_policy.report_only', false);
+
+        $response = $this->get('/admin/login')->assertOk();
+        $policy = (string) $response->headers->get('Content-Security-Policy', '');
+
+        $this->assertNotSame('', $policy);
+        $this->assertStringContainsString("script-src 'self' 'unsafe-inline' 'unsafe-eval' http://localhost:* http://127.0.0.1:*;", $policy);
+        $this->assertStringContainsString("connect-src 'self' ws: wss: http://localhost:* http://127.0.0.1:* ws://localhost:* ws://127.0.0.1:* wss://localhost:* wss://127.0.0.1:*;", $policy);
+        $this->assertStringNotContainsString('script-src *', $policy);
+        $this->assertStringNotContainsString('connect-src *', $policy);
+    }
 }

@@ -2,9 +2,9 @@
 
 namespace Database\Seeders;
 
-use App\Services\Seeding\SeederEnvironmentService;
-use App\Services\Seeding\TenantDemoSeedService;
 use Illuminate\Database\Seeder;
+use Database\Seeders\Support\SeederEnvironmentService;
+use Database\Seeders\Support\TenantDemoSeedService;
 
 class DemoSeeder extends Seeder
 {

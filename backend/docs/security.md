@@ -79,6 +79,7 @@ Security headers are applied by Laravel middleware (`SecurityHeadersMiddleware`)
 
 - Headers can be disabled with `SECURITY_HEADERS_ENABLED=false` for targeted debugging.
 - Docs access policy remains controlled by docs access middleware/gates; secure headers do not bypass permissions.
+- Vue Admin local development keeps `script-src` and `connect-src` open to browser-reachable localhost Vite origins so `@vite/client` and WebSocket HMR can load on `/admin/login`.
 
 ### Production recommendations
 

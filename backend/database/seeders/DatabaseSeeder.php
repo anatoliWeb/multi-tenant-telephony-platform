@@ -2,36 +2,26 @@
 
 namespace Database\Seeders;
 
-use App\Services\Seeding\SeederEnvironmentService;
 use Illuminate\Database\Seeder;
 
 class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
-        $environment = app(SeederEnvironmentService::class);
-
         $this->call(CoreSeeder::class);
 
-        if ($environment->isProduction()) {
+        if (app()->environment('production')) {
             return;
         }
 
-        if ($environment->isTesting()) {
-            if ($this->isEnabled('SEED_TEST_DATA', true)) {
-                $this->call(TestSeeder::class);
-            }
-
-            return;
-        }
-
-        if ($this->isEnabled('SEED_DEMO_DATA', false)) {
+        if (app()->environment('testing')) {
+            // Testing resets must always land on the deterministic fixture set
+            // so feature tests never depend on stale config state.
+            $this->call(TestSeeder::class);
+        } elseif (app()->environment('local')) {
+            // Local developer resets should include the full demo baseline so
+            // the admin UI starts with known users, tenants, and telephony data.
             $this->call(DemoSeeder::class);
         }
-    }
-
-    protected function isEnabled(string $envKey, bool $default): bool
-    {
-        return filter_var(env($envKey, $default), FILTER_VALIDATE_BOOL);
     }
 }
