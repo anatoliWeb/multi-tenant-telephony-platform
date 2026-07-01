@@ -211,6 +211,11 @@ Verified:
 - Stage 15.3 wires a local-registration attempt and local extension-call flow,
   but end-to-end browser verification remains a manual follow-up because local
   WSS/TLS trust still needs confirmation on the target machine.
+- Docker-side FreeSWITCH readiness was also rechecked on 2026-07-01: the
+  runtime reports `WS-BIND-URL` and `WSS-BIND-URL`, and demo users `1001` and
+  `1002` resolve in the runtime domain `172.18.0.12`; live browser registration
+  remains partial in this workspace because the browser-control bridge is
+  unavailable here.
 - Vue Admin SIP.js softphone remains a planned follow-up slice only.
 
 ## Final Verdict

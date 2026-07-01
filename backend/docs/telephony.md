@@ -292,6 +292,10 @@ Stage 15.3 browser notes:
   manual confirmation;
 - 1001 -> 1002 calling is the intended demo pair, but end-to-end browser
   verification remains a manual follow-up in this environment.
+- the FreeSWITCH runtime readiness and demo provisioning for `1001` and `1002`
+  were verified in Docker against `user_exists id <user> 172.18.0.12`, but
+  live browser registration remains partial here because the in-app browser
+  control bridge is unavailable in this workspace.
 
 Operational note:
 

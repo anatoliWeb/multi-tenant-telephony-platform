@@ -176,6 +176,10 @@ In this environment the runtime lookup domain has been observed as
 `172.18.0.12`, but that value is container-network specific and may differ on
 another machine. Do not hardcode it into browser-facing SIP URIs.
 
+Docker-side provisioning for `1001` and `1002` has been verified with
+`user_exists id <user> 172.18.0.12`, but live browser registration is still a
+manual follow-up when the in-app browser-control bridge is unavailable.
+
 If you need to inspect the resolved XML directly, use:
 
 ```bash

@@ -969,6 +969,8 @@ CallControlApiService
 - [x] Tests
 - [ ] Browser verification
 
+Note: FreeSWITCH runtime readiness and demo provisioning for `1001` and `1002` were verified in Docker. Live browser registration and `1001 -> 1002` call verification remain partial in this workspace because the in-app browser-control bridge is unavailable here.
+
 The same call-control service must be reusable from:
 
 - chat;
