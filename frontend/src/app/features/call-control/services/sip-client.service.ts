@@ -515,31 +515,88 @@ export class SipClientService {
       return;
     }
 
-    const sessionDescriptionHandler = this.activeSession.sessionDescriptionHandler as Session['sessionDescriptionHandler'] & {
-      sendDtmf?: (tones: string) => boolean | Promise<boolean>;
-    };
+    const peerConnection = (this.activeSession.sessionDescriptionHandler as Session['sessionDescriptionHandler'] & {
+      peerConnection?: RTCPeerConnection;
+    }).peerConnection;
+    const senders = peerConnection?.getSenders?.() ?? [];
+    const senderDiagnostics = senders.map((sender) => ({
+      trackKind: sender.track?.kind ?? null,
+      trackReadyState: sender.track?.readyState ?? null,
+      hasDtmf: Boolean((sender as RTCRtpSender & { dtmf?: RTCDTMFSender | null }).dtmf),
+      canInsertDTMF: (sender as RTCRtpSender & { dtmf?: RTCDTMFSender | null }).dtmf?.canInsertDTMF ?? null,
+    }));
 
-    if (typeof sessionDescriptionHandler?.sendDtmf !== 'function') {
-      console.warn('[SIP/WebRTC] DTMF is not available on the current SIP.js session description handler', {
-        digit: normalizedDigit,
-      });
-      return;
-    }
-
-    console.debug('[SIP/WebRTC] sending DTMF digit', {
+    console.debug('[SIP/WebRTC] DTMF sender diagnostics', {
       digit: normalizedDigit,
       callState: this.callStateSubject.value,
+      senderDiagnostics,
     });
 
-    const sendResult = await sessionDescriptionHandler.sendDtmf(normalizedDigit);
-    if (sendResult === false) {
-      console.warn('[SIP/WebRTC] DTMF send returned false on the SIP.js session description handler', {
+    const dtmfSender = senders.find((sender) => {
+      const senderWithDtmf = sender as RTCRtpSender & { dtmf?: RTCDTMFSender | null };
+      return sender.track?.kind === 'audio' && Boolean(senderWithDtmf.dtmf?.canInsertDTMF);
+    }) as RTCRtpSender & { dtmf?: RTCDTMFSender | null } | undefined;
+
+    if (dtmfSender?.dtmf?.canInsertDTMF) {
+      try {
+        dtmfSender.dtmf.insertDTMF(normalizedDigit);
+        console.debug('[SIP/WebRTC] DTMF digit sent through RTCDTMFSender', {
+          digit: normalizedDigit,
+        });
+        return;
+      } catch (error) {
+        console.warn('[SIP/WebRTC] RTCDTMFSender insertDTMF failed, falling back to SIP INFO', {
+          digit: normalizedDigit,
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+    } else {
+      console.debug('[SIP/WebRTC] RTCDTMFSender unavailable or cannot insert DTMF, checking SIP INFO fallback', {
         digit: normalizedDigit,
       });
-      return;
     }
 
-    console.debug('[SIP/WebRTC] DTMF digit sent', {
+    const session = this.activeSession as Session & {
+      info?: (options?: {
+        requestOptions?: {
+          body?: {
+            contentDisposition: string;
+            contentType: string;
+            content: string;
+          };
+        };
+      }) => Promise<unknown>;
+    };
+
+    if (typeof session.info === 'function') {
+      try {
+        console.debug('[SIP/WebRTC] sending DTMF digit via SIP INFO fallback', {
+          digit: normalizedDigit,
+        });
+
+        await session.info({
+          requestOptions: {
+            body: {
+              contentDisposition: 'render',
+              contentType: 'application/dtmf-relay',
+              content: `Signal=${normalizedDigit}\r\nDuration=160`,
+            },
+          },
+        });
+
+        console.debug('[SIP/WebRTC] DTMF digit sent via SIP INFO fallback', {
+          digit: normalizedDigit,
+        });
+        return;
+      } catch (error) {
+        console.warn('[SIP/WebRTC] SIP INFO DTMF fallback failed', {
+          digit: normalizedDigit,
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+    }
+
+    console.warn('DTMF transport unavailable in this browser/session', {
       digit: normalizedDigit,
     });
   }

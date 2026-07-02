@@ -389,14 +389,20 @@ describe('SipClientService', () => {
     expect(service.locallyHeld).toBe(false);
   });
 
-  it('sends DTMF digits through the SIP.js session description handler when available', async () => {
-    const sendDtmf = vi.fn().mockReturnValue(true);
+  it('uses insertDTMF when the sender supports DTMF insertion', async () => {
+    const insertDTMF = vi.fn();
+    const senderTrack = { kind: 'audio', enabled: true, id: 'local-audio-track', muted: false, readyState: 'live' } as MediaStreamTrack;
     (service as any).activeSession = {
       state: 'Established',
       sessionDescriptionHandler: {
-        sendDtmf,
         peerConnection: {
-          getSenders: () => [],
+          getSenders: () => [{
+            track: senderTrack,
+            dtmf: {
+              canInsertDTMF: true,
+              insertDTMF,
+            },
+          }],
           getReceivers: () => [],
         },
       },
@@ -405,17 +411,98 @@ describe('SipClientService', () => {
 
     await service.sendDtmf('5');
 
-    expect(sendDtmf).toHaveBeenCalledWith('5');
+    expect(insertDTMF).toHaveBeenCalledWith('5');
   });
 
-  it('rejects invalid DTMF digits without crashing', async () => {
-    const sendDtmf = vi.fn().mockReturnValue(true);
+  it('falls back to SIP INFO DTMF when WebRTC insertion is unavailable', async () => {
+    const info = vi.fn().mockResolvedValue(undefined);
+    (service as any).activeSession = {
+      state: 'Established',
+      info,
+      sessionDescriptionHandler: {
+        peerConnection: {
+          getSenders: () => [{
+            track: {
+              kind: 'audio',
+              enabled: true,
+              id: 'local-audio-track',
+              muted: false,
+              readyState: 'live',
+            } as MediaStreamTrack,
+            dtmf: {
+              canInsertDTMF: false,
+              insertDTMF: vi.fn(),
+            },
+          }],
+          getReceivers: () => [],
+        },
+      },
+    };
+    (service as any).callStateSubject.next('active');
+
+    await service.sendDtmf('1');
+
+    expect(info).toHaveBeenCalledWith(expect.objectContaining({
+      requestOptions: expect.objectContaining({
+        body: expect.objectContaining({
+          contentType: 'application/dtmf-relay',
+          content: 'Signal=1\r\nDuration=160',
+        }),
+      }),
+    }));
+  });
+
+  it('does not crash when SIP INFO fallback is unavailable', async () => {
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
     (service as any).activeSession = {
       state: 'Established',
       sessionDescriptionHandler: {
-        sendDtmf,
         peerConnection: {
-          getSenders: () => [],
+          getSenders: () => [{
+            track: {
+              kind: 'audio',
+              enabled: true,
+              id: 'local-audio-track',
+              muted: false,
+              readyState: 'live',
+            } as MediaStreamTrack,
+            dtmf: {
+              canInsertDTMF: false,
+            },
+          }],
+          getReceivers: () => [],
+        },
+      },
+    };
+    (service as any).callStateSubject.next('active');
+
+    await expect(service.sendDtmf('#')).resolves.toBeUndefined();
+    expect(service.callState).toBe('active');
+    expect(warnSpy).toHaveBeenCalledWith('DTMF transport unavailable in this browser/session', expect.objectContaining({
+      digit: '#',
+    }));
+    warnSpy.mockRestore();
+  });
+
+  it('rejects invalid DTMF digits without crashing', async () => {
+    const insertDTMF = vi.fn();
+    (service as any).activeSession = {
+      state: 'Established',
+      sessionDescriptionHandler: {
+        peerConnection: {
+          getSenders: () => [{
+            track: {
+              kind: 'audio',
+              enabled: true,
+              id: 'local-audio-track',
+              muted: false,
+              readyState: 'live',
+            } as MediaStreamTrack,
+            dtmf: {
+              canInsertDTMF: true,
+              insertDTMF,
+            },
+          }],
           getReceivers: () => [],
         },
       },
@@ -424,22 +511,7 @@ describe('SipClientService', () => {
 
     await service.sendDtmf('A');
 
-    expect(sendDtmf).not.toHaveBeenCalled();
-  });
-
-  it('does not crash when the SIP.js DTMF method is unavailable', async () => {
-    (service as any).activeSession = {
-      state: 'Established',
-      sessionDescriptionHandler: {
-        peerConnection: {
-          getSenders: () => [],
-          getReceivers: () => [],
-        },
-      },
-    };
-    (service as any).callStateSubject.next('active');
-
-    await expect(service.sendDtmf('#')).resolves.toBeUndefined();
+    expect(insertDTMF).not.toHaveBeenCalled();
   });
 
   it('detects Opera as a partially supported browser and surfaces a warning', () => {
