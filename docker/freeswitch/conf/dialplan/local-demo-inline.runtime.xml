@@ -1,4 +1,3 @@
-<include>
   <!-- Local demo bridge rules for FreeSWITCH development only.
        The provisioning script copies this file into the running container
        for both the public and default dialplan contexts after substituting the
@@ -9,10 +8,9 @@
       <!-- SIP.js registrations must bridge to the live Sofia contact so the
            local WebRTC contact URI, fs_path, and transport parameters stay
            intact during the local demo call. -->
-      <action application="set" data="local_demo_contact=${sofia_contact(*/${destination_number}@__RUNTIME_DOMAIN__)}"/>
+      <action application="set" data="local_demo_contact=${sofia_contact(*/${destination_number}@172.18.0.2)}"/>
       <action application="log" data="INFO local-demo bridge ${caller_id_number} -> ${destination_number}"/>
       <action application="log" data="INFO local-demo contact ${destination_number}: ${local_demo_contact}"/>
       <action application="bridge" data="${local_demo_contact}"/>
     </condition>
   </extension>
-</include>

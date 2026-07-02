@@ -5,7 +5,7 @@ import { SharedModule } from '../../../shared/shared.module';
 import { TenantContextService } from '../../../core/services/tenant-context.service';
 import { ExtensionsStateService } from '../../extensions/services/extensions-state.service';
 import { SipClientService } from '../services/sip-client.service';
-import type { SipMediaDiagnostics } from '../models/call-control.model';
+import type { SipBrowserDiagnostics, SipMediaDiagnostics } from '../models/call-control.model';
 
 @Component({
   selector: 'app-softphone-modal',
@@ -35,6 +35,7 @@ export class SoftphoneModalComponent implements OnChanges, OnDestroy {
   readonly incomingCall$;
   readonly error$;
   readonly mediaDiagnostics$: Observable<SipMediaDiagnostics>;
+  readonly browserDiagnostics$: Observable<SipBrowserDiagnostics>;
 
   constructor(
     private readonly sipClient: SipClientService,
@@ -49,11 +50,36 @@ export class SoftphoneModalComponent implements OnChanges, OnDestroy {
     this.incomingCall$ = this.sipClient.incomingCall$;
     this.error$ = this.sipClient.error$;
     this.mediaDiagnostics$ = this.sipClient.mediaDiagnostics$;
+    this.browserDiagnostics$ = this.sipClient.browserDiagnostics$;
     this.extensions$ = this.extensionsState.extensions$;
   }
 
   get profile() {
     return this.sipClient.profile;
+  }
+
+  canRegister(): boolean {
+    return this.sipClient.canRegister();
+  }
+
+  canPlaceCall(): boolean {
+    return this.sipClient.canPlaceCall();
+  }
+
+  canAnswerIncomingCall(): boolean {
+    return this.sipClient.canAnswerIncomingCall();
+  }
+
+  canRejectIncomingCall(): boolean {
+    return this.sipClient.canRejectIncomingCall();
+  }
+
+  canHangup(): boolean {
+    return this.sipClient.canHangup();
+  }
+
+  canToggleMute(): boolean {
+    return this.sipClient.canToggleMute();
   }
 
   async ngOnChanges(changes: SimpleChanges): Promise<void> {

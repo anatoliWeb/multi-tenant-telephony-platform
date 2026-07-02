@@ -236,6 +236,12 @@ Current boundary:
 - the remote audio element stays unmuted and the call-control layer exposes
   media diagnostics so playback problems can be distinguished from SIP
   registration or routing errors;
+- browser-side call verification currently favors Chrome and Edge for the
+  local demo; Opera is not guaranteed and should be treated as a follow-up
+  compatibility pass;
+- local two-browser testing is easier with separate browser profiles or
+  separate devices, and headphones are recommended because echo cancellation
+  may suppress expected self-audio;
 - the local demo registration path remains development-only and still depends on
   the local FreeSWITCH provisioning scaffolding rather than SaaS-backed SIP
   credential storage.

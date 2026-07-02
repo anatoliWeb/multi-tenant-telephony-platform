@@ -948,31 +948,31 @@ CallControlApiService
 - [x] Tests
 - [x] Browser registration for 1001
 - [x] Browser registration for 1002
-- [ ] Two-browser call verification `1001 -> 1002`
-- [ ] Remote audio verification
-- [ ] SIP registration
-- [ ] WSS connection
-- [ ] WebRTC audio
-- [ ] Incoming calls
-- [ ] Outgoing calls
-- [ ] Accept
-- [ ] Decline
-- [ ] Hang up
-- [ ] Mute and unmute
+- PARTIAL Two-browser call verification `1001 -> 1002`
+- PARTIAL Remote audio verification
+- [x] SIP registration
+- [x] WSS connection
+- [x] WebRTC audio
+- [x] Incoming calls
+- [x] Outgoing calls
+- [x] Accept
+- [x] Decline
+- [x] Hang up
+- [x] Mute and unmute
 - [ ] Hold and resume
 - [ ] Transfer
 - [ ] DTMF
 - [ ] Device selection
 - [ ] Reconnect behavior
-- [ ] Error handling
+- [x] Error handling
 - [ ] Floating minimized mode
 - [x] Permission-aware controls
 - [x] Tenant switch cleanup
 - [x] Logout cleanup
 - [x] Tests
-- [ ] Browser verification
+- PARTIAL Browser verification
 
-Note: FreeSWITCH runtime readiness and demo provisioning for `1001` and `1002` were verified in Docker. Local SIP transport now falls back to `ws://localhost:5066` in local demo mode when the browser rejects the self-signed WSS certificate. The new `localhost` browser-domain alias is provisioned separately, and the provisioning script now generates a temporary runtime-domain XML copy plus a local demo dialplan fixture so auth can resolve `1001`, `1002`, `2001`, and `2002` under both browser and runtime domains. The local demo seed now maps the Default Tenant to `1001`/`1002` and the Secondary Tenant to `2001`/`2002`. The softphone now leaves the remote audio element unmuted and surfaces media diagnostics for playback issues, and the local demo bridge resolves the live Sofia contact before bridging. The provisioning script now rewrites the live dialplan with one inline local-demo block and explicit markers so it does not fall back to `bridge(user/...)` first. If the FreeSWITCH container is recreated, the runtime-copied XML and browser registrations are cleared and provisioning must be run again before manual browser registration. Live browser registration is manually confirmed, but `1001 -> 1002` call verification remains partial in this workspace because the in-app browser-control bridge is unavailable here.
+Note: FreeSWITCH runtime readiness and demo provisioning for `1001` and `1002` were verified in Docker. Local SIP transport now falls back to `ws://localhost:5066` in local demo mode when the browser rejects the self-signed WSS certificate. The new `localhost` browser-domain alias is provisioned separately, and the provisioning script now generates a temporary runtime-domain XML copy plus a local demo dialplan fixture so auth can resolve `1001`, `1002`, `2001`, and `2002` under both browser and runtime domains. The local demo seed now maps the Default Tenant to `1001`/`1002` and the Secondary Tenant to `2001`/`2002`. The softphone now leaves the remote audio element unmuted and surfaces media diagnostics for playback issues, and the local demo bridge resolves the live Sofia contact before bridging. The browser-side call-control stabilization work now confirms SDP/ICE candidate exchange and FreeSWITCH bridge/media setup, while remote audio playback still needs fresh cross-device or two-browser confirmation. Chrome and Edge are the primary supported browsers for the local softphone; Opera remains a known limitation and should be treated as a compatibility follow-up. The provisioning script now rewrites the live dialplan with one inline local-demo block and explicit markers so it does not fall back to `bridge(user/...)` first. If the FreeSWITCH container is recreated, the runtime-copied XML and browser registrations are cleared and provisioning must be run again before manual browser registration. Live browser registration is manually confirmed, but `1001 -> 1002` call verification remains partial in this workspace because the in-app browser-control bridge is unavailable here.
 
 The same call-control service must be reusable from:
 

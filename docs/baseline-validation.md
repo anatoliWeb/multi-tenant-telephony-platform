@@ -226,6 +226,15 @@ Verified:
 - The current call-control stabilization slice keeps the remote audio element
   unmuted and surfaces media diagnostics for autoplay, playback, and
   connection-state failures.
+- Browser-side verification now confirms SDP/ICE candidate exchange and the
+  FreeSWITCH bridge/media setup, while remote audio playback still needs a
+  fresh cross-device or two-browser confirmation in a real browser session.
+- Chrome and Edge are the primary supported browsers for the local softphone;
+  Opera is a known limitation and should be treated as a compatibility follow-
+  up rather than a SIP or FreeSWITCH issue.
+- Local two-browser testing is more reliable with separate browser profiles or
+  separate devices, and headphones are recommended because echo cancellation
+  may suppress self-audio in the loopback case.
 - Docker-side FreeSWITCH readiness was also rechecked on 2026-07-01: the
   runtime reports `WS-BIND-URL` and `WSS-BIND-URL`, and demo users `1001` and
   `1002` resolve in the runtime domain `172.18.0.12`; the default tenant now

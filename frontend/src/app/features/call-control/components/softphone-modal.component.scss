@@ -121,6 +121,29 @@
   margin-top: 4px;
 }
 
+.softphone__browser-warning {
+  display: grid;
+  gap: 8px;
+  padding: 14px;
+  margin-bottom: 12px;
+  border-radius: 16px;
+  border: 1px solid rgba(251, 191, 36, 0.35);
+  background: rgba(251, 191, 36, 0.08);
+}
+
+.softphone__browser-warning h5 {
+  margin: 0;
+  color: #fde68a;
+  font-size: 0.82rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.softphone__browser-warning p {
+  margin: 0;
+  line-height: 1.45;
+}
+
 .softphone__diagnostics {
   display: grid;
   gap: 10px;

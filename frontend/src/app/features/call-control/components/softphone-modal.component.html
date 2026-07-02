@@ -92,6 +92,20 @@
       <article class="softphone__card softphone__card--controls">
         <h4>{{ 'callControl.section.controls' | t }}</h4>
 
+        <section class="softphone__browser-warning" *ngIf="browserDiagnostics$ | async as browserDiagnostics">
+          <h5>Browser compatibility</h5>
+          <p *ngIf="browserDiagnostics.warning_message; else browserLooksGood">
+            {{ browserDiagnostics.warning_message }}
+          </p>
+          <ng-template #browserLooksGood>
+            <p>
+              Chrome and Edge are the primary supported browsers for the local demo.
+              Opera is not guaranteed, and separate browser profiles or separate devices are recommended for two-browser testing.
+              Local self-audio may be suppressed by echo cancellation, so headphones are recommended.
+            </p>
+          </ng-template>
+        </section>
+
         <label>
           <span>{{ 'callControl.fields.destination' | t }}</span>
           <input
@@ -142,30 +156,30 @@
           <button
             type="button"
             (click)="register()"
-            [disabled]="!profile?.registration_enabled || !profile?.credentials_available || (registrationState$ | async) === 'connecting' || (registrationState$ | async) === 'registered'"
+            *ngIf="canRegister()"
           >
             {{ 'callControl.actions.register' | t }}
           </button>
           <button
             type="button"
             (click)="placeCall()"
-            [disabled]="(registrationState$ | async) !== 'registered' || !profile?.capabilities?.outbound_call"
+            *ngIf="canPlaceCall()"
           >
             {{ 'callControl.actions.call' | t }}
           </button>
-          <button type="button" (click)="hangup()" [disabled]="(registrationState$ | async) !== 'registered'">
+          <button type="button" (click)="hangup()" *ngIf="canHangup()">
             {{ 'callControl.actions.hangup' | t }}
           </button>
-          <button type="button" (click)="answerIncomingCall()" [disabled]="!(incomingCall$ | async)">
+          <button type="button" (click)="answerIncomingCall()" *ngIf="canAnswerIncomingCall()">
             {{ 'callControl.actions.answer' | t }}
           </button>
-          <button type="button" (click)="rejectIncomingCall()" [disabled]="!(incomingCall$ | async)">
+          <button type="button" (click)="rejectIncomingCall()" *ngIf="canRejectIncomingCall()">
             {{ 'callControl.actions.reject' | t }}
           </button>
           <button
             type="button"
             (click)="toggleMute()"
-            [disabled]="(registrationState$ | async) !== 'registered' || !profile?.capabilities?.mute"
+            *ngIf="canToggleMute()"
           >
             {{ ((muted$ | async) ? 'callControl.actions.unmute' : 'callControl.actions.mute') | t }}
           </button>

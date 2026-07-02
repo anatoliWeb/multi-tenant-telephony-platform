@@ -124,13 +124,13 @@ describe('SipClientService', () => {
       new Error('WebSocket closed wss://localhost:7443 code: 1006'),
       'fallback',
       wssProfile,
-    )).toBe('SIP WebSocket closed before registration. Check local FreeSWITCH WS/WSS port mapping and browser TLS trust.');
+    )).toBe('SIP WebSocket connection failed before registration. Check local FreeSWITCH WS/WSS port mapping and browser TLS trust.');
 
     expect((service as any).toErrorMessage(
       new Error('WebSocket closed ws://localhost:5066 code: 1006'),
       'fallback',
       wsProfile,
-    )).toBe('SIP WebSocket closed before registration. Check local FreeSWITCH WS port mapping.');
+    )).toBe('SIP WebSocket connection failed before registration. Check local FreeSWITCH WS port mapping.');
   });
 
   it('maps forbidden SIP auth errors to domain and password guidance', () => {
@@ -225,9 +225,176 @@ describe('SipClientService', () => {
     )).toBe('FreeSWITCH could not bridge the local WebRTC call. Check the demo dialplan bridge target and media compatibility.');
   });
 
+  it('declines an incoming call and clears the ringing state', async () => {
+    const reject = vi.fn().mockResolvedValue(undefined);
+    (service as any).incomingInvitation = {
+      reject,
+    };
+    (service as any).incomingCallSubject.next(true);
+    (service as any).callStateSubject.next('ringing');
+
+    await service.rejectIncomingCall();
+
+    expect(reject).toHaveBeenCalled();
+    expect(service.callState).toBe('ended');
+    expect((service as any).incomingCallSubject.value).toBe(false);
+    expect((service as any).incomingInvitation).toBeNull();
+  });
+
+  it('hangs up an active call with bye and clears media cleanup state', async () => {
+    const bye = vi.fn().mockResolvedValue(undefined);
+    const clearIntervalSpy = vi.spyOn(globalThis, 'clearInterval');
+    const senderTrack = { kind: 'audio', enabled: true, id: 'local-audio-track', muted: false, readyState: 'live' } as MediaStreamTrack;
+    const sender = { track: senderTrack } as RTCRtpSender;
+
+    (service as any).activeSession = {
+      state: 'Established',
+      bye,
+      sessionDescriptionHandler: {
+        peerConnection: {
+          getSenders: () => [sender],
+          getReceivers: () => [],
+        },
+      },
+    };
+    (service as any).callStateSubject.next('active');
+    (service as any).mediaStatsIntervalId = setInterval(() => undefined, 1000);
+
+    await service.hangup();
+
+    expect(bye).toHaveBeenCalled();
+    expect(clearIntervalSpy).toHaveBeenCalled();
+    expect(service.callState).toBe('ended');
+    expect((service as any).activeSession).toBeNull();
+    clearIntervalSpy.mockRestore();
+  });
+
+  it('safely ignores hangup requests without an active session', async () => {
+    (service as any).callStateSubject.next('idle');
+    (service as any).activeSession = null;
+    (service as any).incomingInvitation = null;
+
+    await service.hangup();
+
+    expect(service.callState).toBe('idle');
+    expect((service as any).activeSession).toBeNull();
+  });
+
+  it('uses the outgoing cancel path when hangup is pressed during dialing', async () => {
+    const cancel = vi.fn().mockResolvedValue(undefined);
+    (service as any).activeSession = {
+      state: 'Establishing',
+      cancel,
+      sessionDescriptionHandler: {
+        peerConnection: {
+          getSenders: () => [],
+          getReceivers: () => [],
+        },
+      },
+    };
+    (service as any).callStateSubject.next('dialing');
+
+    await service.hangup();
+
+    expect(cancel).toHaveBeenCalled();
+    expect(service.callState).toBe('ended');
+    expect((service as any).activeSession).toBeNull();
+  });
+
+  it('toggles local microphone tracks without stopping them', () => {
+    const senderTrack = { kind: 'audio', enabled: true, id: 'local-audio-track', muted: false, readyState: 'live' } as MediaStreamTrack;
+    const sender = { track: senderTrack } as RTCRtpSender;
+
+    (service as any).activeSession = {
+      state: 'Established',
+      sessionDescriptionHandler: {
+        peerConnection: {
+          getSenders: () => [sender],
+          getReceivers: () => [],
+        },
+      },
+    };
+    (service as any).callStateSubject.next('active');
+
+    service.toggleMute();
+
+    expect(senderTrack.enabled).toBe(false);
+    expect(service.muted).toBe(true);
+
+    service.toggleMute();
+
+    expect(senderTrack.enabled).toBe(true);
+    expect(service.muted).toBe(false);
+  });
+
+  it('keeps mute disabled when no local audio track exists', () => {
+    (service as any).activeSession = {
+      state: 'established',
+      sessionDescriptionHandler: {
+        peerConnection: {
+          getSenders: () => [],
+          getReceivers: () => [],
+        },
+      },
+    };
+    (service as any).callStateSubject.next('active');
+
+    expect(service.canToggleMute()).toBe(false);
+  });
+
+  it('detects Opera as a partially supported browser and surfaces a warning', () => {
+    const diagnostics = (service as any).buildBrowserCapabilityDiagnostics({
+      browserName: 'Opera',
+      userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Opera/99.0 OPR/99.0',
+      hasMediaDevices: true,
+      hasGetUserMedia: true,
+      hasPeerConnection: true,
+      audioAutoplaySupported: false,
+    });
+
+    expect(diagnostics.is_opera).toBe(true);
+    expect(diagnostics.warning_message).toContain('Opera is not a primary supported browser for the local softphone.');
+    expect(diagnostics.warning_message).toContain('Audio autoplay appears blocked in this browser.');
+  });
+
+  it('prepares remote audio elements for browser playback', () => {
+    const audio = document.createElement('audio');
+    const mediaAudio = audio as HTMLMediaElement & { playsInline?: boolean };
+
+    (service as any).prepareRemoteAudioElement(audio);
+
+    expect(audio.autoplay).toBe(true);
+    expect(mediaAudio.playsInline).toBe(true);
+    expect(audio.controls).toBe(true);
+    expect(audio.muted).toBe(false);
+    expect(audio.volume).toBe(1);
+  });
+
+  it('counts ICE candidates in the outgoing SDP', () => {
+    expect((service as any).countIceCandidates([
+      'v=0',
+      'a=candidate:1 1 UDP 2130706431 192.0.2.1 54400 typ host',
+      'a=candidate:2 1 UDP 2130706430 192.0.2.2 54401 typ host',
+      'a=ice-options:trickle',
+      'a=candidate:3 1 UDP 2130706429 192.0.2.3 54402 typ host',
+    ].join('\r\n'))).toBe(3);
+  });
+
   it('maps autoplay blocked playback failures to browser interaction guidance', () => {
     expect((service as any).toMediaErrorMessage(new Error('NotAllowedError: play() failed because the user didn\'t interact with the document first.'))).toBe(
       'Browser autoplay blocked remote audio. Click the page once, then retry the call.',
+    );
+  });
+
+  it('maps unsupported browser media failures to WebRTC browser guidance', () => {
+    expect((service as any).toMediaErrorMessage(new Error('RTCPeerConnection is not supported in this browser.'))).toBe(
+      'This browser does not fully support the WebRTC audio APIs required for the softphone. Use Chrome or Edge for the local demo.',
+    );
+  });
+
+  it('maps microphone permission errors to a clearer guidance message', () => {
+    expect((service as any).toMediaErrorMessage(new Error('Permission denied to access microphone.'))).toBe(
+      'Microphone permission was denied. Allow microphone access in the browser and try again.',
     );
   });
 

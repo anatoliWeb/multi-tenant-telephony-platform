@@ -25,6 +25,16 @@ export interface SipMediaDiagnostics {
   last_media_error: string | null;
 }
 
+export interface SipBrowserDiagnostics {
+  browser_name: string;
+  is_opera: boolean;
+  has_media_devices: boolean;
+  has_get_user_media: boolean;
+  has_peer_connection: boolean;
+  audio_autoplay_supported: boolean | 'unknown';
+  warning_message: string | null;
+}
+
 export interface SipProfileCapabilities {
   outbound_call: boolean;
   inbound_call: boolean;
