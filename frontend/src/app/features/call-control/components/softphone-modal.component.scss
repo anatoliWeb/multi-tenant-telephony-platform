@@ -83,6 +83,45 @@
   gap: 10px;
 }
 
+.softphone__dtmf {
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  border-radius: 16px;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  background: rgba(15, 23, 42, 0.48);
+}
+
+.softphone__dtmf h5 {
+  margin: 0;
+  color: #cbd5e1;
+  font-size: 0.82rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.softphone__dtmf-grid {
+  display: grid;
+  gap: 8px;
+}
+
+.softphone__dtmf-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.softphone__dtmf-key {
+  border-radius: 14px;
+  border: 1px solid rgba(71, 85, 105, 0.8);
+  background: rgba(30, 41, 59, 0.96);
+  color: #f8fafc;
+  padding: 12px 10px;
+  font-size: 1rem;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+}
+
 .softphone__actions button,
 .softphone__card input {
   border-radius: 12px;

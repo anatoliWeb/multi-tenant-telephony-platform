@@ -242,6 +242,11 @@ Current boundary:
 - local two-browser testing is easier with separate browser profiles or
   separate devices, and headphones are recommended because echo cancellation
   may suppress expected self-audio;
+- hold / resume in the Angular softphone is currently a local demo placeholder
+  that only updates browser-side state until PBX hold signaling is wired;
+- DTMF in the Angular softphone is guarded to the local demo keypad digits
+  `0-9`, `*`, and `#`, and only attempts SIP.js sending when the session API
+  exposes a safe method;
 - the local demo registration path remains development-only and still depends on
   the local FreeSWITCH provisioning scaffolding rather than SaaS-backed SIP
   credential storage.

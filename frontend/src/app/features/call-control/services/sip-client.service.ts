@@ -48,6 +48,7 @@ export class SipClientService {
   private readonly microphonePermissionSubject = new BehaviorSubject<MicrophonePermissionState>('unknown');
   private readonly mutedSubject = new BehaviorSubject<boolean>(false);
   private readonly incomingCallSubject = new BehaviorSubject<boolean>(false);
+  private readonly localHoldSubject = new BehaviorSubject<boolean>(false);
   private readonly destinationSubject = new BehaviorSubject<string>('');
   private readonly errorSubject = new BehaviorSubject<string | null>(null);
   private readonly lastMediaErrorSubject = new BehaviorSubject<string | null>(null);
@@ -115,6 +116,10 @@ export class SipClientService {
     return this.mutedSubject.value;
   }
 
+  get locallyHeld(): boolean {
+    return this.localHoldSubject.value;
+  }
+
   get destination(): string {
     return this.destinationSubject.value;
   }
@@ -151,6 +156,14 @@ export class SipClientService {
     );
   }
 
+  canHold(): boolean {
+    return this.callStateSubject.value === 'active' && !this.localHoldSubject.value && Boolean(this.activeSession);
+  }
+
+  canResume(): boolean {
+    return this.callStateSubject.value === 'held' && this.localHoldSubject.value && Boolean(this.activeSession);
+  }
+
   canAnswerIncomingCall(): boolean {
     return this.incomingCallSubject.value && this.callStateSubject.value === 'ringing';
   }
@@ -160,7 +173,7 @@ export class SipClientService {
   }
 
   canHangup(): boolean {
-    return ['dialing', 'ringing', 'active'].includes(this.callStateSubject.value);
+    return ['dialing', 'ringing', 'active', 'held'].includes(this.callStateSubject.value);
   }
 
   canToggleMute(): boolean {
@@ -171,6 +184,10 @@ export class SipClientService {
         && this.callStateSubject.value === 'active'
         && this.hasLocalAudioSenderTrack(),
     );
+  }
+
+  canSendDtmf(): boolean {
+    return this.callStateSubject.value === 'active' && Boolean(this.activeSession);
   }
 
   /**
@@ -185,6 +202,7 @@ export class SipClientService {
     this.registrationStateSubject.next('disconnected');
     this.microphonePermissionSubject.next('unknown');
     this.mutedSubject.next(false);
+    this.localHoldSubject.next(false);
     this.incomingCallSubject.next(false);
     this.destinationSubject.next('');
     this.resetMediaDiagnostics();
@@ -341,6 +359,7 @@ export class SipClientService {
 
     this.errorSubject.next(null);
     this.callStateSubject.next('dialing');
+    this.localHoldSubject.next(false);
     console.debug('[SIP/WebRTC] caller preparing outgoing INVITE', {
       destination: normalizedDestination,
       target: target.toString(),
@@ -437,6 +456,92 @@ export class SipClientService {
       this.callStateSubject.next('ended');
       this.destroySession();
     }
+  }
+
+  async holdCall(): Promise<void> {
+    if (!this.activeSession || this.callStateSubject.value !== 'active' || this.localHoldSubject.value) {
+      console.debug('[SIP/WebRTC] local hold skipped', {
+        hasActiveSession: Boolean(this.activeSession),
+        callState: this.callStateSubject.value,
+        locallyHeld: this.localHoldSubject.value,
+      });
+      return;
+    }
+
+    console.debug('[SIP/WebRTC] local hold placeholder activated', {
+      callState: this.callStateSubject.value,
+      sessionState: this.activeSession.state,
+    });
+
+    this.localHoldSubject.next(true);
+    this.callStateSubject.next('held');
+  }
+
+  async resumeCall(): Promise<void> {
+    if (!this.activeSession || !this.localHoldSubject.value || this.callStateSubject.value !== 'held') {
+      console.debug('[SIP/WebRTC] local resume skipped', {
+        hasActiveSession: Boolean(this.activeSession),
+        callState: this.callStateSubject.value,
+        locallyHeld: this.localHoldSubject.value,
+      });
+      return;
+    }
+
+    console.debug('[SIP/WebRTC] local resume placeholder activated', {
+      callState: this.callStateSubject.value,
+      sessionState: this.activeSession.state,
+    });
+
+    this.localHoldSubject.next(false);
+    this.callStateSubject.next('active');
+  }
+
+  async sendDtmf(digit: string): Promise<void> {
+    const normalizedDigit = digit.trim();
+
+    if (!/^[0-9*#]$/.test(normalizedDigit)) {
+      console.warn('[SIP/WebRTC] DTMF rejected because the digit is invalid', {
+        digit: normalizedDigit,
+      });
+      return;
+    }
+
+    if (!this.activeSession || this.callStateSubject.value !== 'active') {
+      console.debug('[SIP/WebRTC] DTMF skipped because there is no active call', {
+        digit: normalizedDigit,
+        hasActiveSession: Boolean(this.activeSession),
+        callState: this.callStateSubject.value,
+      });
+      return;
+    }
+
+    const sessionDescriptionHandler = this.activeSession.sessionDescriptionHandler as Session['sessionDescriptionHandler'] & {
+      sendDtmf?: (tones: string) => boolean | Promise<boolean>;
+    };
+
+    if (typeof sessionDescriptionHandler?.sendDtmf !== 'function') {
+      console.warn('[SIP/WebRTC] DTMF is not available on the current SIP.js session description handler', {
+        digit: normalizedDigit,
+      });
+      return;
+    }
+
+    console.debug('[SIP/WebRTC] sending DTMF digit', {
+      digit: normalizedDigit,
+      callState: this.callStateSubject.value,
+    });
+
+    const sendResult = await sessionDescriptionHandler.sendDtmf(normalizedDigit);
+    if (sendResult === false) {
+      console.warn('[SIP/WebRTC] DTMF send returned false on the SIP.js session description handler', {
+        digit: normalizedDigit,
+      });
+      return;
+    }
+
+    console.debug('[SIP/WebRTC] DTMF digit sent', {
+      digit: normalizedDigit,
+    });
   }
 
   toggleMute(): void {
@@ -999,6 +1104,7 @@ export class SipClientService {
     this.incomingCallSubject.next(false);
     this.activeSession = null;
     this.mutedSubject.next(false);
+    this.localHoldSubject.next(false);
     this.mediaDiagnosticsSubject.next({
       ...this.mediaDiagnosticsSubject.value,
       remote_audio_attached: false,
@@ -1086,7 +1192,7 @@ export class SipClientService {
   }
 
   private isCallInProgress(): boolean {
-    return ['dialing', 'ringing', 'active'].includes(this.callStateSubject.value);
+    return ['dialing', 'ringing', 'active', 'held'].includes(this.callStateSubject.value);
   }
 
   private hasLocalAudioSenderTrack(): boolean {

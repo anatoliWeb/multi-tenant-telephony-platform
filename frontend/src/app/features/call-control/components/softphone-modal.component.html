@@ -178,15 +178,47 @@
           </button>
           <button
             type="button"
+            (click)="holdCall()"
+            *ngIf="canHold()"
+          >
+            {{ 'callControl.actions.hold' | t }}
+          </button>
+          <button
+            type="button"
+            (click)="resumeCall()"
+            *ngIf="canResume()"
+          >
+            {{ 'callControl.actions.resume' | t }}
+          </button>
+          <button
+            type="button"
             (click)="toggleMute()"
             *ngIf="canToggleMute()"
           >
             {{ ((muted$ | async) ? 'callControl.actions.unmute' : 'callControl.actions.mute') | t }}
           </button>
-          <button type="button" disabled>
-            {{ 'callControl.actions.holdResume' | t }}
-          </button>
         </div>
+
+        <p class="softphone__hint" *ngIf="canHold() || canResume()">
+          {{ 'callControl.hints.holdPlaceholder' | t }}
+        </p>
+
+        <section class="softphone__dtmf" *ngIf="canSendDtmf()">
+          <h5>{{ 'callControl.section.dtmf' | t }}</h5>
+          <p class="softphone__hint">{{ 'callControl.hints.dtmfLocalDemo' | t }}</p>
+          <div class="softphone__dtmf-grid">
+            <div class="softphone__dtmf-row" *ngFor="let row of dtmfKeypadRows">
+              <button
+                type="button"
+                class="softphone__dtmf-key"
+                *ngFor="let digit of row"
+                (click)="sendDtmf(digit)"
+              >
+                {{ digit }}
+              </button>
+            </div>
+          </div>
+        </section>
 
         <p class="softphone__hint" *ngIf="loadingExtension">
           {{ 'callControl.loadingProfile' | t }}

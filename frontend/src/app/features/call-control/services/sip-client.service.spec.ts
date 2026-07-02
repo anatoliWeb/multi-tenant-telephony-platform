@@ -342,6 +342,106 @@ describe('SipClientService', () => {
     expect(service.canToggleMute()).toBe(false);
   });
 
+  it('marks a local hold placeholder and restores the active state on resume', async () => {
+    (service as any).activeSession = {
+      state: 'Established',
+      sessionDescriptionHandler: {
+        peerConnection: {
+          getSenders: () => [],
+          getReceivers: () => [],
+        },
+      },
+    };
+    (service as any).callStateSubject.next('active');
+
+    await service.holdCall();
+
+    expect(service.callState).toBe('held');
+    expect(service.locallyHeld).toBe(true);
+    expect(service.canResume()).toBe(true);
+    expect(service.canHold()).toBe(false);
+
+    await service.resumeCall();
+
+    expect(service.callState).toBe('active');
+    expect(service.locallyHeld).toBe(false);
+    expect(service.canHold()).toBe(true);
+  });
+
+  it('resets local hold state when hangup tears down the session', async () => {
+    const bye = vi.fn().mockResolvedValue(undefined);
+    (service as any).activeSession = {
+      state: 'Established',
+      bye,
+      sessionDescriptionHandler: {
+        peerConnection: {
+          getSenders: () => [],
+          getReceivers: () => [],
+        },
+      },
+    };
+    (service as any).callStateSubject.next('held');
+    (service as any).localHoldSubject.next(true);
+
+    await service.hangup();
+
+    expect(service.callState).toBe('ended');
+    expect(service.locallyHeld).toBe(false);
+  });
+
+  it('sends DTMF digits through the SIP.js session description handler when available', async () => {
+    const sendDtmf = vi.fn().mockReturnValue(true);
+    (service as any).activeSession = {
+      state: 'Established',
+      sessionDescriptionHandler: {
+        sendDtmf,
+        peerConnection: {
+          getSenders: () => [],
+          getReceivers: () => [],
+        },
+      },
+    };
+    (service as any).callStateSubject.next('active');
+
+    await service.sendDtmf('5');
+
+    expect(sendDtmf).toHaveBeenCalledWith('5');
+  });
+
+  it('rejects invalid DTMF digits without crashing', async () => {
+    const sendDtmf = vi.fn().mockReturnValue(true);
+    (service as any).activeSession = {
+      state: 'Established',
+      sessionDescriptionHandler: {
+        sendDtmf,
+        peerConnection: {
+          getSenders: () => [],
+          getReceivers: () => [],
+        },
+      },
+    };
+    (service as any).callStateSubject.next('active');
+
+    await service.sendDtmf('A');
+
+    expect(sendDtmf).not.toHaveBeenCalled();
+  });
+
+  it('does not crash when the SIP.js DTMF method is unavailable', async () => {
+    (service as any).activeSession = {
+      state: 'Established',
+      sessionDescriptionHandler: {
+        peerConnection: {
+          getSenders: () => [],
+          getReceivers: () => [],
+        },
+      },
+    };
+    (service as any).callStateSubject.next('active');
+
+    await expect(service.sendDtmf('#')).resolves.toBeUndefined();
+  });
+
   it('detects Opera as a partially supported browser and surfaces a warning', () => {
     const diagnostics = (service as any).buildBrowserCapabilityDiagnostics({
       browserName: 'Opera',

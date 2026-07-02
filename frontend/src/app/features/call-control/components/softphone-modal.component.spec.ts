@@ -43,6 +43,7 @@ describe('SoftphoneModalComponent', () => {
 
   let destinationValue = '';
   let hasLocalAudioTrackValue = false;
+  let locallyHeldValue = false;
 
   const sipClientMock = {
     profile$: new BehaviorSubject<any>({
@@ -116,12 +117,15 @@ describe('SoftphoneModalComponent', () => {
     }),
     canAnswerIncomingCall: vi.fn(() => sipClientMock.incomingCall$.value && sipClientMock.callState$.value === 'ringing'),
     canRejectIncomingCall: vi.fn(() => sipClientMock.incomingCall$.value && sipClientMock.callState$.value === 'ringing'),
-    canHangup: vi.fn(() => ['dialing', 'ringing', 'active'].includes(sipClientMock.callState$.value as string)),
+    canHangup: vi.fn(() => ['dialing', 'ringing', 'active', 'held'].includes(sipClientMock.callState$.value as string)),
+    canHold: vi.fn(() => sipClientMock.callState$.value === 'active' && !locallyHeldValue),
+    canResume: vi.fn(() => sipClientMock.callState$.value === 'held' && locallyHeldValue),
     canToggleMute: vi.fn(() => Boolean(
       sipClientMock.profile$.value?.capabilities?.mute
         && sipClientMock.callState$.value === 'active'
         && hasLocalAudioTrackValue,
     )),
+    canSendDtmf: vi.fn(() => sipClientMock.callState$.value === 'active'),
     loadProfile: vi.fn().mockResolvedValue(undefined),
     bindRemoteAudio: vi.fn(),
     resetForTenantChange: vi.fn(),
@@ -131,7 +135,16 @@ describe('SoftphoneModalComponent', () => {
     hangup: vi.fn().mockResolvedValue(undefined),
     answerIncomingCall: vi.fn().mockResolvedValue(undefined),
     rejectIncomingCall: vi.fn().mockResolvedValue(undefined),
+    holdCall: vi.fn().mockImplementation(async () => {
+      locallyHeldValue = true;
+      sipClientMock.callState$.next('held');
+    }),
+    resumeCall: vi.fn().mockImplementation(async () => {
+      locallyHeldValue = false;
+      sipClientMock.callState$.next('active');
+    }),
     toggleMute: vi.fn(),
+    sendDtmf: vi.fn().mockResolvedValue(undefined),
     setDestination: vi.fn((value: string) => {
       destinationValue = value;
     }),
@@ -150,6 +163,7 @@ describe('SoftphoneModalComponent', () => {
   beforeEach(async () => {
     destinationValue = '';
     hasLocalAudioTrackValue = false;
+    locallyHeldValue = false;
     sipClientMock.browserDiagnostics$.next(defaultBrowserDiagnostics);
     sipClientMock.error$.next(null);
     await TestBed.configureTestingModule({
@@ -311,6 +325,89 @@ describe('SoftphoneModalComponent', () => {
     expect(component.canToggleMute()).toBe(true);
     expect(actionLabels()).toContain('Hang up');
     expect(actionLabels().some((label) => label === 'Mute' || label === 'Unmute')).toBe(true);
+  });
+
+  it('shows hold and DTMF controls only during an active call', async () => {
+    sipClientMock.registrationState$.next('registered');
+    sipClientMock.callState$.next('active');
+    component.open = true;
+    await component.prepareProfile();
+    fixture.detectChanges();
+
+    expect(component.canHold()).toBe(true);
+    expect(component.canResume()).toBe(false);
+    expect(component.canSendDtmf()).toBe(true);
+
+    const labels = actionLabels();
+    expect(labels).toContain('Hold');
+    expect(labels).not.toContain('Resume');
+
+    const keypadLabels = fixture.debugElement.queryAll(By.css('.softphone__dtmf-key'))
+      .map((button) => (button.nativeElement.textContent ?? '').trim());
+    expect(keypadLabels).toEqual(['1', '2', '3', '4', '5', '6', '7', '8', '9', '*', '0', '#']);
+  });
+
+  it('shows resume only when the call is locally held', async () => {
+    sipClientMock.registrationState$.next('registered');
+    sipClientMock.callState$.next('held');
+    locallyHeldValue = true;
+
+    component.open = true;
+    await component.prepareProfile();
+    fixture.detectChanges();
+
+    expect(component.canHold()).toBe(false);
+    expect(component.canResume()).toBe(true);
+    expect(actionLabels()).toContain('Resume');
+    expect(actionLabels()).not.toContain('Hold');
+  });
+
+  it('supports hold and resume button actions', async () => {
+    sipClientMock.registrationState$.next('registered');
+    sipClientMock.callState$.next('active');
+
+    component.open = true;
+    await component.prepareProfile();
+    fixture.detectChanges();
+
+    const holdButton = fixture.debugElement.queryAll(By.css('.softphone__actions button'))
+      .find((button) => (button.nativeElement.textContent ?? '').trim() === 'Hold');
+
+    expect(holdButton).toBeTruthy();
+    holdButton?.nativeElement.click();
+    fixture.detectChanges();
+
+    expect(sipClientMock.holdCall).toHaveBeenCalled();
+    expect(component.canResume()).toBe(true);
+    expect(actionLabels()).toContain('Resume');
+
+    const resumeButton = fixture.debugElement.queryAll(By.css('.softphone__actions button'))
+      .find((button) => (button.nativeElement.textContent ?? '').trim() === 'Resume');
+
+    expect(resumeButton).toBeTruthy();
+    resumeButton?.nativeElement.click();
+    fixture.detectChanges();
+
+    expect(sipClientMock.resumeCall).toHaveBeenCalled();
+    expect(component.canHold()).toBe(true);
+  });
+
+  it('supports DTMF keypad send actions during an active call', async () => {
+    sipClientMock.registrationState$.next('registered');
+    sipClientMock.callState$.next('active');
+
+    component.open = true;
+    await component.prepareProfile();
+    fixture.detectChanges();
+
+    const keypadButtons = fixture.debugElement.queryAll(By.css('.softphone__dtmf-key'));
+    expect(keypadButtons.length).toBe(12);
+
+    keypadButtons[0].nativeElement.click();
+    keypadButtons[11].nativeElement.click();
+
+    expect(sipClientMock.sendDtmf).toHaveBeenCalledWith('1');
+    expect(sipClientMock.sendDtmf).toHaveBeenCalledWith('#');
   });
 
   it('shows answer and reject actions when an incoming call is pending', async () => {

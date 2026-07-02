@@ -25,6 +25,12 @@ export class SoftphoneModalComponent implements OnChanges, OnDestroy {
   destination = '';
   selectedExtensionId: number | null = null;
   loadingExtension = false;
+  readonly dtmfKeypadRows = [
+    ['1', '2', '3'],
+    ['4', '5', '6'],
+    ['7', '8', '9'],
+    ['*', '0', '#'],
+  ];
 
   readonly extensions$;
   readonly profile$;
@@ -78,8 +84,20 @@ export class SoftphoneModalComponent implements OnChanges, OnDestroy {
     return this.sipClient.canHangup();
   }
 
+  canHold(): boolean {
+    return this.sipClient.canHold();
+  }
+
+  canResume(): boolean {
+    return this.sipClient.canResume();
+  }
+
   canToggleMute(): boolean {
     return this.sipClient.canToggleMute();
+  }
+
+  canSendDtmf(): boolean {
+    return this.sipClient.canSendDtmf();
   }
 
   async ngOnChanges(changes: SimpleChanges): Promise<void> {
@@ -148,6 +166,14 @@ export class SoftphoneModalComponent implements OnChanges, OnDestroy {
     await this.sipClient.hangup();
   }
 
+  async holdCall(): Promise<void> {
+    await this.sipClient.holdCall();
+  }
+
+  async resumeCall(): Promise<void> {
+    await this.sipClient.resumeCall();
+  }
+
   async answerIncomingCall(): Promise<void> {
     await this.sipClient.answerIncomingCall();
   }
@@ -158,6 +184,10 @@ export class SoftphoneModalComponent implements OnChanges, OnDestroy {
 
   toggleMute(): void {
     this.sipClient.toggleMute();
+  }
+
+  async sendDtmf(digit: string): Promise<void> {
+    await this.sipClient.sendDtmf(digit);
   }
 
   requestClose(): void {
