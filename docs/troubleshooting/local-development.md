@@ -512,6 +512,10 @@ Verify with:
 ```powershell
 ./docker/freeswitch/scripts/provision-demo-users.sh
 docker compose exec -T freeswitch fs_cli -x "global_getvar local_ip_v4"
+docker compose exec -T freeswitch fs_cli -x "user_exists id 1001 localhost"
+docker compose exec -T freeswitch fs_cli -x "find_user_xml id 1001 localhost"
+docker compose exec -T freeswitch fs_cli -x "user_exists id 1002 localhost"
+docker compose exec -T freeswitch fs_cli -x "find_user_xml id 1002 localhost"
 docker compose exec -T freeswitch fs_cli -x "user_exists id 2001 localhost"
 docker compose exec -T freeswitch fs_cli -x "find_user_xml id 2001 localhost"
 docker compose exec -T freeswitch fs_cli -x "user_exists id 2001 <runtime-domain>"
@@ -530,3 +534,36 @@ image, treat `find_user_xml id <user> <domain>` as the authoritative auth
 check. The `localhost` alias, the runtime-domain copy, and the demo dialplan
 fixture must all expose the expected local-demo routing behavior, not only a
 pointer XML entry.
+
+## FreeSWITCH local demo bridge returns 488 or INCOMPATIBLE_DESTINATION
+
+If the call reaches the callee and then fails after answer with:
+
+```text
+488 Not Acceptable Here
+INCOMPATIBLE_DESTINATION
+```
+
+check the local demo dialplan bridge target first.
+
+The safe local path is:
+
+```text
+destination_number
+-> sofia_contact(*/<destination>@<runtime-domain>)
+-> bridge(<exact contact string>)
+```
+
+If the log still shows `bridge(user/<extension>@<runtime-domain>)`, the demo
+dialplan file is loading too late in the default context. Re-run the FreeSWITCH
+provisioning script so it copies the runtime dialplan with the `00_` filename
+prefix, removes the stale later-loading copy, and prepends the explicit local
+demo include into `/usr/local/freeswitch/conf/dialplan/default.xml`.
+
+If the resolved contact is empty, the correct failure is `480 Temporarily
+Unavailable` with a `USER_NOT_REGISTERED` hangup cause. That means the callee
+is not registered yet.
+
+If the contact is not empty but the call still fails after answer, inspect the
+SIP/SDP negotiation in the logs for codec, ICE, DTLS, or media-direction
+issues. Do not treat a missing Sofia contact as a media bug.

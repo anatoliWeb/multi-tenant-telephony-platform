@@ -45,6 +45,13 @@ unmuted and renders basic media diagnostics in the softphone modal, which
 helps separate autoplay and playback problems from SIP registration failures.
 That UI change does not add any SIP.js provider logic or FreeSWITCH coupling.
 
+The local demo dialplan now bridges the live Sofia contact returned by
+`sofia_contact(*/<extension>@<runtime-domain>)` instead of bridging
+`user/<extension>@<runtime-domain>` directly. That preserves the WebSocket
+contact string, including the generated `fs_path`, and avoids the
+`USER_NOT_REGISTERED` / `INCOMPATIBLE_DESTINATION` failure path when a SIP.js
+browser session is already registered.
+
 Stage 15.3 adds a browser registration attempt and two-browser call path for
 local development. The browser must still trust the local FreeSWITCH
 certificate chain for `wss://localhost:7443`, otherwise SIP.js will fail the
@@ -186,18 +193,26 @@ $runtimeDirectory = $directoryTemplate -replace '<domain name="localhost">', "<d
 $runtimeDirectoryPath = Join-Path $env:TEMP "$runtime.xml"
 $dialplanTemplate = Get-Content -Raw -LiteralPath "docker\freeswitch\conf\dialplan\local-demo-extensions.xml"
 $runtimeDialplan = $dialplanTemplate -replace '__RUNTIME_DOMAIN__', $runtime
-$runtimeDialplanPath = Join-Path $env:TEMP "local-demo-extensions.xml"
+$runtimeDialplanPath = Join-Path $env:TEMP "00_local-demo-extensions.xml"
 Set-Content -LiteralPath $runtimeDirectoryPath -Value $runtimeDirectory
 Set-Content -LiteralPath $runtimeDialplanPath -Value $runtimeDialplan
 docker cp "docker\freeswitch\conf\directory\localhost.xml" "multi-tenant-telephony-platform-freeswitch:/usr/local/freeswitch/conf/directory/localhost.xml"
 docker cp $runtimeDirectoryPath "multi-tenant-telephony-platform-freeswitch:/usr/local/freeswitch/conf/directory/${runtime}.xml"
-docker cp $runtimeDialplanPath "multi-tenant-telephony-platform-freeswitch:/usr/local/freeswitch/conf/dialplan/public/local-demo-extensions.xml"
-docker cp $runtimeDialplanPath "multi-tenant-telephony-platform-freeswitch:/usr/local/freeswitch/conf/dialplan/default/local-demo-extensions.xml"
+docker compose exec -T freeswitch sh -lc "rm -f /usr/local/freeswitch/conf/dialplan/public/local-demo-extensions.xml /usr/local/freeswitch/conf/dialplan/default/local-demo-extensions.xml"
+docker cp $runtimeDialplanPath "multi-tenant-telephony-platform-freeswitch:/usr/local/freeswitch/conf/dialplan/public/00_local-demo-extensions.xml"
+docker cp $runtimeDialplanPath "multi-tenant-telephony-platform-freeswitch:/usr/local/freeswitch/conf/dialplan/default/00_local-demo-extensions.xml"
+docker compose exec -T freeswitch sh -lc "grep -qF 'default/00_local-demo-extensions.xml' /usr/local/freeswitch/conf/dialplan/default.xml || sed -i '/<X-PRE-PROCESS cmd=\"include\" data=\"default\\/\\*\\.xml\"\\/>/i\\    <X-PRE-PROCESS cmd=\"include\" data=\"default\\/00_local-demo-extensions.xml\"/>' /usr/local/freeswitch/conf/dialplan/default.xml"
 docker compose exec -T freeswitch fs_cli -x "reloadxml"
 docker compose exec -T freeswitch fs_cli -x "sofia profile internal restart"
 docker compose exec -T freeswitch fs_cli -x "xml_locate dialplan context name public"
 docker compose exec -T freeswitch fs_cli -x "xml_locate dialplan context name default"
 ```
+
+The `00_` dialplan filename prefix is intentional. It combines with the
+prepended include in `/usr/local/freeswitch/conf/dialplan/default.xml` so the
+local demo bridge loads before the stock `Local_Extension` rules in the default
+context, keeping `1001` and `1002` on the live Sofia contact bridge instead of
+falling back to `bridge(user/...)`.
 
 The script provisions `1001`, `1002`, `2001`, and `2002` by default so it can
 cover both the documented demo pair and the current Angular demo seed data.
@@ -279,6 +294,13 @@ containers.
 `mod_xml_curl` may log `Binding has no url` because backend-driven dynamic
 directory and dialplan integration is not configured yet. That is acceptable for
 the Stage 14 and Stage 15.2 foundations.
+
+If a local demo call still returns `488 Not Acceptable Here` or
+`INCOMPATIBLE_DESTINATION`, check whether the browser registered contact is
+being bridged directly. The safe local path is to resolve the contact with
+`sofia_contact` and then bridge that exact value. If the resolved contact is
+empty, return `480 Temporarily Unavailable` and map it as a missing
+registration, not as a media failure.
 
 In this workspace `safarov/freeswitch:1.10.12` was tried during a regression
 check, but it left the container unhealthy and `fs_cli` unreachable. Do not

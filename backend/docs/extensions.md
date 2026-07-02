@@ -173,8 +173,8 @@ Platform permissions do not bypass tenant membership or tenant authorization.
 
 Demo fixtures create deterministic tenant-scoped extension scenarios:
 
-- Tenant A: `2001`, `2002`
-- Tenant B: `2001`, `2002`
+- Tenant A / Default Tenant: `1001`, `1002`
+- Tenant B / Secondary Tenant: `2001`, `2002`
 
 Testing fixtures create a minimal duplicate-number-across-tenants scenario:
 

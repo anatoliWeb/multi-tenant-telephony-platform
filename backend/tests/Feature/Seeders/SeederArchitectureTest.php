@@ -6,6 +6,7 @@ use App\Enums\TenantMembershipStatus;
 use App\Enums\TenantStatus;
 use App\Models\Permission;
 use App\Models\Role;
+use App\Models\Extension;
 use App\Models\Tenant;
 use App\Models\TenantMembership;
 use App\Models\Contact;
@@ -107,6 +108,10 @@ class SeederArchitectureTest extends TestCase
         $this->assertSame('custom_observer', $observerUser->roles()->firstOrFail()->name);
         $this->assertSame(1, ContactPhone::query()->where('tenant_id', $defaultTenant->id)->where('normalized_number', '+15550009999')->count());
         $this->assertSame(1, ContactPhone::query()->where('tenant_id', $secondaryTenant->id)->where('normalized_number', '+15550009999')->count());
+        $this->assertSame(1, Extension::query()->where('tenant_id', $defaultTenant->id)->where('number', '1001')->count());
+        $this->assertSame(1, Extension::query()->where('tenant_id', $defaultTenant->id)->where('number', '1002')->count());
+        $this->assertSame(1, Extension::query()->where('tenant_id', $secondaryTenant->id)->where('number', '2001')->count());
+        $this->assertSame(1, Extension::query()->where('tenant_id', $secondaryTenant->id)->where('number', '2002')->count());
         $this->assertSame(1, PhoneNumber::query()->where('tenant_id', $defaultTenant->id)->where('normalized_number', '+15550001001')->count());
         $this->assertSame(1, PhoneNumber::query()->where('tenant_id', $secondaryTenant->id)->where('normalized_number', '+15550001001')->count());
         $this->assertGreaterThanOrEqual(4, PhoneNumber::query()->where('tenant_id', $defaultTenant->id)->count());

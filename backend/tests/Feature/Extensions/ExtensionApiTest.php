@@ -119,6 +119,47 @@ class ExtensionApiTest extends TestCase
         ], ['X-Tenant-ID' => $tenantA->id])->assertStatus(409);
     }
 
+    public function test_extension_list_stays_scoped_to_the_active_tenant(): void
+    {
+        $tenantA = $this->createTenant('extensions-list-a');
+        $tenantB = $this->createTenant('extensions-list-b');
+        $user = $this->actingAsTenantUser($this->createUser('extensions-list-user'));
+
+        $this->createMembership($tenantA, $user);
+        $this->createMembership($tenantB, $user);
+        $this->assignTenantPermissions($user, $tenantA, ['extensions.view']);
+        $this->assignTenantPermissions($user, $tenantB, ['extensions.view']);
+
+        $this->createExtensionFixture($tenantA, $user, [
+            'number' => '1001',
+            'label' => 'Tenant-A Support',
+        ]);
+        $this->createExtensionFixture($tenantA, $user, [
+            'number' => '1002',
+            'label' => 'Tenant-A Sales',
+        ]);
+        $this->createExtensionFixture($tenantB, $user, [
+            'number' => '2001',
+            'label' => 'Tenant-B Support',
+        ]);
+        $this->createExtensionFixture($tenantB, $user, [
+            'number' => '2002',
+            'label' => 'Tenant-B Sales',
+        ]);
+
+        $this->getJson('/api/v1/extensions', ['X-Tenant-ID' => $tenantA->id])
+            ->assertOk()
+            ->assertJsonCount(2, 'data')
+            ->assertJsonPath('data.0.number', '1001')
+            ->assertJsonPath('data.1.number', '1002');
+
+        $this->getJson('/api/v1/extensions', ['X-Tenant-ID' => $tenantB->id])
+            ->assertOk()
+            ->assertJsonCount(2, 'data')
+            ->assertJsonPath('data.0.number', '2001')
+            ->assertJsonPath('data.1.number', '2002');
+    }
+
     public function test_platform_permissions_and_suspended_membership_do_not_grant_extension_access(): void
     {
         $tenant = $this->createTenant('extensions-access');

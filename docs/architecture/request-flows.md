@@ -148,6 +148,11 @@ When registration succeeds, the same service can build a local SIP URI such as
 `sip:1002@localhost`, create an outbound `Inviter`, and handle an incoming
 `Invitation` for the answer/reject path used in the two-browser demo.
 
+For the local FreeSWITCH demo path, the runtime dialplan resolves the callee
+with `sofia_contact(*/<extension>@<runtime-domain>)` and bridges that exact
+contact string. That keeps the browser on the live WebSocket contact instead of
+falling back to the stock `bridge(user/...)` path.
+
 The softphone modal also binds a single remote audio element, keeps it
 unmuted, and reads media diagnostics from `SipClientService` so autoplay
 blocks, missing tracks, and peer-connection failures surface as explicit UI

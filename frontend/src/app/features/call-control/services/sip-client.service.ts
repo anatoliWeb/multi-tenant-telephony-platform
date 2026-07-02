@@ -740,8 +740,16 @@ export class SipClientService {
         return 'SIP registration was rejected by FreeSWITCH. Check the local demo password, realm, and directory domain.';
       }
 
+      if (this.isMediaNegotiationError(message)) {
+        return 'The call was rejected during media negotiation. Check WebRTC codec, ICE/DTLS, and the local FreeSWITCH demo bridge.';
+      }
+
+      if (this.isBridgeIncompatibleDestinationError(message)) {
+        return 'FreeSWITCH could not bridge the local WebRTC call. Check the demo dialplan bridge target and media compatibility.';
+      }
+
       if (this.isUserNotRegisteredError(message)) {
-        return 'The callee is not registered yet. Register the other browser session with the destination extension first.';
+        return 'The destination extension is not registered. Open another browser session and register it first.';
       }
 
       return message;
@@ -760,6 +768,14 @@ export class SipClientService {
 
   private isUserNotRegisteredError(message: string): boolean {
     return /USER_NOT_REGISTERED/i.test(message) || /\b480\b/.test(message) || /\b481\b/.test(message);
+  }
+
+  private isMediaNegotiationError(message: string): boolean {
+    return /\b488\b/.test(message) || /not acceptable here/i.test(message);
+  }
+
+  private isBridgeIncompatibleDestinationError(message: string): boolean {
+    return /INCOMPATIBLE_DESTINATION/i.test(message);
   }
 
   private isAutoplayBlockedError(message: string): boolean {

@@ -140,7 +140,7 @@ fi
 
 RUNTIME_DOMAIN_FILE="$TMP_DIR/$RUNTIME_DOMAIN.xml"
 sed "s/<domain name=\"localhost\">/<domain name=\"$RUNTIME_DOMAIN\">/" "$BROWSER_DOMAIN_FILE" > "$RUNTIME_DOMAIN_FILE"
-RUNTIME_DIALPLAN_FILE="$TMP_DIR/local-demo-extensions.xml"
+RUNTIME_DIALPLAN_FILE="$TMP_DIR/00_local-demo-extensions.xml"
 sed "s/__RUNTIME_DOMAIN__/$RUNTIME_DOMAIN/g" "$LOCAL_DEMO_DIALPLAN_FILE" > "$RUNTIME_DIALPLAN_FILE"
 
 for user in $USERS; do
@@ -175,8 +175,10 @@ done
 
 copy_file_into_container "$BROWSER_DOMAIN_FILE" "/usr/local/freeswitch/conf/directory/localhost.xml"
 copy_file_into_container "$RUNTIME_DOMAIN_FILE" "/usr/local/freeswitch/conf/directory/$RUNTIME_DOMAIN.xml"
-copy_file_into_container "$RUNTIME_DIALPLAN_FILE" "/usr/local/freeswitch/conf/dialplan/public/local-demo-extensions.xml"
-copy_file_into_container "$RUNTIME_DIALPLAN_FILE" "/usr/local/freeswitch/conf/dialplan/default/local-demo-extensions.xml"
+docker compose -f "$COMPOSE_FILE" exec -T freeswitch sh -lc "rm -f /usr/local/freeswitch/conf/dialplan/public/local-demo-extensions.xml /usr/local/freeswitch/conf/dialplan/default/local-demo-extensions.xml"
+copy_file_into_container "$RUNTIME_DIALPLAN_FILE" "/usr/local/freeswitch/conf/dialplan/public/00_local-demo-extensions.xml"
+copy_file_into_container "$RUNTIME_DIALPLAN_FILE" "/usr/local/freeswitch/conf/dialplan/default/00_local-demo-extensions.xml"
+docker compose -f "$COMPOSE_FILE" exec -T freeswitch sh -lc "grep -qF 'default/00_local-demo-extensions.xml' /usr/local/freeswitch/conf/dialplan/default.xml || sed -i '/<X-PRE-PROCESS cmd=\"include\" data=\"default\\/\\*\\.xml\"\\/>/i\\    <X-PRE-PROCESS cmd=\"include\" data=\"default\\/00_local-demo-extensions.xml\"/>' /usr/local/freeswitch/conf/dialplan/default.xml"
 
 run_fs_cli "reloadxml" >/dev/null
 run_fs_cli "sofia profile internal restart" >/dev/null

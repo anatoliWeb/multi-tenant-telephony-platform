@@ -349,24 +349,26 @@ class TenantDemoSeedService
 
         $this->tenantContext->setTenant($tenant);
 
+        $extensionNumbers = $this->demoExtensionNumbers($tenantPrefix);
+
         try {
             if (! config('telephony.enabled', false)) {
-                $this->seedExtensionsWithoutProvisioning($tenant, $owner, $agent, $tenantPrefix);
+                $this->seedExtensionsWithoutProvisioning($tenant, $owner, $agent, $tenantPrefix, $extensionNumbers);
 
                 return 2;
             }
 
-            if (! Extension::query()->where('tenant_id', $tenant->getKey())->where('number', '2001')->exists()) {
+            if (! Extension::query()->where('tenant_id', $tenant->getKey())->where('number', $extensionNumbers['owner'])->exists()) {
                 $this->extensionService->create([
-                    'number' => '2001',
+                    'number' => $extensionNumbers['owner'],
                     'label' => Str::title($tenantPrefix).' Support',
                     'assigned_user_id' => $owner->getKey(),
                 ], $owner);
             }
 
-            if (! Extension::query()->where('tenant_id', $tenant->getKey())->where('number', '2002')->exists()) {
+            if (! Extension::query()->where('tenant_id', $tenant->getKey())->where('number', $extensionNumbers['agent'])->exists()) {
                 $this->extensionService->create([
-                    'number' => '2002',
+                    'number' => $extensionNumbers['agent'],
                     'label' => Str::title($tenantPrefix).' Sales',
                     'assigned_user_id' => $agent->getKey(),
                     'status' => 'active',
@@ -379,11 +381,11 @@ class TenantDemoSeedService
         return 2;
     }
 
-    private function seedExtensionsWithoutProvisioning(Tenant $tenant, User $owner, User $agent, string $tenantPrefix): void
+    private function seedExtensionsWithoutProvisioning(Tenant $tenant, User $owner, User $agent, string $tenantPrefix, array $extensionNumbers): void
     {
         $rows = [
-            ['number' => '2001', 'label' => Str::title($tenantPrefix).' Support', 'user' => $owner],
-            ['number' => '2002', 'label' => Str::title($tenantPrefix).' Sales', 'user' => $agent],
+            ['number' => $extensionNumbers['owner'], 'label' => Str::title($tenantPrefix).' Support', 'user' => $owner],
+            ['number' => $extensionNumbers['agent'], 'label' => Str::title($tenantPrefix).' Sales', 'user' => $agent],
         ];
 
         foreach ($rows as $row) {
@@ -428,6 +430,16 @@ class TenantDemoSeedService
         }
     }
 
+    /**
+     * @return array{owner: string, agent: string}
+     */
+    private function demoExtensionNumbers(string $tenantPrefix): array
+    {
+        return $tenantPrefix === 'tenant-a'
+            ? ['owner' => '1001', 'agent' => '1002']
+            : ['owner' => '2001', 'agent' => '2002'];
+    }
+
     private function stableExtensionUuid(Tenant $tenant, string $number): string
     {
         $hash = substr(sha1((string) $tenant->getKey().':extension:'.$number), 0, 32);
@@ -462,6 +474,8 @@ class TenantDemoSeedService
             'ring_group_members' => 0,
         ];
 
+        $extensionNumbers = $this->demoExtensionNumbers($tenantPrefix);
+
         $groups = [
             [
                 'slug' => 'sales-ring-group',
@@ -470,7 +484,7 @@ class TenantDemoSeedService
                 'strategy' => RingGroupStrategy::Simultaneous->value,
                 'status' => RingGroupStatus::Active->value,
                 'members' => [
-                    ['member_type' => RingGroupMemberType::Extension->value, 'extension_number' => '2001', 'priority' => 1, 'delay_seconds' => 0, 'timeout_seconds' => 20],
+                    ['member_type' => RingGroupMemberType::Extension->value, 'extension_number' => $extensionNumbers['owner'], 'priority' => 1, 'delay_seconds' => 0, 'timeout_seconds' => 20],
                     ['member_type' => RingGroupMemberType::User->value, 'user_email' => sprintf('%s-agent@test.local', $tenantPrefix), 'priority' => 1, 'delay_seconds' => 0, 'timeout_seconds' => 20],
                 ],
             ],
@@ -482,7 +496,7 @@ class TenantDemoSeedService
                 'status' => RingGroupStatus::Active->value,
                 'members' => [
                     ['member_type' => RingGroupMemberType::User->value, 'user_email' => sprintf('%s-owner@test.local', $tenantPrefix), 'priority' => 1, 'delay_seconds' => 0, 'timeout_seconds' => 20],
-                    ['member_type' => RingGroupMemberType::Extension->value, 'extension_number' => '2002', 'priority' => 2, 'delay_seconds' => 5, 'timeout_seconds' => 25],
+                    ['member_type' => RingGroupMemberType::Extension->value, 'extension_number' => $extensionNumbers['agent'], 'priority' => 2, 'delay_seconds' => 5, 'timeout_seconds' => 25],
                 ],
             ],
             [
@@ -634,6 +648,8 @@ class TenantDemoSeedService
             'queue_member_pauses' => 0,
         ];
 
+        $extensionNumbers = $this->demoExtensionNumbers($tenantPrefix);
+
         $queues = [
             [
                 'slug' => 'support-queue',
@@ -645,7 +661,7 @@ class TenantDemoSeedService
                 'overflow_destination_slug' => 'support-ring-group',
                 'members' => [
                     ['member_type' => CallQueueMemberType::User->value, 'user_email' => sprintf('%s-owner@test.local', $tenantPrefix), 'priority' => 1, 'penalty' => 0, 'paused' => false],
-                    ['member_type' => CallQueueMemberType::Extension->value, 'extension_number' => '2001', 'priority' => 2, 'penalty' => 1, 'paused' => false],
+                    ['member_type' => CallQueueMemberType::Extension->value, 'extension_number' => $extensionNumbers['owner'], 'priority' => 2, 'penalty' => 1, 'paused' => false],
                 ],
             ],
             [
@@ -658,7 +674,7 @@ class TenantDemoSeedService
                 'overflow_destination_slug' => 'support-queue',
                 'members' => [
                     ['member_type' => CallQueueMemberType::User->value, 'user_email' => sprintf('%s-agent@test.local', $tenantPrefix), 'priority' => 1, 'penalty' => 0, 'paused' => true, 'pause_reason' => 'Lunch break'],
-                    ['member_type' => CallQueueMemberType::Extension->value, 'extension_number' => '2002', 'priority' => 2, 'penalty' => 0, 'paused' => false],
+                    ['member_type' => CallQueueMemberType::Extension->value, 'extension_number' => $extensionNumbers['agent'], 'priority' => 2, 'penalty' => 0, 'paused' => false],
                 ],
             ],
             [
@@ -1118,8 +1134,9 @@ class TenantDemoSeedService
             return 0;
         }
 
-        $ownerExtension = Extension::query()->where('tenant_id', $tenant->getKey())->where('number', '2001')->first();
-        $agentExtension = Extension::query()->where('tenant_id', $tenant->getKey())->where('number', '2002')->first();
+        $extensionNumbers = $this->demoExtensionNumbers($tenantPrefix);
+        $ownerExtension = Extension::query()->where('tenant_id', $tenant->getKey())->where('number', $extensionNumbers['owner'])->first();
+        $agentExtension = Extension::query()->where('tenant_id', $tenant->getKey())->where('number', $extensionNumbers['agent'])->first();
         $ownerDid = PhoneNumber::query()->where('tenant_id', $tenant->getKey())->where('normalized_number', '+15550001001')->first();
         $agentDid = PhoneNumber::query()->where('tenant_id', $tenant->getKey())->where('normalized_number', $tenantPrefix === 'tenant-a' ? '+15550001003' : '+15550001001')->first();
         $unassignedDid = PhoneNumber::query()->where('tenant_id', $tenant->getKey())->where('normalized_number', '+15550001999')->first();
@@ -1195,8 +1212,8 @@ class TenantDemoSeedService
                     'direction' => TelephonyCallDirection::Internal,
                     'status' => TelephonyCallStatus::Completed,
                     'disposition' => CallDisposition::Answered,
-                    'from' => '2001',
-                    'to' => '2002',
+                    'from' => $extensionNumbers['owner'],
+                    'to' => $extensionNumbers['agent'],
                     'caller_user_id' => $owner->getKey(),
                     'callee_user_id' => $agent?->getKey(),
                     'caller_extension_id' => $ownerExtension?->getKey(),
@@ -1343,8 +1360,9 @@ class TenantDemoSeedService
         $readOnly = User::query()->where('email', sprintf('%s-readonly@test.local', $tenantPrefix))->first();
         $supportContact = Contact::query()->where('tenant_id', $tenant->getKey())->where('display_name', Str::title($tenantPrefix).' Support Contact')->first();
         $archivedVendor = Contact::query()->where('tenant_id', $tenant->getKey())->where('display_name', Str::title($tenantPrefix).' Archived Vendor')->first();
-        $ownerExtension = Extension::query()->where('tenant_id', $tenant->getKey())->where('number', '2001')->first();
-        $agentExtension = Extension::query()->where('tenant_id', $tenant->getKey())->where('number', '2002')->first();
+        $extensionNumbers = $this->demoExtensionNumbers($tenantPrefix);
+        $ownerExtension = Extension::query()->where('tenant_id', $tenant->getKey())->where('number', $extensionNumbers['owner'])->first();
+        $agentExtension = Extension::query()->where('tenant_id', $tenant->getKey())->where('number', $extensionNumbers['agent'])->first();
         $ownerDid = PhoneNumber::query()->where('tenant_id', $tenant->getKey())->where('normalized_number', '+15550001001')->first();
         $agentDid = PhoneNumber::query()->where('tenant_id', $tenant->getKey())->where('normalized_number', $tenantPrefix === 'tenant-a' ? '+15550001003' : '+15550001001')->first();
         $secondaryDid = PhoneNumber::query()->where('tenant_id', $tenant->getKey())->where('normalized_number', '+15550001002')->first();
@@ -1560,10 +1578,10 @@ class TenantDemoSeedService
                     $attributes['hangup_cause'] = 'network_error',
                 ],
                 'internal' => [
-                    $attributes['from_number'] = $callerExtension?->number ?? '2001',
-                    $attributes['from_normalized_number'] = $callerExtension?->number ?? '2001',
-                    $attributes['to_number'] = $calleeExtension?->number ?? '2002',
-                    $attributes['to_normalized_number'] = $calleeExtension?->number ?? '2002',
+                    $attributes['from_number'] = $callerExtension?->number ?? $extensionNumbers['owner'],
+                    $attributes['from_normalized_number'] = $callerExtension?->number ?? $extensionNumbers['owner'],
+                    $attributes['to_number'] = $calleeExtension?->number ?? $extensionNumbers['agent'],
+                    $attributes['to_normalized_number'] = $calleeExtension?->number ?? $extensionNumbers['agent'],
                     $attributes['caller_user_id'] = $callerUser->getKey(),
                     $attributes['callee_user_id'] = $calleeUser->getKey(),
                     $attributes['caller_extension_id'] = $callerExtension?->getKey(),
@@ -1572,8 +1590,8 @@ class TenantDemoSeedService
                     $attributes['callee_phone_number_id'] = $calleeDid?->getKey(),
                 ],
                 'conference' => [
-                    $attributes['from_number'] = $callerExtension?->number ?? '2001',
-                    $attributes['from_normalized_number'] = $callerExtension?->number ?? '2001',
+                    $attributes['from_number'] = $callerExtension?->number ?? $extensionNumbers['owner'],
+                    $attributes['from_normalized_number'] = $callerExtension?->number ?? $extensionNumbers['owner'],
                     $attributes['to_number'] = 'conf-'.substr($recordKey, -6),
                     $attributes['to_normalized_number'] = 'conf-'.substr($recordKey, -6),
                     $attributes['caller_user_id'] = $callerUser->getKey(),

@@ -206,7 +206,23 @@ describe('SipClientService', () => {
       new Error('USER_NOT_REGISTERED'),
       'fallback',
       baseProfile,
-    )).toBe('The callee is not registered yet. Register the other browser session with the destination extension first.');
+    )).toBe('The destination extension is not registered. Open another browser session and register it first.');
+  });
+
+  it('maps media negotiation failures to local WebRTC bridge guidance', () => {
+    expect((service as any).toErrorMessage(
+      new Error('488 Not Acceptable Here'),
+      'fallback',
+      baseProfile,
+    )).toBe('The call was rejected during media negotiation. Check WebRTC codec, ICE/DTLS, and the local FreeSWITCH demo bridge.');
+  });
+
+  it('maps incompatible destination failures to bridge target guidance', () => {
+    expect((service as any).toErrorMessage(
+      new Error('INCOMPATIBLE_DESTINATION'),
+      'fallback',
+      baseProfile,
+    )).toBe('FreeSWITCH could not bridge the local WebRTC call. Check the demo dialplan bridge target and media compatibility.');
   });
 
   it('maps autoplay blocked playback failures to browser interaction guidance', () => {
