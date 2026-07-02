@@ -25,6 +25,7 @@ export class SoftphoneModalComponent implements OnChanges, OnDestroy {
   destination = '';
   selectedExtensionId: number | null = null;
   loadingExtension = false;
+  isMinimized = false;
   readonly dtmfKeypadRows = [
     ['1', '2', '3'],
     ['4', '5', '6'],
@@ -74,12 +75,41 @@ export class SoftphoneModalComponent implements OnChanges, OnDestroy {
     return this.sipClient.profile;
   }
 
-  canRegister(): boolean {
-    return this.sipClient.canRegister();
+  get callState(): string {
+    return this.sipClient.callState;
   }
 
-  canReconnect(): boolean {
-    return this.sipClient.transportState === 'failed' || this.sipClient.transportState === 'disconnected';
+  get transportState(): string {
+    return this.sipClient.transportState;
+  }
+
+  get muted(): boolean {
+    return this.sipClient.muted;
+  }
+
+  get canShowMinimizedControls(): boolean {
+    return this.isMinimized;
+  }
+
+  get minimizedDestinationLabel(): string {
+    const destination = this.destination.trim();
+    if (destination) {
+      return destination;
+    }
+
+    return this.profile?.extension_number ?? this.profile?.display_name ?? 'Call';
+  }
+
+  get minimizedStateLabel(): string {
+    return this.callState || 'idle';
+  }
+
+  get minimizedTransportLabel(): string {
+    return this.transportState || 'disconnected';
+  }
+
+  canRegister(): boolean {
+    return this.sipClient.canRegister();
   }
 
   canPlaceCall(): boolean {
@@ -127,12 +157,14 @@ export class SoftphoneModalComponent implements OnChanges, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.isMinimized = false;
     this.sipClient.resetForTenantChange();
   }
 
   async prepareProfile(): Promise<void> {
     if (!this.tenantContext.hasTenant()) {
       this.sipClient.resetForTenantChange();
+      this.isMinimized = false;
       return;
     }
 
@@ -144,6 +176,7 @@ export class SoftphoneModalComponent implements OnChanges, OnDestroy {
 
       if (!extension) {
         this.sipClient.resetForTenantChange();
+        this.isMinimized = false;
         return;
       }
 
@@ -161,6 +194,7 @@ export class SoftphoneModalComponent implements OnChanges, OnDestroy {
     if (!Number.isFinite(extensionId) || extensionId <= 0) {
       this.selectedExtensionId = null;
       this.sipClient.resetForTenantChange();
+      this.isMinimized = false;
       return;
     }
 
@@ -213,8 +247,19 @@ export class SoftphoneModalComponent implements OnChanges, OnDestroy {
   }
 
   requestClose(): void {
+    this.isMinimized = false;
     this.sipClient.resetForTenantChange();
     this.close.emit();
+  }
+
+  minimize(): void {
+    if (this.open) {
+      this.isMinimized = true;
+    }
+  }
+
+  restore(): void {
+    this.isMinimized = false;
   }
 
   async onDestinationChange(value: string): Promise<void> {

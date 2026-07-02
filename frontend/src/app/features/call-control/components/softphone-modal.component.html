@@ -6,12 +6,31 @@
         <h3>{{ 'callControl.subtitle' | t }}</h3>
       </div>
 
-      <button type="button" class="softphone__close" (click)="requestClose()">
-        {{ 'common.actions.close' | t }}
-      </button>
+      <div class="softphone__header-actions">
+        <button
+          type="button"
+          class="softphone__close"
+          *ngIf="!isMinimized"
+          (click)="minimize()"
+          [attr.aria-label]="'callControl.actions.minimizeSoftphone' | t"
+        >
+          {{ 'callControl.actions.minimize' | t }}
+        </button>
+        <button
+          type="button"
+          class="softphone__close"
+          (click)="requestClose()"
+          [attr.aria-label]="'callControl.actions.closeSoftphone' | t"
+        >
+          {{ 'common.actions.close' | t }}
+        </button>
+      </div>
     </header>
 
-    <div class="softphone__grid">
+    <audio #remoteAudio controls autoplay class="softphone__remote-audio"></audio>
+
+    <ng-container *ngIf="!isMinimized; else minimizedView">
+      <div class="softphone__grid">
       <article class="softphone__card softphone__card--summary">
         <h4>{{ 'callControl.section.selection' | t }}</h4>
         <div class="softphone__rows">
@@ -170,8 +189,6 @@
           />
         </label>
 
-        <audio #remoteAudio controls autoplay></audio>
-
         <section class="softphone__diagnostics" *ngIf="mediaDiagnostics$ | async as diagnostics">
           <h5>{{ 'callControl.mediaDiagnostics.title' | t }}</h5>
           <dl>
@@ -247,6 +264,7 @@
             type="button"
             (click)="toggleMute()"
             *ngIf="canToggleMute()"
+            [attr.aria-label]="((muted$ | async) ? 'callControl.actions.unmute' : 'callControl.actions.mute') | t"
           >
             {{ ((muted$ | async) ? 'callControl.actions.unmute' : 'callControl.actions.mute') | t }}
           </button>
@@ -280,10 +298,86 @@
           {{ error }}
         </p>
       </article>
-    </div>
+      </div>
 
-    <footer class="softphone__footer">
-      <small>{{ 'callControl.footer.note' | t }}</small>
-    </footer>
+      <footer class="softphone__footer">
+        <small>{{ 'callControl.footer.note' | t }}</small>
+      </footer>
+    </ng-container>
+
+    <ng-template #minimizedView>
+      <section class="softphone__minimized-shell" aria-label="Softphone minimized mode">
+        <article class="softphone__minimized-card">
+          <div class="softphone__minimized-header">
+            <div class="softphone__minimized-copy">
+              <p class="softphone__eyebrow">{{ 'callControl.title' | t }}</p>
+              <h4>{{ minimizedDestinationLabel }}</h4>
+              <p class="softphone__hint">{{ 'callControl.hints.minimizedMode' | t }}</p>
+            </div>
+
+            <button
+              type="button"
+              class="softphone__close"
+              (click)="restore()"
+              [attr.aria-label]="'callControl.actions.restoreSoftphone' | t"
+            >
+              {{ 'callControl.actions.restore' | t }}
+            </button>
+          </div>
+
+          <div class="softphone__minimized-state">
+            <div>
+              <span>{{ 'callControl.fields.callState' | t }}</span>
+              <strong>{{ minimizedStateLabel }}</strong>
+            </div>
+            <div>
+              <span>{{ 'callControl.fields.transportState' | t }}</span>
+              <strong>{{ minimizedTransportLabel }}</strong>
+            </div>
+          </div>
+
+          <div class="softphone__minimized-actions">
+            <button
+              type="button"
+              (click)="hangup()"
+              *ngIf="canHangup()"
+              [attr.aria-label]="'callControl.actions.hangupSoftphone' | t"
+            >
+              {{ 'callControl.actions.hangup' | t }}
+            </button>
+            <button
+              type="button"
+              (click)="answerIncomingCall()"
+              *ngIf="canAnswerIncomingCall()"
+            >
+              {{ 'callControl.actions.answer' | t }}
+            </button>
+            <button
+              type="button"
+              (click)="rejectIncomingCall()"
+              *ngIf="canRejectIncomingCall()"
+            >
+              {{ 'callControl.actions.reject' | t }}
+            </button>
+            <button
+              type="button"
+              (click)="toggleMute()"
+              *ngIf="canToggleMute()"
+              [attr.aria-label]="((muted$ | async) ? 'callControl.actions.unmute' : 'callControl.actions.mute') | t"
+            >
+              {{ ((muted$ | async) ? 'callControl.actions.unmute' : 'callControl.actions.mute') | t }}
+            </button>
+          </div>
+
+          <p class="softphone__hint softphone__minimized-hint">
+            {{ 'callControl.hints.minimizedPreservesCall' | t }}
+          </p>
+
+          <p class="softphone__error" *ngIf="error$ | async as error">
+            {{ error }}
+          </p>
+        </article>
+      </section>
+    </ng-template>
   </section>
 </app-modal-shell>

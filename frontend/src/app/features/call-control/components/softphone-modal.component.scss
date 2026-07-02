@@ -14,6 +14,12 @@
   border-bottom: 1px solid rgba(51, 65, 85, 0.7);
 }
 
+.softphone__header-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
 .softphone__eyebrow {
   margin: 0 0 4px;
   text-transform: uppercase;
@@ -36,10 +42,93 @@
   cursor: pointer;
 }
 
+.softphone__remote-audio {
+  width: 100%;
+  margin: 0;
+}
+
 .softphone__grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 16px;
+}
+
+.softphone__minimized-shell {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 40;
+  width: min(380px, calc(100vw - 32px));
+  pointer-events: auto;
+}
+
+.softphone__minimized-card {
+  display: grid;
+  gap: 14px;
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  border-radius: 20px;
+  padding: 16px;
+  background:
+    linear-gradient(180deg, rgba(2, 6, 23, 0.97), rgba(15, 23, 42, 0.96)),
+    radial-gradient(circle at top right, rgba(56, 189, 248, 0.18), transparent 42%);
+  box-shadow: 0 32px 96px rgba(15, 23, 42, 0.55);
+  backdrop-filter: blur(14px);
+}
+
+.softphone__minimized-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.softphone__minimized-copy {
+  display: grid;
+  gap: 4px;
+}
+
+.softphone__minimized-copy h4 {
+  margin: 0;
+  color: #f8fafc;
+}
+
+.softphone__minimized-state {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.softphone__minimized-state div {
+  display: grid;
+  gap: 4px;
+}
+
+.softphone__minimized-state span {
+  color: #94a3b8;
+}
+
+.softphone__minimized-state strong {
+  color: #f8fafc;
+  word-break: break-word;
+}
+
+.softphone__minimized-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.softphone__minimized-actions button {
+  border-radius: 12px;
+  border: 1px solid rgba(71, 85, 105, 0.8);
+  background: rgba(15, 23, 42, 0.85);
+  color: #e2e8f0;
+  padding: 10px 12px;
+  cursor: pointer;
+}
+
+.softphone__minimized-hint {
+  margin: 0;
 }
 
 .softphone__card {

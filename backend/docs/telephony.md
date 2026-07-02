@@ -255,6 +255,9 @@ Current boundary:
   Angular softphone, and allows a manual Register retry after the retry limit;
 - reconnect does not preserve an active call unless the browser and PBX stack
   explicitly support recovering the dialog after transport loss;
+- the Angular softphone can be minimized into a floating bubble without ending
+  the call; the minimized bubble preserves mute, hold, reconnect, and call
+  state until the user restores or closes it;
 - hold / resume in the Angular softphone is currently a local demo placeholder
   that only updates browser-side state until PBX hold signaling is wired;
 - DTMF in the Angular softphone is guarded to the local demo keypad digits

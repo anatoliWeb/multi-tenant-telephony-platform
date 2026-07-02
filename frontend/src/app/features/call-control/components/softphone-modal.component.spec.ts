@@ -16,6 +16,14 @@ describe('SoftphoneModalComponent', () => {
     fixture.debugElement.queryAll(By.css('.softphone__actions button'))
       .map((button) => (button.nativeElement.textContent ?? '').trim());
 
+  const headerActionLabels = (): string[] =>
+    fixture.debugElement.queryAll(By.css('.softphone__header-actions button'))
+      .map((button) => (button.nativeElement.textContent ?? '').trim());
+
+  const minimizedActionLabels = (): string[] =>
+    fixture.debugElement.queryAll(By.css('.softphone__minimized-actions button'))
+      .map((button) => (button.nativeElement.textContent ?? '').trim());
+
   const extensions$ = new BehaviorSubject([
     {
       id: 42,
@@ -169,6 +177,9 @@ describe('SoftphoneModalComponent', () => {
     setDestination: vi.fn((value: string) => {
       destinationValue = value;
     }),
+    get callState() {
+      return sipClientMock.callState$.value;
+    },
   };
 
   const defaultBrowserDiagnostics = {
@@ -346,6 +357,168 @@ describe('SoftphoneModalComponent', () => {
     expect(component.canRegister()).toBe(false);
     expect(component.canPlaceCall()).toBe(true);
     expect(actionLabels()).toContain('Call');
+  });
+
+  it('minimizes the softphone without ending the active call', async () => {
+    sipClientMock.registrationState$.next('registered');
+    sipClientMock.transportState$.next('registered');
+    sipClientMock.transportState = 'registered';
+    transportStateValue = 'registered';
+    sipClientMock.callState$.next('active');
+    hasLocalAudioTrackValue = true;
+
+    component.open = true;
+    await component.prepareProfile();
+    fixture.detectChanges();
+
+    const minimizeButton = fixture.debugElement.queryAll(By.css('.softphone__header-actions button'))
+      .find((button) => (button.nativeElement.textContent ?? '').trim() === 'Minimize');
+
+    expect(minimizeButton).toBeTruthy();
+    expect(headerActionLabels()).toContain('Minimize');
+
+    minimizeButton?.nativeElement.click();
+    fixture.detectChanges();
+
+    expect(component.isMinimized).toBe(true);
+    expect(fixture.nativeElement.textContent).toContain('Minimizing does not end the call. Restore to see the full control panel.');
+    expect(fixture.nativeElement.textContent).toContain('active');
+    expect(minimizedActionLabels()).toContain('Hang up');
+    expect(minimizedActionLabels()).toContain('Mute');
+  });
+
+  it('restores the expanded modal from minimized mode', async () => {
+    sipClientMock.registrationState$.next('registered');
+    sipClientMock.transportState$.next('registered');
+    sipClientMock.transportState = 'registered';
+    transportStateValue = 'registered';
+    sipClientMock.callState$.next('registered');
+
+    component.open = true;
+    await component.prepareProfile();
+    component.minimize();
+    fixture.detectChanges();
+
+    const restoreButton = fixture.debugElement.queryAll(By.css('.softphone__minimized-card button'))
+      .find((button) => (button.nativeElement.textContent ?? '').trim() === 'Restore');
+
+    expect(restoreButton).toBeTruthy();
+    restoreButton?.nativeElement.click();
+    fixture.detectChanges();
+
+    expect(component.isMinimized).toBe(false);
+    expect(fixture.nativeElement.textContent).toContain('Media and call controls');
+  });
+
+  it('keeps an incoming ringing call visible while minimized', async () => {
+    sipClientMock.incomingCall$.next(true);
+    sipClientMock.callState$.next('ringing');
+
+    component.open = true;
+    await component.prepareProfile();
+    component.minimize();
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('ringing');
+    expect(minimizedActionLabels()).toContain('Answer');
+    expect(minimizedActionLabels()).toContain('Reject');
+  });
+
+  it('hangs up from minimized mode without altering the call-control cleanup flow', async () => {
+    const hangupSpy = vi.spyOn(sipClientMock, 'hangup').mockResolvedValue(undefined);
+    sipClientMock.registrationState$.next('registered');
+    sipClientMock.transportState$.next('registered');
+    sipClientMock.transportState = 'registered';
+    transportStateValue = 'registered';
+    sipClientMock.callState$.next('active');
+
+    component.open = true;
+    await component.prepareProfile();
+    component.minimize();
+    fixture.detectChanges();
+
+    const hangupButton = fixture.debugElement.queryAll(By.css('.softphone__minimized-actions button'))
+      .find((button) => (button.nativeElement.textContent ?? '').trim() === 'Hang up');
+
+    expect(hangupButton).toBeTruthy();
+    hangupButton?.nativeElement.click();
+
+    expect(hangupSpy).toHaveBeenCalled();
+    hangupSpy.mockRestore();
+  });
+
+  it('toggles mute and unmute from minimized mode', async () => {
+    const toggleMuteSpy = vi.spyOn(sipClientMock, 'toggleMute');
+    sipClientMock.registrationState$.next('registered');
+    sipClientMock.transportState$.next('registered');
+    sipClientMock.transportState = 'registered';
+    transportStateValue = 'registered';
+    sipClientMock.callState$.next('active');
+    hasLocalAudioTrackValue = true;
+
+    component.open = true;
+    await component.prepareProfile();
+    component.minimize();
+    fixture.detectChanges();
+
+    const muteButton = fixture.debugElement.queryAll(By.css('.softphone__minimized-actions button'))
+      .find((button) => ['Mute', 'Unmute'].includes((button.nativeElement.textContent ?? '').trim()));
+
+    expect(muteButton).toBeTruthy();
+    muteButton?.nativeElement.click();
+
+    expect(toggleMuteSpy).toHaveBeenCalled();
+    toggleMuteSpy.mockRestore();
+  });
+
+  it('shows the reconnecting state label in minimized mode', async () => {
+    sipClientMock.registrationState$.next('registered');
+    sipClientMock.transportState$.next('reconnecting');
+    sipClientMock.transportState = 'reconnecting';
+    transportStateValue = 'reconnecting';
+    sipClientMock.callState$.next('registered');
+
+    component.open = true;
+    await component.prepareProfile();
+    component.minimize();
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('reconnecting');
+  });
+
+  it('resets minimized state when cleanup is triggered', async () => {
+    component.open = true;
+    await component.prepareProfile();
+    component.minimize();
+    fixture.detectChanges();
+
+    expect(component.isMinimized).toBe(true);
+
+    component.requestClose();
+
+    expect(component.isMinimized).toBe(false);
+    expect(sipClientMock.resetForTenantChange).toHaveBeenCalled();
+  });
+
+  it('exposes accessibility labels for minimized mode controls', async () => {
+    sipClientMock.registrationState$.next('registered');
+    sipClientMock.transportState$.next('registered');
+    sipClientMock.transportState = 'registered';
+    transportStateValue = 'registered';
+    sipClientMock.callState$.next('active');
+    hasLocalAudioTrackValue = true;
+
+    component.open = true;
+    await component.prepareProfile();
+    component.minimize();
+    fixture.detectChanges();
+
+    const ariaLabels = fixture.debugElement.queryAll(By.css('.softphone__minimized-card button'))
+      .map((button) => button.nativeElement.getAttribute('aria-label'));
+
+    expect(ariaLabels).toContain('Restore softphone');
+    expect(ariaLabels).toContain('Hang up call');
+    expect(ariaLabels).toContain('Mute');
   });
 
   it('shows reconnecting status and disables register/call actions while transport retries', async () => {
