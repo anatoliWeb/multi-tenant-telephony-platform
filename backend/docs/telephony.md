@@ -242,6 +242,14 @@ Current boundary:
 - local two-browser testing is easier with separate browser profiles or
   separate devices, and headphones are recommended because echo cancellation
   may suppress expected self-audio;
+- the Angular softphone can discover `audioinput` devices and preselect a
+  microphone before calling, but the browser may hide device labels until
+  microphone permission is granted;
+- refreshing the device list may request microphone permission so labels become
+  visible in Chrome or Edge;
+- live microphone switching during an active call is not supported yet, so
+  device changes should be made before registration or before starting the
+  call;
 - hold / resume in the Angular softphone is currently a local demo placeholder
   that only updates browser-side state until PBX hold signaling is wired;
 - DTMF in the Angular softphone is guarded to the local demo keypad digits

@@ -13,6 +13,7 @@ import {
 } from 'sip.js';
 import { CallControlApiService } from './call-control-api.service';
 import type {
+  SipAudioInputDevice,
   SipBrowserDiagnostics,
   MicrophonePermissionState,
   SipMediaDiagnostics,
@@ -49,6 +50,10 @@ export class SipClientService {
   private readonly mutedSubject = new BehaviorSubject<boolean>(false);
   private readonly incomingCallSubject = new BehaviorSubject<boolean>(false);
   private readonly localHoldSubject = new BehaviorSubject<boolean>(false);
+  private readonly audioInputDevicesSubject = new BehaviorSubject<SipAudioInputDevice[]>([]);
+  private readonly selectedAudioInputDeviceIdSubject = new BehaviorSubject<string | null>(null);
+  private readonly audioInputDevicesLoadingSubject = new BehaviorSubject<boolean>(false);
+  private readonly audioInputDevicesErrorSubject = new BehaviorSubject<string | null>(null);
   private readonly destinationSubject = new BehaviorSubject<string>('');
   private readonly errorSubject = new BehaviorSubject<string | null>(null);
   private readonly lastMediaErrorSubject = new BehaviorSubject<string | null>(null);
@@ -89,6 +94,10 @@ export class SipClientService {
   readonly microphonePermission$ = this.microphonePermissionSubject.asObservable();
   readonly muted$ = this.mutedSubject.asObservable();
   readonly incomingCall$ = this.incomingCallSubject.asObservable();
+  readonly audioInputDevices$ = this.audioInputDevicesSubject.asObservable();
+  readonly selectedAudioInputDeviceId$ = this.selectedAudioInputDeviceIdSubject.asObservable();
+  readonly audioInputDevicesLoading$ = this.audioInputDevicesLoadingSubject.asObservable();
+  readonly audioInputDevicesError$ = this.audioInputDevicesErrorSubject.asObservable();
   readonly destination$ = this.destinationSubject.asObservable();
   readonly error$ = this.errorSubject.asObservable();
   readonly mediaDiagnostics$ = this.mediaDiagnosticsSubject.asObservable();
@@ -118,6 +127,22 @@ export class SipClientService {
 
   get locallyHeld(): boolean {
     return this.localHoldSubject.value;
+  }
+
+  get selectedAudioInputDeviceId(): string | null {
+    return this.selectedAudioInputDeviceIdSubject.value;
+  }
+
+  get availableAudioInputDevices(): SipAudioInputDevice[] {
+    return this.audioInputDevicesSubject.value;
+  }
+
+  get audioInputDevicesLoading(): boolean {
+    return this.audioInputDevicesLoadingSubject.value;
+  }
+
+  get audioInputDevicesError(): string | null {
+    return this.audioInputDevicesErrorSubject.value;
   }
 
   get destination(): string {
@@ -190,6 +215,10 @@ export class SipClientService {
     return this.callStateSubject.value === 'active' && Boolean(this.activeSession);
   }
 
+  canChangeAudioInputDevice(): boolean {
+    return !this.isCallInProgress();
+  }
+
   /**
    * SIP credentials stay in memory only. The browser should never persist
    * them in storage or global app state because the softphone is tenant-scoped
@@ -203,6 +232,10 @@ export class SipClientService {
     this.microphonePermissionSubject.next('unknown');
     this.mutedSubject.next(false);
     this.localHoldSubject.next(false);
+    this.selectedAudioInputDeviceIdSubject.next(null);
+    this.audioInputDevicesSubject.next([]);
+    this.audioInputDevicesLoadingSubject.next(false);
+    this.audioInputDevicesErrorSubject.next(null);
     this.incomingCallSubject.next(false);
     this.destinationSubject.next('');
     this.resetMediaDiagnostics();
@@ -224,6 +257,7 @@ export class SipClientService {
         : null;
       this.profileSubject.next(this.sanitizeProfile(profile));
       this.callStateSubject.next('ready');
+      void this.refreshAudioInputDevices();
     } catch (error) {
       this.authorizationPassword = null;
       this.profileSubject.next(null);
@@ -242,6 +276,9 @@ export class SipClientService {
     }
 
     try {
+      const stream = await navigator.mediaDevices.getUserMedia(this.buildMicrophoneConstraints());
+      stream.getTracks().forEach((track) => track.stop());
+
       if (navigator.permissions?.query) {
         try {
           const result = await navigator.permissions.query({ name: 'microphone' as PermissionName });
@@ -254,14 +291,74 @@ export class SipClientService {
           // fall back to an actual media probe below.
         }
       }
-
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      stream.getTracks().forEach((track) => track.stop());
       this.microphonePermissionSubject.next('granted');
-    } catch {
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+
       this.microphonePermissionSubject.next('denied');
+
+      if (/notfound|overconstrained/i.test(message)) {
+        this.errorSubject.next('The selected microphone is not available. Choose another microphone and try again.');
+        console.warn('[SIP/WebRTC] selected microphone not found during permission check', {
+          selectedDeviceId: this.selectedAudioInputDeviceIdSubject.value ? this.maskDeviceId(this.selectedAudioInputDeviceIdSubject.value) : 'default',
+        });
+        return;
+      }
+
       this.errorSubject.next('Microphone permission was denied. Allow microphone access in the browser and try again.');
     }
+  }
+
+  async refreshAudioInputDevices(): Promise<void> {
+    if (!navigator.mediaDevices?.enumerateDevices) {
+      this.audioInputDevicesSubject.next([]);
+      this.audioInputDevicesErrorSubject.next('This browser does not support microphone device discovery.');
+      console.warn('[SIP/WebRTC] audio input device discovery unavailable');
+      return;
+    }
+
+    this.audioInputDevicesLoadingSubject.next(true);
+    this.audioInputDevicesErrorSubject.next(null);
+
+    try {
+      const devices = await this.discoverAudioInputDevices();
+      this.audioInputDevicesSubject.next(devices);
+
+      const selectedAudioInputDeviceId = this.selectedAudioInputDeviceIdSubject.value;
+      if (selectedAudioInputDeviceId && !devices.some((device) => device.device_id === selectedAudioInputDeviceId)) {
+        console.warn('[SIP/WebRTC] selected microphone is no longer available; reverting to default input', {
+          selectedDeviceId: this.maskDeviceId(selectedAudioInputDeviceId),
+        });
+        this.selectedAudioInputDeviceIdSubject.next(null);
+        this.errorSubject.next('Selected microphone is no longer available. Using the default microphone.');
+      }
+
+      console.debug('[SIP/WebRTC] audio input devices refreshed', {
+        availableAudioInputCount: devices.length,
+      });
+    } catch (error) {
+      const message = error instanceof Error && error.message.trim()
+        ? error.message.trim()
+        : 'Failed to load audio input devices.';
+      this.audioInputDevicesSubject.next([]);
+      this.audioInputDevicesErrorSubject.next(message);
+      this.errorSubject.next(message);
+      console.warn('[SIP/WebRTC] audio input device discovery failed', {
+        error: message,
+      });
+    } finally {
+      this.audioInputDevicesLoadingSubject.next(false);
+    }
+  }
+
+  setSelectedAudioInputDevice(deviceId: string | null): void {
+    const normalizedDeviceId = deviceId?.trim() || null;
+    this.selectedAudioInputDeviceIdSubject.next(normalizedDeviceId);
+
+    console.debug('[SIP/WebRTC] selected microphone updated', {
+      selectedDeviceId: normalizedDeviceId ? this.maskDeviceId(normalizedDeviceId) : 'default',
+      selectionMode: normalizedDeviceId ? 'selected' : 'default',
+    });
   }
 
   async register(): Promise<void> {
@@ -370,10 +467,7 @@ export class SipClientService {
     // established dialog, gets rejected, or is torn down by hangup/reset.
     const inviter = new Inviter(this.userAgent, target, {
       sessionDescriptionHandlerOptions: {
-        constraints: {
-          audio: true,
-          video: false,
-        },
+        constraints: this.buildMediaConstraints(),
         iceGatheringTimeout: this.iceGatheringTimeoutMs,
       } as any,
     });
@@ -387,10 +481,7 @@ export class SipClientService {
         // Force the initial offer path to use the full ICE timeout and the
         // browser-audio-only constraints even if invite defaults are partial.
         sessionDescriptionHandlerOptions: {
-          constraints: {
-            audio: true,
-            video: false,
-          },
+          constraints: this.buildMediaConstraints(),
           iceGatheringTimeout: this.iceGatheringTimeoutMs,
         } as any,
         requestDelegate: {
@@ -738,10 +829,7 @@ export class SipClientService {
       sessionDescriptionHandlerFactory: this.createSessionDescriptionHandlerFactory(),
       sessionDescriptionHandlerFactoryOptions: {
         iceGatheringTimeout: this.iceGatheringTimeoutMs,
-        constraints: {
-          audio: true,
-          video: false,
-        },
+        constraints: this.buildMediaConstraints(),
       },
     } as any;
 
@@ -890,10 +978,7 @@ export class SipClientService {
     try {
       const acceptOptions = {
         sessionDescriptionHandlerOptions: {
-          constraints: {
-            audio: true,
-            video: false,
-          },
+          constraints: this.buildMediaConstraints(),
           iceGatheringTimeout: this.iceGatheringTimeoutMs,
         } as any,
       };
@@ -1757,6 +1842,93 @@ export class SipClientService {
     });
 
     return finalSdp;
+  }
+
+  private buildMediaConstraints(): MediaStreamConstraints {
+    return {
+      audio: this.buildAudioConstraint(),
+      video: false,
+    };
+  }
+
+  private buildMicrophoneConstraints(): MediaStreamConstraints {
+    return this.buildMediaConstraints();
+  }
+
+  private buildAudioConstraint(): boolean | MediaTrackConstraints {
+    const selectedAudioInputDeviceId = this.selectedAudioInputDeviceIdSubject.value?.trim();
+
+    if (selectedAudioInputDeviceId) {
+      return {
+        deviceId: {
+          exact: selectedAudioInputDeviceId,
+        },
+      };
+    }
+
+    return true;
+  }
+
+  private async discoverAudioInputDevices(): Promise<SipAudioInputDevice[]> {
+    const devices = await navigator.mediaDevices.enumerateDevices();
+    let audioInputs = devices.filter((device) => device.kind === 'audioinput');
+
+    if (audioInputs.length === 0) {
+      return [];
+    }
+
+    const labelsHidden = audioInputs.every((device) => !device.label?.trim());
+    if (labelsHidden && navigator.mediaDevices.getUserMedia) {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          audio: true,
+          video: false,
+        });
+        stream.getTracks().forEach((track) => track.stop());
+        const refreshed = await navigator.mediaDevices.enumerateDevices();
+        audioInputs = refreshed.filter((device) => device.kind === 'audioinput');
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+
+        if (/notfound|overconstrained/i.test(message)) {
+          throw new Error('The selected microphone is not available.');
+        }
+
+        if (/denied|permission/i.test(message)) {
+          throw new Error('Microphone permission was denied. Allow microphone access and refresh devices.');
+        }
+      }
+    }
+
+    const normalizedDevices = audioInputs.map((device, index) => {
+      const isDefault = device.deviceId === 'default' || index === 0;
+      const label = device.label?.trim() || (isDefault ? 'Default microphone' : `Microphone ${index + 1}`);
+
+      return {
+        device_id: device.deviceId,
+        label,
+        is_default: isDefault,
+      };
+    });
+
+    console.debug('[SIP/WebRTC] audio input devices discovered', {
+      availableAudioInputCount: normalizedDevices.length,
+      devices: normalizedDevices.map((device) => ({
+        label: device.label,
+        deviceId: this.maskDeviceId(device.device_id),
+        isDefault: device.is_default,
+      })),
+    });
+
+    return normalizedDevices;
+  }
+
+  private maskDeviceId(deviceId: string): string {
+    if (!deviceId) {
+      return 'unknown';
+    }
+
+    return deviceId.length <= 6 ? deviceId : `...${deviceId.slice(-6)}`;
   }
 
   private toSipError(response: unknown): Error {

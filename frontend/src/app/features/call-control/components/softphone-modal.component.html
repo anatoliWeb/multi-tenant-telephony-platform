@@ -106,6 +106,45 @@
           </ng-template>
         </section>
 
+        <section class="softphone__device-panel">
+          <div class="softphone__device-panel-header">
+            <h5>{{ 'callControl.section.microphoneDevices' | t }}</h5>
+            <button type="button" (click)="refreshAudioInputDevices()">
+              {{ 'callControl.actions.refreshDevices' | t }}
+            </button>
+          </div>
+
+          <label>
+            <span>{{ 'callControl.fields.microphoneDevice' | t }}</span>
+            <select
+              [value]="(selectedAudioInputDeviceId$ | async) ?? ''"
+              (change)="onAudioInputDeviceChange($any($event.target).value)"
+              [disabled]="!canChangeAudioInputDevice()"
+            >
+              <option value="">{{ 'callControl.fields.defaultMicrophone' | t }}</option>
+              <option
+                *ngFor="let device of (audioInputDevices$ | async); trackBy: trackAudioInputDevice"
+                [value]="device.device_id"
+              >
+                {{ device.label }}<ng-container *ngIf="device.is_default"> ({{ 'callControl.fields.defaultDevice' | t }})</ng-container>
+              </option>
+            </select>
+          </label>
+
+          <p class="softphone__hint" *ngIf="(audioInputDevicesLoading$ | async)">
+            {{ 'callControl.loadingAudioDevices' | t }}
+          </p>
+          <p class="softphone__hint" *ngIf="!(audioInputDevicesLoading$ | async)">
+            {{ 'callControl.hints.microphoneDevicePermission' | t }}
+          </p>
+          <p class="softphone__error" *ngIf="audioInputDevicesError$ | async as deviceError">
+            {{ deviceError }}
+          </p>
+          <p class="softphone__hint" *ngIf="!canChangeAudioInputDevice()">
+            {{ 'callControl.hints.deviceSwitchDuringCall' | t }}
+          </p>
+        </section>
+
         <label>
           <span>{{ 'callControl.fields.destination' | t }}</span>
           <input

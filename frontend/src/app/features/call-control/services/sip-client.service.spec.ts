@@ -36,7 +36,21 @@ describe('SipClientService', () => {
   };
   let service: SipClientService;
 
+  const setMediaDevicesMock = (value: any): void => {
+    Object.defineProperty(navigator, 'mediaDevices', {
+      value,
+      configurable: true,
+      writable: true,
+    });
+  };
+
   beforeEach(() => {
+    setMediaDevicesMock({
+      enumerateDevices: vi.fn().mockResolvedValue([]),
+      getUserMedia: vi.fn().mockResolvedValue({
+        getTracks: () => [],
+      }),
+    });
     callControlApiMock = {
       getSipProfile: vi.fn(),
     };
@@ -482,6 +496,93 @@ describe('SipClientService', () => {
       digit: '#',
     }));
     warnSpy.mockRestore();
+  });
+
+  it('discovers audio input devices after prompting for microphone permission when labels are hidden', async () => {
+    const stop = vi.fn();
+    const enumerateDevices = vi.fn()
+      .mockResolvedValueOnce([
+        { kind: 'audioinput', deviceId: 'default', label: '' },
+        { kind: 'audioinput', deviceId: 'usb-1', label: '' },
+        { kind: 'videoinput', deviceId: 'cam-1', label: '' },
+      ])
+      .mockResolvedValueOnce([
+        { kind: 'audioinput', deviceId: 'default', label: 'Default Microphone' },
+        { kind: 'audioinput', deviceId: 'usb-1', label: 'USB Microphone' },
+      ]);
+    const getUserMedia = vi.fn().mockResolvedValue({ getTracks: () => [{ stop }] });
+    setMediaDevicesMock({
+      enumerateDevices,
+      getUserMedia,
+    });
+
+    await service.refreshAudioInputDevices();
+
+    expect(enumerateDevices).toHaveBeenCalledTimes(2);
+    expect(getUserMedia).toHaveBeenCalledWith({ audio: true, video: false });
+    expect(service.availableAudioInputDevices).toEqual([
+      { device_id: 'default', label: 'Default Microphone', is_default: true },
+      { device_id: 'usb-1', label: 'USB Microphone', is_default: false },
+    ]);
+    expect(service.audioInputDevicesLoading).toBe(false);
+  });
+
+  it('handles missing mediaDevices support without crashing', async () => {
+    setMediaDevicesMock(undefined);
+
+    await service.refreshAudioInputDevices();
+
+    expect(service.availableAudioInputDevices).toEqual([]);
+    expect(service.audioInputDevicesError).toBe('This browser does not support microphone device discovery.');
+  });
+
+  it('uses the selected microphone device in getUserMedia constraints', async () => {
+    const stop = vi.fn();
+    const getUserMedia = vi.fn().mockResolvedValue({ getTracks: () => [{ stop }] });
+    setMediaDevicesMock({
+      getUserMedia,
+    });
+
+    (service as any).selectedAudioInputDeviceIdSubject.next('usb-mic-123');
+
+    await service.checkMicrophonePermission();
+
+    expect(getUserMedia).toHaveBeenCalledWith({
+      audio: {
+        deviceId: {
+          exact: 'usb-mic-123',
+        },
+      },
+      video: false,
+    });
+  });
+
+  it('falls back to the default microphone constraints when no device is selected', async () => {
+    const stop = vi.fn();
+    const getUserMedia = vi.fn().mockResolvedValue({ getTracks: () => [{ stop }] });
+    setMediaDevicesMock({
+      getUserMedia,
+    });
+
+    await service.checkMicrophonePermission();
+
+    expect(getUserMedia).toHaveBeenCalledWith({ audio: true, video: false });
+  });
+
+  it('surfaces a permission denied error while keeping the device UI stable', async () => {
+    const enumerateDevices = vi.fn().mockResolvedValue([
+      { kind: 'audioinput', deviceId: 'default', label: '' },
+    ]);
+    const getUserMedia = vi.fn().mockRejectedValue(new Error('Permission denied'));
+    setMediaDevicesMock({
+      enumerateDevices,
+      getUserMedia,
+    });
+
+    await service.refreshAudioInputDevices();
+
+    expect(service.availableAudioInputDevices).toEqual([]);
+    expect(service.audioInputDevicesError).toBe('Microphone permission was denied. Allow microphone access and refresh devices.');
   });
 
   it('rejects invalid DTMF digits without crashing', async () => {

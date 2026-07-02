@@ -44,6 +44,7 @@ describe('SoftphoneModalComponent', () => {
   let destinationValue = '';
   let hasLocalAudioTrackValue = false;
   let locallyHeldValue = false;
+  let selectedAudioInputDeviceIdValue: string | null = null;
 
   const sipClientMock = {
     profile$: new BehaviorSubject<any>({
@@ -79,6 +80,13 @@ describe('SoftphoneModalComponent', () => {
     muted$: new BehaviorSubject(false),
     incomingCall$: new BehaviorSubject(false),
     error$: new BehaviorSubject<string | null>(null),
+    audioInputDevices$: new BehaviorSubject([
+      { device_id: 'default', label: 'Default Microphone', is_default: true },
+      { device_id: 'usb-mic', label: 'USB Microphone', is_default: false },
+    ]),
+    selectedAudioInputDeviceId$: new BehaviorSubject<string | null>(null),
+    audioInputDevicesLoading$: new BehaviorSubject(false),
+    audioInputDevicesError$: new BehaviorSubject<string | null>(null),
     mediaDiagnostics$: new BehaviorSubject({
       remote_audio_attached: false,
       remote_audio_track_count: 0,
@@ -126,11 +134,13 @@ describe('SoftphoneModalComponent', () => {
         && hasLocalAudioTrackValue,
     )),
     canSendDtmf: vi.fn(() => sipClientMock.callState$.value === 'active'),
+    canChangeAudioInputDevice: vi.fn(() => !['dialing', 'ringing', 'active', 'held'].includes(sipClientMock.callState$.value as string)),
     loadProfile: vi.fn().mockResolvedValue(undefined),
     bindRemoteAudio: vi.fn(),
     resetForTenantChange: vi.fn(),
     register: vi.fn().mockResolvedValue(undefined),
     checkMicrophonePermission: vi.fn().mockResolvedValue(undefined),
+    refreshAudioInputDevices: vi.fn().mockResolvedValue(undefined),
     call: vi.fn().mockResolvedValue(undefined),
     hangup: vi.fn().mockResolvedValue(undefined),
     answerIncomingCall: vi.fn().mockResolvedValue(undefined),
@@ -145,6 +155,10 @@ describe('SoftphoneModalComponent', () => {
     }),
     toggleMute: vi.fn(),
     sendDtmf: vi.fn().mockResolvedValue(undefined),
+    setSelectedAudioInputDevice: vi.fn((value: string | null) => {
+      selectedAudioInputDeviceIdValue = value;
+      sipClientMock.selectedAudioInputDeviceId$.next(value);
+    }),
     setDestination: vi.fn((value: string) => {
       destinationValue = value;
     }),
@@ -164,8 +178,12 @@ describe('SoftphoneModalComponent', () => {
     destinationValue = '';
     hasLocalAudioTrackValue = false;
     locallyHeldValue = false;
+    selectedAudioInputDeviceIdValue = null;
     sipClientMock.browserDiagnostics$.next(defaultBrowserDiagnostics);
     sipClientMock.error$.next(null);
+    sipClientMock.audioInputDevicesError$.next(null);
+    sipClientMock.audioInputDevicesLoading$.next(false);
+    sipClientMock.selectedAudioInputDeviceId$.next(null);
     await TestBed.configureTestingModule({
       imports: [SoftphoneModalComponent],
       providers: [
@@ -221,6 +239,17 @@ describe('SoftphoneModalComponent', () => {
 
     expect(fixture.nativeElement.textContent).toContain('Browser compatibility');
     expect(fixture.nativeElement.textContent).toContain('Opera is not a primary supported browser for the local softphone.');
+  });
+
+  it('shows microphone device selection controls with a default fallback', async () => {
+    component.open = true;
+    await component.prepareProfile();
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('Microphone devices');
+    expect(fixture.nativeElement.textContent).toContain('Default Microphone');
+    expect(fixture.nativeElement.textContent).toContain('USB Microphone');
+    expect(fixture.nativeElement.textContent).toContain('Refresh devices');
   });
 
   it('keeps the supported browser path unaffected', async () => {
@@ -347,6 +376,19 @@ describe('SoftphoneModalComponent', () => {
     expect(keypadLabels).toEqual(['1', '2', '3', '4', '5', '6', '7', '8', '9', '*', '0', '#']);
   });
 
+  it('disables microphone device switching during an active call', async () => {
+    sipClientMock.registrationState$.next('registered');
+    sipClientMock.callState$.next('active');
+
+    component.open = true;
+    await component.prepareProfile();
+    fixture.detectChanges();
+
+    const devicePanelSelect = fixture.debugElement.query(By.css('.softphone__device-panel select'));
+    expect(devicePanelSelect.nativeElement.disabled).toBe(true);
+    expect(fixture.nativeElement.textContent).toContain('Switching microphones during an active call is not supported yet.');
+  });
+
   it('shows resume only when the call is locally held', async () => {
     sipClientMock.registrationState$.next('registered');
     sipClientMock.callState$.next('held');
@@ -408,6 +450,25 @@ describe('SoftphoneModalComponent', () => {
 
     expect(sipClientMock.sendDtmf).toHaveBeenCalledWith('1');
     expect(sipClientMock.sendDtmf).toHaveBeenCalledWith('#');
+  });
+
+  it('refreshes microphone devices and updates the selected device through the dropdown', async () => {
+    component.open = true;
+    await component.prepareProfile();
+    fixture.detectChanges();
+
+    const refreshButton = fixture.debugElement.queryAll(By.css('.softphone__device-panel button'))
+      .find((button) => (button.nativeElement.textContent ?? '').trim() === 'Refresh devices');
+    refreshButton?.nativeElement.click();
+
+    const selectElement = fixture.debugElement.query(By.css('.softphone__device-panel select'));
+    selectElement.nativeElement.value = 'usb-mic';
+    selectElement.nativeElement.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+
+    expect(sipClientMock.refreshAudioInputDevices).toHaveBeenCalled();
+    expect(sipClientMock.setSelectedAudioInputDevice).toHaveBeenCalledWith('usb-mic');
+    expect(selectedAudioInputDeviceIdValue).toBe('usb-mic');
   });
 
   it('shows answer and reject actions when an incoming call is pending', async () => {

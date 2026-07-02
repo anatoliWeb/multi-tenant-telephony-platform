@@ -5,7 +5,7 @@ import { SharedModule } from '../../../shared/shared.module';
 import { TenantContextService } from '../../../core/services/tenant-context.service';
 import { ExtensionsStateService } from '../../extensions/services/extensions-state.service';
 import { SipClientService } from '../services/sip-client.service';
-import type { SipBrowserDiagnostics, SipMediaDiagnostics } from '../models/call-control.model';
+import type { SipAudioInputDevice, SipBrowserDiagnostics, SipMediaDiagnostics } from '../models/call-control.model';
 
 @Component({
   selector: 'app-softphone-modal',
@@ -37,6 +37,10 @@ export class SoftphoneModalComponent implements OnChanges, OnDestroy {
   readonly callState$;
   readonly registrationState$;
   readonly microphonePermission$;
+  readonly audioInputDevices$;
+  readonly selectedAudioInputDeviceId$;
+  readonly audioInputDevicesLoading$;
+  readonly audioInputDevicesError$;
   readonly muted$;
   readonly incomingCall$;
   readonly error$;
@@ -52,6 +56,10 @@ export class SoftphoneModalComponent implements OnChanges, OnDestroy {
     this.callState$ = this.sipClient.callState$;
     this.registrationState$ = this.sipClient.registrationState$;
     this.microphonePermission$ = this.sipClient.microphonePermission$;
+    this.audioInputDevices$ = this.sipClient.audioInputDevices$;
+    this.selectedAudioInputDeviceId$ = this.sipClient.selectedAudioInputDeviceId$;
+    this.audioInputDevicesLoading$ = this.sipClient.audioInputDevicesLoading$;
+    this.audioInputDevicesError$ = this.sipClient.audioInputDevicesError$;
     this.muted$ = this.sipClient.muted$;
     this.incomingCall$ = this.sipClient.incomingCall$;
     this.error$ = this.sipClient.error$;
@@ -98,6 +106,10 @@ export class SoftphoneModalComponent implements OnChanges, OnDestroy {
 
   canSendDtmf(): boolean {
     return this.sipClient.canSendDtmf();
+  }
+
+  canChangeAudioInputDevice(): boolean {
+    return this.sipClient.canChangeAudioInputDevice();
   }
 
   async ngOnChanges(changes: SimpleChanges): Promise<void> {
@@ -158,6 +170,10 @@ export class SoftphoneModalComponent implements OnChanges, OnDestroy {
     await this.sipClient.checkMicrophonePermission();
   }
 
+  async refreshAudioInputDevices(): Promise<void> {
+    await this.sipClient.refreshAudioInputDevices();
+  }
+
   async placeCall(): Promise<void> {
     await this.sipClient.call(this.destination);
   }
@@ -200,8 +216,21 @@ export class SoftphoneModalComponent implements OnChanges, OnDestroy {
     this.sipClient.setDestination(value);
   }
 
+  async onAudioInputDeviceChange(value: string): Promise<void> {
+    if (!value) {
+      this.sipClient.setSelectedAudioInputDevice(null);
+      return;
+    }
+
+    this.sipClient.setSelectedAudioInputDevice(value);
+  }
+
   trackExtension(_index: number, extension: { id: number }): number {
     return extension.id;
+  }
+
+  trackAudioInputDevice(_index: number, device: SipAudioInputDevice): string {
+    return device.device_id;
   }
 
   private async resolveSelectedExtension(): Promise<{ id: number; number: string; label?: string | null } | null> {

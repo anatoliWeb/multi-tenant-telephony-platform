@@ -35,6 +35,12 @@ export interface SipBrowserDiagnostics {
   warning_message: string | null;
 }
 
+export interface SipAudioInputDevice {
+  device_id: string;
+  label: string;
+  is_default: boolean;
+}
+
 export interface SipProfileCapabilities {
   outbound_call: boolean;
   inbound_call: boolean;

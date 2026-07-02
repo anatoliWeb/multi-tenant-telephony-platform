@@ -183,6 +183,40 @@
   line-height: 1.45;
 }
 
+.softphone__device-panel {
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  margin-bottom: 12px;
+  border-radius: 16px;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  background: rgba(8, 15, 32, 0.68);
+}
+
+.softphone__device-panel-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+}
+
+.softphone__device-panel-header h5 {
+  margin: 0;
+  color: #cbd5e1;
+  font-size: 0.82rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.softphone__device-panel-header button {
+  border-radius: 999px;
+  border: 1px solid rgba(71, 85, 105, 0.8);
+  background: rgba(15, 23, 42, 0.85);
+  color: #e2e8f0;
+  padding: 8px 12px;
+  cursor: pointer;
+}
+
 .softphone__diagnostics {
   display: grid;
   gap: 10px;
