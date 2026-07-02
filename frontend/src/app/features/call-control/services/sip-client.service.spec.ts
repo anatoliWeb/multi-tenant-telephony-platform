@@ -186,6 +186,60 @@ describe('SipClientService', () => {
     expect((service as any).resolveSipTarget('sip:2002@localhost', 'localhost')).toBe('sip:2002@localhost');
   });
 
+  it('opens the softphone for chat calls without auto-dialing when registration is unavailable', async () => {
+    const openEvents: number[] = [];
+    const subscription = service.softphoneOpenRequested$.subscribe(() => {
+      openEvents.push(openEvents.length + 1);
+    });
+    const callSpy = vi.spyOn(service, 'call');
+
+    await service.startChatCall('1002');
+
+    expect(service.destination).toBe('1002');
+    expect(openEvents).toHaveLength(1);
+    expect(callSpy).not.toHaveBeenCalled();
+
+    subscription.unsubscribe();
+  });
+
+  it('chat calls auto-dial through the shared call flow when registration is ready', async () => {
+    callControlApiMock.getSipProfile.mockReturnValue(of({
+      success: true,
+      message: 'ok',
+      data: {
+        ...baseProfile,
+        credentials_available: true,
+        registration_enabled: true,
+        local_demo_mode: true,
+        password: 'change_me_local_demo_only',
+        registration: {
+          enabled: true,
+          state: 'available',
+          reason: 'Local demo SIP credentials are enabled for this development environment.',
+        },
+      },
+    }));
+
+    await service.loadProfile(42);
+    (service as any).registrationStateSubject.next('registered');
+    (service as any).transportStateSubject.next('registered');
+    (service as any).userAgent = {};
+
+    const openEvents: number[] = [];
+    const subscription = service.softphoneOpenRequested$.subscribe(() => {
+      openEvents.push(openEvents.length + 1);
+    });
+    const callSpy = vi.spyOn(service, 'call').mockResolvedValue(undefined);
+
+    await service.startChatCall('1002');
+
+    expect(service.destination).toBe('1002');
+    expect(openEvents).toHaveLength(1);
+    expect(callSpy).toHaveBeenCalledWith('1002');
+
+    subscription.unsubscribe();
+  });
+
   it('blocks self calls with a friendly local demo message', async () => {
     callControlApiMock.getSipProfile.mockReturnValue(of({
       success: true,

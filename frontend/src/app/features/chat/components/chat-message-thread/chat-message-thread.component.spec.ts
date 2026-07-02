@@ -2,19 +2,33 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { vi } from 'vitest';
 import { ChatMessageThreadComponent } from './chat-message-thread.component';
 import { ChatApiService } from '../../../../core/services/chat-api.service';
+import { PermissionService } from '../../../../rbac/services/permission.service';
+import { SipClientService } from '../../../call-control/services/sip-client.service';
 
 describe('ChatMessageThreadComponent', () => {
   let fixture: ComponentFixture<ChatMessageThreadComponent>;
   let component: ChatMessageThreadComponent;
+  let permissionServiceMock: { hasTenantPermission: ReturnType<typeof vi.fn> };
+  let sipClientMock: { startChatCall: ReturnType<typeof vi.fn> };
 
   beforeEach(async () => {
     const chatApiMock = {
       getAttachmentDownloadUrl: vi.fn((id: number) => `http://localhost:8080/api/v1/chat/attachments/${id}/download`),
     };
+    permissionServiceMock = {
+      hasTenantPermission: vi.fn(() => true),
+    };
+    sipClientMock = {
+      startChatCall: vi.fn().mockResolvedValue(undefined),
+    };
 
     await TestBed.configureTestingModule({
       imports: [ChatMessageThreadComponent],
-      providers: [{ provide: ChatApiService, useValue: chatApiMock }],
+      providers: [
+        { provide: ChatApiService, useValue: chatApiMock },
+        { provide: PermissionService, useValue: permissionServiceMock },
+        { provide: SipClientService, useValue: sipClientMock },
+      ],
     }).compileComponents();
 
     fixture = TestBed.createComponent(ChatMessageThreadComponent);
@@ -45,6 +59,105 @@ describe('ChatMessageThreadComponent', () => {
     fixture.detectChanges();
 
     expect(fixture.nativeElement.textContent).toContain('No messages yet.');
+  });
+
+  it('renders a direct-chat call button when call control permission and target are available', () => {
+    component.conversation = {
+      id: 11,
+      title: 'Room',
+      type: 'direct',
+      call_target: {
+        callable: true,
+        display_name: 'Tenant A Sales',
+        extension_number: '1002',
+        sip_uri: 'sip:1002@localhost',
+        target: 'sip:1002@localhost',
+      },
+    };
+    fixture.detectChanges();
+
+    const button = fixture.nativeElement.querySelector('[data-testid="direct-chat-call-button"]') as HTMLButtonElement;
+    expect(button).not.toBeNull();
+    expect(button.disabled).toBe(false);
+    expect(fixture.nativeElement.textContent).toContain('Tenant A Sales (1002)');
+  });
+
+  it('hides the call button when permission is missing', () => {
+    permissionServiceMock.hasTenantPermission.mockReturnValue(false);
+
+    component.conversation = {
+      id: 11,
+      title: 'Room',
+      type: 'direct',
+      call_target: {
+        callable: true,
+        display_name: 'Tenant A Sales',
+        extension_number: '1002',
+        sip_uri: 'sip:1002@localhost',
+        target: 'sip:1002@localhost',
+      },
+    };
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('[data-testid="direct-chat-call-button"]')).toBeNull();
+  });
+
+  it('disables the call button and shows a hint when no callable extension is available', () => {
+    component.conversation = {
+      id: 11,
+      title: 'Room',
+      type: 'direct',
+      call_target: {
+        callable: false,
+        display_name: 'Tenant A Sales',
+        reason: 'The other participant does not have an active callable extension.',
+      },
+    };
+    fixture.detectChanges();
+
+    const button = fixture.nativeElement.querySelector('[data-testid="direct-chat-call-button"]') as HTMLButtonElement;
+    expect(button).not.toBeNull();
+    expect(button.disabled).toBe(true);
+    expect(fixture.nativeElement.textContent).toContain('The other participant does not have an active callable extension.');
+  });
+
+  it('hides the call button for group conversations', () => {
+    component.conversation = {
+      id: 11,
+      title: 'Group',
+      type: 'group',
+      call_target: {
+        callable: true,
+        display_name: 'Tenant A Sales',
+        extension_number: '1002',
+        sip_uri: 'sip:1002@localhost',
+        target: 'sip:1002@localhost',
+      },
+    };
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('[data-testid="direct-chat-call-button"]')).toBeNull();
+  });
+
+  it('calls the shared softphone layer with the resolved SIP target when the call button is clicked', async () => {
+    component.conversation = {
+      id: 11,
+      title: 'Room',
+      type: 'direct',
+      call_target: {
+        callable: true,
+        display_name: 'Tenant A Sales',
+        extension_number: '1002',
+        sip_uri: 'sip:1002@localhost',
+        target: 'sip:1002@localhost',
+      },
+    };
+    fixture.detectChanges();
+
+    const button = fixture.nativeElement.querySelector('[data-testid="direct-chat-call-button"]') as HTMLButtonElement;
+    button.click();
+
+    expect(sipClientMock.startChatCall).toHaveBeenCalledWith('sip:1002@localhost');
   });
 
   it('loading state renders safely', () => {

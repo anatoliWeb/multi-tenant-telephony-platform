@@ -1069,11 +1069,11 @@ Stage status: `COMPLETE`
 
 ## 20.1 Direct Chat
 
-- [ ] Add an audio-call button to the existing chat header
-- [ ] Hide the button without permission
-- [ ] Resolve the participant extension
-- [ ] Open the reusable softphone modal
-- [ ] Start the call through `CallControlService`
+- [x] Add an audio-call button to the existing chat header
+- [x] Hide the button without permission
+- [x] Resolve the participant extension
+- [x] Open the reusable softphone modal
+- [x] Start the call through `CallControlService`
 - [ ] Add a call-started event message
 - [ ] Add a missed-call event message
 - [ ] Add a completed-call summary

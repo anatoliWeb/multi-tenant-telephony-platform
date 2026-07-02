@@ -107,6 +107,7 @@ describe('SoftphoneModalComponent', () => {
     transferError$: new BehaviorSubject<string | null>(null),
     transferMessage$: new BehaviorSubject<string | null>(null),
     transferSuccess$: new BehaviorSubject(false),
+    destination$: new BehaviorSubject(''),
     mediaDiagnostics$: new BehaviorSubject({
       remote_audio_attached: false,
       remote_audio_track_count: 0,
@@ -254,6 +255,7 @@ describe('SoftphoneModalComponent', () => {
     sipClientMock.transferError$.next(null);
     sipClientMock.transferMessage$.next(null);
     sipClientMock.transferSuccess$.next(false);
+    sipClientMock.destination$.next('');
     sipClientMock.audioInputDevicesLoading$.next(false);
     sipClientMock.selectedAudioInputDeviceId$.next(null);
     sipClientMock.transportState$.next('disconnected');

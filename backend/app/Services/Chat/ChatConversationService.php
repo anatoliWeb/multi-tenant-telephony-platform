@@ -2,7 +2,9 @@
 
 namespace App\Services\Chat;
 
+use App\Enums\Extensions\ExtensionStatus;
 use App\Events\Chat\ChatUserLeftConversation;
+use App\Models\Extension;
 use App\Models\Conversation;
 use App\Models\ConversationParticipant;
 use App\Models\User;
@@ -513,6 +515,68 @@ class ChatConversationService
             ->get();
     }
 
+    /**
+     * Resolve the safe callable target for a direct conversation.
+     *
+     * The payload intentionally exposes only browser-safe call metadata so chat
+     * features can reuse the shared softphone layer without handling SIP
+     * credentials or tenant-specific provider state.
+     *
+     * @return array{callable: bool, user_id: int|null, display_name: string|null, extension_number: string|null, sip_uri: string|null, target: string|null, reason: string|null}
+     */
+    public function resolveCallTarget(User $actor, Conversation $conversation): array
+    {
+        if (! $this->accessService->canViewConversation($actor, $conversation)) {
+            throw new AuthorizationException('You are not allowed to view conversation call targets.');
+        }
+
+        if ($conversation->type !== 'direct') {
+            return $this->buildUnavailableCallTarget(null, null, null, 'Call is available only for direct chats.');
+        }
+
+        $otherParticipant = ConversationParticipant::query()
+            ->forCurrentTenant()
+            ->where('conversation_id', $conversation->id)
+            ->where('status', 'active')
+            ->where('user_id', '!=', $actor->id)
+            ->with('user')
+            ->first();
+
+        $otherUser = $otherParticipant?->user;
+        if (! $otherUser) {
+            return $this->buildUnavailableCallTarget(null, null, null, 'No callable participant is available for this direct chat.');
+        }
+
+        $extension = Extension::query()
+            ->forCurrentTenant()
+            ->where('assigned_user_id', $otherUser->id)
+            ->where('status', ExtensionStatus::Active->value)
+            ->orderBy('number')
+            ->first();
+
+        if (! $extension) {
+            return $this->buildUnavailableCallTarget(
+                (int) $otherUser->id,
+                $this->safeParticipantName($otherUser->name),
+                null,
+                'The other participant does not have an active callable extension.'
+            );
+        }
+
+        $extensionNumber = trim((string) $extension->number);
+        $sipUri = sprintf('sip:%s@localhost', $extensionNumber);
+
+        return [
+            'callable' => true,
+            'user_id' => (int) $otherUser->id,
+            'display_name' => $this->safeParticipantName($otherUser->name),
+            'extension_number' => $extensionNumber,
+            'sip_uri' => $sipUri,
+            'target' => $sipUri,
+            'reason' => null,
+        ];
+    }
+
     public function leaveConversation(User $actor, Conversation $conversation): ConversationParticipant
     {
         $participant = ConversationParticipant::query()
@@ -838,6 +902,29 @@ class ChatConversationService
 
             return $conversation->fresh();
         });
+    }
+
+    /**
+     * @return array{callable: bool, user_id: int|null, display_name: string|null, extension_number: string|null, sip_uri: string|null, target: string|null, reason: string|null}
+     */
+    private function buildUnavailableCallTarget(?int $userId, ?string $displayName, ?string $extensionNumber, string $reason): array
+    {
+        return [
+            'callable' => false,
+            'user_id' => $userId,
+            'display_name' => $displayName,
+            'extension_number' => $extensionNumber,
+            'sip_uri' => null,
+            'target' => null,
+            'reason' => $reason,
+        ];
+    }
+
+    private function safeParticipantName(?string $name): ?string
+    {
+        $normalized = trim((string) $name);
+
+        return $normalized !== '' ? $normalized : null;
     }
 
     /**

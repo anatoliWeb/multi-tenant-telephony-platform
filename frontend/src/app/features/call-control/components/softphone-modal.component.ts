@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { Component, ElementRef, EventEmitter, Input, OnChanges, OnDestroy, Output, SimpleChanges, ViewChild } from '@angular/core';
-import { firstValueFrom, Observable } from 'rxjs';
+import { firstValueFrom, Observable, Subscription } from 'rxjs';
 import { SharedModule } from '../../../shared/shared.module';
 import { TenantContextService } from '../../../core/services/tenant-context.service';
 import { ExtensionsStateService } from '../../extensions/services/extensions-state.service';
@@ -53,6 +53,7 @@ export class SoftphoneModalComponent implements OnChanges, OnDestroy {
   readonly error$;
   readonly mediaDiagnostics$: Observable<SipMediaDiagnostics>;
   readonly browserDiagnostics$: Observable<SipBrowserDiagnostics>;
+  private readonly subscriptions = new Subscription();
 
   constructor(
     private readonly sipClient: SipClientService,
@@ -79,6 +80,11 @@ export class SoftphoneModalComponent implements OnChanges, OnDestroy {
     this.mediaDiagnostics$ = this.sipClient.mediaDiagnostics$;
     this.browserDiagnostics$ = this.sipClient.browserDiagnostics$;
     this.extensions$ = this.extensionsState.extensions$;
+    this.subscriptions.add(
+      this.sipClient.destination$.subscribe((value) => {
+        this.destination = value;
+      }),
+    );
   }
 
   get profile() {
@@ -179,6 +185,7 @@ export class SoftphoneModalComponent implements OnChanges, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.subscriptions.unsubscribe();
     this.isMinimized = false;
     this.sipClient.resetForTenantChange();
   }

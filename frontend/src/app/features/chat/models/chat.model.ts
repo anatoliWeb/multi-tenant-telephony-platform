@@ -49,6 +49,17 @@ export interface ChatConversation {
   participants_count?: number;
   current_user_access?: ChatParticipant;
   participants?: ChatParticipant[];
+  call_target?: ChatConversationCallTarget | null;
+}
+
+export interface ChatConversationCallTarget {
+  callable: boolean;
+  user_id?: number | null;
+  display_name?: string | null;
+  extension_number?: string | null;
+  sip_uri?: string | null;
+  target?: string | null;
+  reason?: string | null;
 }
 
 export interface ChatAttachment {

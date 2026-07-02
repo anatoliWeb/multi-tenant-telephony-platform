@@ -167,6 +167,8 @@ class ChatConversationController extends BaseController
             ->withAdminMetadata($this->queryService->applyAdminMetadataGate($user, $conversation))
             ->resolve();
 
+        $payload['call_target'] = $this->conversationService->resolveCallTarget($user, $conversation);
+
         if ($participant !== null) {
             $payload['current_user_participant'] = (new ChatParticipantResource($participant))
                 ->withAdminMetadata($this->queryService->applyAdminMetadataGate($user, $conversation))

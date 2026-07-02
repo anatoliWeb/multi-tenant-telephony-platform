@@ -1,6 +1,31 @@
 <header class="thread-head">
-  <h2>{{ conversation?.title || 'Select a conversation' }}</h2>
-  <small *ngIf="conversation as activeConversation">#{{ activeConversation.id }} - {{ activeConversation.type || 'chat' }}</small>
+  <div class="thread-head__title-group">
+    <h2>{{ conversation?.title || callTargetLabel || 'Select a conversation' }}</h2>
+    <small *ngIf="conversation as activeConversation">#{{ activeConversation.id }} - {{ activeConversation.type || 'chat' }}</small>
+    <small *ngIf="isDirectConversation && callTarget?.callable" class="thread-head__target" data-testid="direct-chat-call-target">
+      {{ callTargetLabel }}
+    </small>
+    <small *ngIf="isDirectConversation && !callTarget?.callable && callTargetLabel" class="thread-head__target thread-head__target--warning">
+      {{ callUnavailableReason }}
+    </small>
+  </div>
+
+  <div class="thread-head__actions" *ngIf="showCallButton">
+    <button
+      type="button"
+      class="thread-head__call-button"
+      data-testid="direct-chat-call-button"
+      [disabled]="!canStartCall"
+      [attr.title]="callButtonTitle"
+      [attr.aria-label]="callButtonTitle"
+      (click)="startAudioCall()"
+    >
+      Call
+    </button>
+    <small class="thread-head__call-hint" *ngIf="!canStartCall" data-testid="direct-chat-call-unavailable">
+      {{ callUnavailableReason }}
+    </small>
+  </div>
 </header>
 
 <div class="state" *ngIf="loading">Loading messages...</div>

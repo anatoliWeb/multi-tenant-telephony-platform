@@ -1,7 +1,9 @@
 import { Component, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { PermissionService } from '../../../../rbac/services/permission.service';
 import { ChatApiService } from '../../../../core/services/chat-api.service';
-import type { ChatAttachment, ChatConversation, ChatMessage, ChatPresenceUser } from '../../models/chat.model';
+import { SipClientService } from '../../../call-control/services/sip-client.service';
+import type { ChatAttachment, ChatConversation, ChatConversationCallTarget, ChatMessage, ChatPresenceUser } from '../../models/chat.model';
 
 @Component({
   selector: 'app-chat-message-thread',
@@ -18,7 +20,11 @@ export class ChatMessageThreadComponent {
   @Input() loading = false;
   @Input() error: string | null = null;
 
-  constructor(private readonly chatApi: ChatApiService) {}
+  constructor(
+    private readonly chatApi: ChatApiService,
+    private readonly permissionService: PermissionService,
+    private readonly sipClient: SipClientService,
+  ) {}
 
   get canViewMessages(): boolean {
     const access = this.conversation?.current_user_access;
@@ -28,6 +34,74 @@ export class ChatMessageThreadComponent {
     if (access?.block_display_mode === 'hide_chat') return false;
     if (access?.access_state === 'blocked' && access.block_display_mode === 'show_notice') return false;
     return true;
+  }
+
+  get canUseCallControl(): boolean {
+    return this.permissionService.hasTenantPermission('call_control.view');
+  }
+
+  get isDirectConversation(): boolean {
+    return (this.conversation?.type ?? '').toLowerCase() === 'direct';
+  }
+
+  get callTarget(): ChatConversationCallTarget | null {
+    return this.conversation?.call_target ?? null;
+  }
+
+  get showCallButton(): boolean {
+    return this.isDirectConversation && this.canUseCallControl;
+  }
+
+  get canStartCall(): boolean {
+    return Boolean(this.callTarget?.callable && (this.callTarget.sip_uri || this.callTarget.extension_number));
+  }
+
+  get callButtonTitle(): string {
+    if (!this.showCallButton) {
+      return '';
+    }
+
+    if (!this.canStartCall) {
+      return this.callUnavailableReason;
+    }
+
+    const targetLabel = this.callTargetLabel;
+    return targetLabel ? `Call ${targetLabel}` : 'Start audio call';
+  }
+
+  get callTargetLabel(): string {
+    const displayName = this.callTarget?.display_name?.trim();
+    const extensionNumber = this.callTarget?.extension_number?.trim();
+
+    if (displayName && extensionNumber) {
+      return `${displayName} (${extensionNumber})`;
+    }
+
+    if (displayName) {
+      return displayName;
+    }
+
+    if (extensionNumber) {
+      return extensionNumber;
+    }
+
+    return 'direct participant';
+  }
+
+  get callUnavailableReason(): string {
+    if (!this.showCallButton) {
+      return 'Call control is unavailable.';
+    }
+
+    if (!this.callTarget) {
+      return 'No callable participant was resolved for this direct chat.';
+    }
+
+    if (this.callTarget.reason?.trim()) {
+      return this.callTarget.reason.trim();
+    }
+
+    return 'No callable extension is available for this participant.';
   }
 
   isOwnMessage(message: ChatMessage): boolean {
@@ -80,6 +154,19 @@ export class ChatMessageThreadComponent {
 
   attachmentDownloadUrl(attachment: ChatAttachment): string {
     return this.chatApi.getAttachmentDownloadUrl(attachment.id);
+  }
+
+  async startAudioCall(): Promise<void> {
+    if (!this.canStartCall) {
+      return;
+    }
+
+    const destination = this.callTarget?.sip_uri?.trim() || this.callTarget?.target?.trim() || this.callTarget?.extension_number?.trim() || '';
+    if (!destination) {
+      return;
+    }
+
+    await this.sipClient.startChatCall(destination);
   }
 
   get visibleTypingUsers(): ChatPresenceUser[] {

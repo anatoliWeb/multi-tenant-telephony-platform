@@ -1,5 +1,5 @@
-import { Component } from '@angular/core';
-import { firstValueFrom } from 'rxjs';
+import { Component, OnDestroy } from '@angular/core';
+import { firstValueFrom, Subscription } from 'rxjs';
 import { AuthRuntimeService } from '../../../auth/services/auth-runtime.service';
 import { AppLoadingService } from '../../../core/services/app-loading.service';
 import { AuthStateService } from '../../../core/services/auth-state.service';
@@ -15,12 +15,13 @@ import { SipClientService } from '../../../features/call-control/services/sip-cl
   styleUrls: ['./dashboard-shell.component.scss'],
   standalone: false,
 })
-export class DashboardShellComponent {
+export class DashboardShellComponent implements OnDestroy {
   readonly enabledLocales: readonly string[];
   readonly tenants$;
   readonly activeTenant$;
   readonly activeTenantId$;
   isSoftphoneOpen = false;
+  private readonly subscriptions = new Subscription();
 
   constructor(
     public readonly authState: AuthStateService,
@@ -36,6 +37,12 @@ export class DashboardShellComponent {
     this.tenants$ = this.tenantContext.tenants$;
     this.activeTenant$ = this.tenantContext.activeTenant$;
     this.activeTenantId$ = this.tenantContext.activeTenantId$;
+
+    this.subscriptions.add(
+      this.sipClient.softphoneOpenRequested$.subscribe(() => {
+        this.isSoftphoneOpen = true;
+      }),
+    );
   }
 
   get canOpenSoftphone(): boolean {
@@ -78,5 +85,9 @@ export class DashboardShellComponent {
   closeSoftphone(): void {
     this.isSoftphoneOpen = false;
     this.sipClient.resetForTenantChange();
+  }
+
+  ngOnDestroy(): void {
+    this.subscriptions.unsubscribe();
   }
 }

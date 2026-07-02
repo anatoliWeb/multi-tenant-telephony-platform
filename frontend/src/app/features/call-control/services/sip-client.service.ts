@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { BehaviorSubject, firstValueFrom } from 'rxjs';
+import { BehaviorSubject, Subject, firstValueFrom } from 'rxjs';
 import {
   Invitation,
   Inviter,
@@ -80,6 +80,7 @@ export class SipClientService {
   private readonly transferErrorSubject = new BehaviorSubject<string | null>(null);
   private readonly transferMessageSubject = new BehaviorSubject<string | null>(null);
   private readonly transferSuccessSubject = new BehaviorSubject<boolean>(false);
+  private readonly softphoneOpenRequestedSubject = new Subject<void>();
   private readonly errorSubject = new BehaviorSubject<string | null>(null);
   private readonly lastMediaErrorSubject = new BehaviorSubject<string | null>(null);
   private readonly mediaDiagnosticsSubject = new BehaviorSubject<SipMediaDiagnostics>({
@@ -136,6 +137,7 @@ export class SipClientService {
   readonly transferError$ = this.transferErrorSubject.asObservable();
   readonly transferMessage$ = this.transferMessageSubject.asObservable();
   readonly transferSuccess$ = this.transferSuccessSubject.asObservable();
+  readonly softphoneOpenRequested$ = this.softphoneOpenRequestedSubject.asObservable();
   readonly error$ = this.errorSubject.asObservable();
   readonly mediaDiagnostics$ = this.mediaDiagnosticsSubject.asObservable();
   readonly browserDiagnostics$ = this.browserDiagnosticsSubject.asObservable();
@@ -588,6 +590,29 @@ export class SipClientService {
     }
   }
 
+  async startChatCall(destination: string): Promise<void> {
+    const normalizedDestination = destination.trim();
+    if (!normalizedDestination) {
+      this.errorSubject.next('Call target is required.');
+      return;
+    }
+
+    this.setDestination(normalizedDestination);
+    this.requestSoftphoneOpen();
+
+    if (this.canPlaceCall()) {
+      await this.call(normalizedDestination);
+      return;
+    }
+
+    console.debug('[SIP/WebRTC] chat call opened softphone without auto-dial', {
+      destination: normalizedDestination,
+      callState: this.callStateSubject.value,
+      registrationState: this.registrationStateSubject.value,
+      transportState: this.transportStateSubject.value,
+    });
+  }
+
   async hangup(): Promise<void> {
     if (!this.activeSession) {
       if (this.incomingInvitation) {
@@ -996,6 +1021,10 @@ export class SipClientService {
 
   setDestination(destination: string): void {
     this.destinationSubject.next(destination);
+  }
+
+  requestSoftphoneOpen(): void {
+    this.softphoneOpenRequestedSubject.next();
   }
 
   setTransferTarget(target: string): void {

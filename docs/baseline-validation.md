@@ -469,3 +469,16 @@ following verification state:
   needs an explicit end-to-end hearing check beyond media establishment;
 - transfer is code-level complete with guarded SIP.js REFER support, while live
   FreeSWITCH REFER verification is still pending.
+
+## Stage 16 Addendum
+
+Stage 16 started with a thin direct-chat calling slice that reuses the Stage 15
+Angular call-control layer:
+
+- frontend tests after the chat-to-call wiring: `261 passed`, `0 failed`;
+- Angular production build passed after the chat header and softphone handoff
+  updates;
+- the direct-chat header now resolves a safe callable target and hands it to
+  the shared softphone flow;
+- manual end-to-end browser verification for the new chat entry point is still
+  pending.

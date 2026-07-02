@@ -311,6 +311,24 @@ Known local-demo limitations:
 - hold and resume remain a browser-side placeholder until PBX hold signaling is wired;
 - active-call microphone switching is intentionally disabled for safety.
 
+### Stage 16 Direct Chat Calling
+
+Stage 16 begins with a thin direct-chat call entry point that reuses the Stage 15
+Angular call-control layer instead of embedding SIP.js in chat views.
+
+Current notes:
+
+- the direct chat header can resolve a safe callable target for the other
+  participant when the conversation is one-to-one and the participant has an
+  active extension;
+- the chat UI opens the existing shared softphone modal and hands the resolved
+  target to the reusable call-control service;
+- if no callable extension is available, the call affordance stays disabled and
+  the UI shows a clear availability hint;
+- group-chat calling remains a later slice and is not part of this first direct
+  chat entry point;
+- call-started, missed-call, and completed-call summary events are still open.
+
 ## FreeSWITCH Docker Profile
 
 Stage 14 adds an optional local-only FreeSWITCH Docker profile named `freeswitch`.

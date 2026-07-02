@@ -2,6 +2,8 @@
 
 namespace Tests\Feature\Chat;
 
+use App\Enums\Extensions\ExtensionStatus;
+use App\Models\Extension;
 use App\Models\Conversation;
 use App\Models\ConversationParticipant;
 use App\Models\Permission;
@@ -238,6 +240,42 @@ class ChatConversationCreationApiTest extends TestCase
         $this->getJson("/api/v1/chat/conversations/{$inviteConversation->id}/participants")->assertForbidden();
         $this->postJson("/api/v1/chat/conversations/{$inviteConversation->id}/participants", ['user_id' => $someTarget->id])->assertForbidden();
         $this->deleteJson("/api/v1/chat/conversations/{$inviteConversation->id}/participants/{$someTarget->id}")->assertForbidden();
+    }
+
+    public function test_direct_chat_show_payload_includes_safe_call_target_metadata(): void
+    {
+        $actor = $this->actingAsWithPermissions([
+            'chat.create',
+            'chat.conversations.create',
+            'chat.view',
+            'chat.conversations.view',
+            'chat.participants.view',
+        ]);
+
+        $target = $this->prepareTenantChatUser(User::factory()->create(), []);
+        Extension::factory()->create([
+            'tenant_id' => $this->chatTenant()->id,
+            'assigned_user_id' => $target->id,
+            'number' => '1002',
+            'status' => ExtensionStatus::Active,
+            'created_by' => $actor->id,
+            'updated_by' => $actor->id,
+        ]);
+
+        $directResponse = $this->postJson('/api/v1/chat/conversations/direct', [
+            'user_id' => $target->id,
+        ])->assertCreated();
+
+        $conversationId = (int) $directResponse->json('data.id');
+
+        $this->getJson("/api/v1/chat/conversations/{$conversationId}")
+            ->assertOk()
+            ->assertJsonPath('data.call_target.callable', true)
+            ->assertJsonPath('data.call_target.user_id', $target->id)
+            ->assertJsonPath('data.call_target.display_name', $target->name)
+            ->assertJsonPath('data.call_target.extension_number', '1002')
+            ->assertJsonPath('data.call_target.sip_uri', 'sip:1002@localhost')
+            ->assertJsonPath('data.call_target.target', 'sip:1002@localhost');
     }
 }
 

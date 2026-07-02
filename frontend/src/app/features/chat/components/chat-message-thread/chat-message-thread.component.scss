@@ -6,6 +6,11 @@
   margin-bottom: 0.75rem;
 }
 
+.thread-head__title-group {
+  display: grid;
+  gap: 0.15rem;
+}
+
 .thread-head h2 {
   margin: 0;
   font-size: 1rem;
@@ -13,6 +18,45 @@
 
 .thread-head small {
   color: #6b7280;
+}
+
+.thread-head__actions {
+  display: grid;
+  justify-items: end;
+  gap: 0.25rem;
+}
+
+.thread-head__call-button {
+  border: 1px solid #2563eb;
+  background: #eff6ff;
+  color: #1d4ed8;
+  border-radius: 0.45rem;
+  padding: 0.35rem 0.7rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.thread-head__call-button:disabled {
+  border-color: #cbd5e1;
+  background: #f8fafc;
+  color: #94a3b8;
+  cursor: not-allowed;
+}
+
+.thread-head__call-hint {
+  max-width: 20rem;
+  text-align: right;
+  color: #92400e;
+  font-size: 0.74rem;
+}
+
+.thread-head__target {
+  font-size: 0.8rem;
+}
+
+.thread-head__target--warning {
+  color: #92400e;
 }
 
 .notice {
