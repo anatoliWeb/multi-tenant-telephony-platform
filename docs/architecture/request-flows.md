@@ -153,6 +153,11 @@ with `sofia_contact(*/<extension>@<runtime-domain>)` and bridges that exact
 contact string. That keeps the browser on the live WebSocket contact instead of
 falling back to the stock `bridge(user/...)` path.
 
+When the route matches, the FreeSWITCH log should include explicit markers such
+as `INFO local-demo bridge <caller> -> <destination>` and
+`INFO local-demo contact <destination>: <resolved-contact>`. If the log still
+shows the stock `bridge(user/...)` path, the local demo route did not win.
+
 The softphone modal also binds a single remote audio element, keeps it
 unmuted, and reads media diagnostics from `SipClientService` so autoplay
 blocks, missing tracks, and peer-connection failures surface as explicit UI

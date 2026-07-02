@@ -142,6 +142,76 @@ RUNTIME_DOMAIN_FILE="$TMP_DIR/$RUNTIME_DOMAIN.xml"
 sed "s/<domain name=\"localhost\">/<domain name=\"$RUNTIME_DOMAIN\">/" "$BROWSER_DOMAIN_FILE" > "$RUNTIME_DOMAIN_FILE"
 RUNTIME_DIALPLAN_FILE="$TMP_DIR/00_local-demo-extensions.xml"
 sed "s/__RUNTIME_DOMAIN__/$RUNTIME_DOMAIN/g" "$LOCAL_DEMO_DIALPLAN_FILE" > "$RUNTIME_DIALPLAN_FILE"
+INLINE_DIALPLAN_FILE="$TMP_DIR/local-demo-route.xml"
+sed '1d;$d' "$RUNTIME_DIALPLAN_FILE" > "$INLINE_DIALPLAN_FILE"
+
+rewrite_inline_dialplan() {
+  target_path="$1"
+  anchor_line="$2"
+  local_source="$3"
+  local_target="$TMP_DIR/$(basename "$target_path")"
+  local_rewrite="$TMP_DIR/rewrite-local-demo.awk"
+
+  docker cp "$CONTAINER_ID:$target_path" "$local_target" >/dev/null
+
+  cat > "$local_rewrite" <<'AWK'
+BEGIN {
+  while ((getline line < block_file) > 0) block = block line ORS
+  close(block_file)
+  begin_marker = "  <!-- BEGIN LOCAL DEMO EXTENSION BRIDGE -->"
+  end_marker = "  <!-- END LOCAL DEMO EXTENSION BRIDGE -->"
+  inserted = 0
+  skipping = 0
+}
+$0 == begin_marker {
+  skipping = 1
+  next
+}
+$0 == end_marker {
+  skipping = 0
+  next
+}
+$0 ~ /^  <!-- Local demo bridge rules for FreeSWITCH development only\./ {
+  skipping = 1
+  next
+}
+{
+  if (skipping) {
+    if ($0 == anchor_line) {
+      print begin_marker
+      printf "%s", block
+      print end_marker
+      print
+      inserted = 1
+      skipping = 0
+    }
+    next
+  }
+
+  if ($0 == anchor_line) {
+    print begin_marker
+    printf "%s", block
+    print end_marker
+    print
+    inserted = 1
+    next
+  }
+
+  print
+}
+END {
+  if (!inserted) {
+    print begin_marker
+    printf "%s", block
+    print end_marker
+  }
+}
+AWK
+
+  awk -v anchor_line="$anchor_line" -v block_file="$local_source" -f "$local_rewrite" "$local_target" > "$local_target.new"
+  mv "$local_target.new" "$local_target"
+  docker cp "$local_target" "$CONTAINER_ID:$target_path" >/dev/null
+}
 
 for user in $USERS; do
   USER_FILE="$TMP_DIR/$user.xml"
@@ -175,19 +245,18 @@ done
 
 copy_file_into_container "$BROWSER_DOMAIN_FILE" "/usr/local/freeswitch/conf/directory/localhost.xml"
 copy_file_into_container "$RUNTIME_DOMAIN_FILE" "/usr/local/freeswitch/conf/directory/$RUNTIME_DOMAIN.xml"
-docker compose -f "$COMPOSE_FILE" exec -T freeswitch sh -lc "rm -f /usr/local/freeswitch/conf/dialplan/public/local-demo-extensions.xml /usr/local/freeswitch/conf/dialplan/default/local-demo-extensions.xml"
-copy_file_into_container "$RUNTIME_DIALPLAN_FILE" "/usr/local/freeswitch/conf/dialplan/public/00_local-demo-extensions.xml"
-copy_file_into_container "$RUNTIME_DIALPLAN_FILE" "/usr/local/freeswitch/conf/dialplan/default/00_local-demo-extensions.xml"
-docker compose -f "$COMPOSE_FILE" exec -T freeswitch sh -lc "grep -qF 'default/00_local-demo-extensions.xml' /usr/local/freeswitch/conf/dialplan/default.xml || sed -i '/<X-PRE-PROCESS cmd=\"include\" data=\"default\\/\\*\\.xml\"\\/>/i\\    <X-PRE-PROCESS cmd=\"include\" data=\"default\\/00_local-demo-extensions.xml\"/>' /usr/local/freeswitch/conf/dialplan/default.xml"
+docker compose -f "$COMPOSE_FILE" exec -T freeswitch sh -lc "rm -f /usr/local/freeswitch/conf/dialplan/public/00_local-demo-extensions.xml /usr/local/freeswitch/conf/dialplan/default/00_local-demo-extensions.xml"
+rewrite_inline_dialplan "/usr/local/freeswitch/conf/dialplan/public.xml" '    <extension name="public_extensions">' "$INLINE_DIALPLAN_FILE"
+rewrite_inline_dialplan "/usr/local/freeswitch/conf/dialplan/default.xml" '    <extension name="Local_Extension">' "$INLINE_DIALPLAN_FILE"
 
 run_fs_cli "reloadxml" >/dev/null
-run_fs_cli "sofia profile internal restart" >/dev/null
 
 echo "Provisioned local demo users: $USERS"
 echo "Browser SIP domain: $BROWSER_SIP_DOMAIN"
 echo "Browser SIP WSS URL: $BROWSER_WSS_URL"
 echo "FreeSWITCH directory lookup domain: $DIRECTORY_DOMAIN"
 echo "FreeSWITCH runtime SIP domain: $RUNTIME_DOMAIN"
+echo "After reload/restart, browser SIP registrations may be cleared. Re-register 1001 and 1002 before call testing."
 
 for DIALPLAN_CONTEXT in public default; do
   if ! run_fs_cli "xml_locate dialplan context name $DIALPLAN_CONTEXT" | grep -q "local-demo-extension-bridge"; then

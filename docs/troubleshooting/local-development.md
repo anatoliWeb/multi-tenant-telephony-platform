@@ -555,10 +555,13 @@ destination_number
 ```
 
 If the log still shows `bridge(user/<extension>@<runtime-domain>)`, the demo
-dialplan file is loading too late in the default context. Re-run the FreeSWITCH
-provisioning script so it copies the runtime dialplan with the `00_` filename
-prefix, removes the stale later-loading copy, and prepends the explicit local
-demo include into `/usr/local/freeswitch/conf/dialplan/default.xml`.
+dialplan file is loading too late in the `public` or `default` context.
+Re-run the FreeSWITCH provisioning script so it rewrites the live
+`public.xml` and `default.xml` files with a single inline local-demo block,
+removes any stale earlier copy of that block, and keeps the route before the
+stock route in both files. The script also refreshes the runtime domain
+substitution so a stale `__RUNTIME_DOMAIN__` token cannot survive a partial
+update.
 
 If the resolved contact is empty, the correct failure is `480 Temporarily
 Unavailable` with a `USER_NOT_REGISTERED` hangup cause. That means the callee

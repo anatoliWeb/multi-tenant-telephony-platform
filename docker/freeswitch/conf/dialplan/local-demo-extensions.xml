@@ -13,11 +13,14 @@
     </condition>
 
     <condition field="${local_demo_contact}" expression="^$">
+      <action application="log" data="INFO local-demo contact ${destination_number}: missing"/>
       <action application="respond" data="480 Temporarily Unavailable"/>
       <action application="hangup" data="USER_NOT_REGISTERED"/>
     </condition>
 
     <condition field="${local_demo_contact}" expression=".+">
+      <action application="log" data="INFO local-demo bridge ${caller_id_number} -> ${destination_number}"/>
+      <action application="log" data="INFO local-demo contact ${destination_number}: ${local_demo_contact}"/>
       <action application="bridge" data="${local_demo_contact}"/>
     </condition>
   </extension>

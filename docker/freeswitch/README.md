@@ -88,11 +88,11 @@ user. A pointer-only directory entry is not enough for browser SIP
 registration. The provisioning script also generates a temporary copy of that
 same XML for the runtime profile domain detected from
 `global_getvar local_ip_v4`, then copies both files into the running container
-without committing the runtime-domain file to git. It also copies a local demo
-dialplan fixture into the public and default contexts so `2001`, `2002`, and
-the `1001`/`1002` fallback pair can bridge to the registered browser session.
-On this image, `find_user_xml id <user> <domain>` is the most reliable way to
-verify the resolved auth XML.
+without committing the runtime-domain file to git. The dialplan side now uses
+a single inline extension strategy: the script rewrites the live `public.xml`
+and `default.xml` files with one marked local-demo block before the stock
+routes. On this image, `find_user_xml id <user> <domain>` is the most
+reliable way to verify the resolved auth XML.
 
 The Event Socket port is bound to `127.0.0.1` so it stays local-only and does
 not expose unsafe call-control access outside the developer machine.
@@ -186,41 +186,32 @@ docker compose --profile freeswitch up -d freeswitch
 
 PowerShell fallback when the shell script cannot be launched directly:
 
-```powershell
-$runtime = (docker compose exec -T freeswitch fs_cli -x "global_getvar local_ip_v4").Trim()
-$directoryTemplate = Get-Content -Raw -LiteralPath "docker\freeswitch\conf\directory\localhost.xml"
-$runtimeDirectory = $directoryTemplate -replace '<domain name="localhost">', "<domain name=`"$runtime`">"
-$runtimeDirectoryPath = Join-Path $env:TEMP "$runtime.xml"
-$dialplanTemplate = Get-Content -Raw -LiteralPath "docker\freeswitch\conf\dialplan\local-demo-extensions.xml"
-$runtimeDialplan = $dialplanTemplate -replace '__RUNTIME_DOMAIN__', $runtime
-$runtimeDialplanPath = Join-Path $env:TEMP "00_local-demo-extensions.xml"
-Set-Content -LiteralPath $runtimeDirectoryPath -Value $runtimeDirectory
-Set-Content -LiteralPath $runtimeDialplanPath -Value $runtimeDialplan
-docker cp "docker\freeswitch\conf\directory\localhost.xml" "multi-tenant-telephony-platform-freeswitch:/usr/local/freeswitch/conf/directory/localhost.xml"
-docker cp $runtimeDirectoryPath "multi-tenant-telephony-platform-freeswitch:/usr/local/freeswitch/conf/directory/${runtime}.xml"
-docker compose exec -T freeswitch sh -lc "rm -f /usr/local/freeswitch/conf/dialplan/public/local-demo-extensions.xml /usr/local/freeswitch/conf/dialplan/default/local-demo-extensions.xml"
-docker cp $runtimeDialplanPath "multi-tenant-telephony-platform-freeswitch:/usr/local/freeswitch/conf/dialplan/public/00_local-demo-extensions.xml"
-docker cp $runtimeDialplanPath "multi-tenant-telephony-platform-freeswitch:/usr/local/freeswitch/conf/dialplan/default/00_local-demo-extensions.xml"
-docker compose exec -T freeswitch sh -lc "grep -qF 'default/00_local-demo-extensions.xml' /usr/local/freeswitch/conf/dialplan/default.xml || sed -i '/<X-PRE-PROCESS cmd=\"include\" data=\"default\\/\\*\\.xml\"\\/>/i\\    <X-PRE-PROCESS cmd=\"include\" data=\"default\\/00_local-demo-extensions.xml\"/>' /usr/local/freeswitch/conf/dialplan/default.xml"
-docker compose exec -T freeswitch fs_cli -x "reloadxml"
-docker compose exec -T freeswitch fs_cli -x "sofia profile internal restart"
-docker compose exec -T freeswitch fs_cli -x "xml_locate dialplan context name public"
-docker compose exec -T freeswitch fs_cli -x "xml_locate dialplan context name default"
+If PowerShell is the only shell available, run the provisioning script logic
+from `docker/freeswitch/scripts/provision-demo-users.sh` and keep the same
+inline-extension-body strategy. Do not copy the old `00_` include-file recipe
+into the live dialplan; that was the source of the malformed XML.
+
+The provisioning script refreshes the runtime `public.xml` and `default.xml`
+dialplans so the actual local demo route body appears before the stock
+`public_extensions` and `Local_Extension` rules, keeping `1001` and `1002` on
+the live Sofia contact bridge instead of falling back to `bridge(user/...)`.
+
+When the route is active, the live logs should contain markers such as:
+
+```text
+INFO local-demo bridge 1001 -> 1002
+INFO local-demo contact 1002: sofia/internal/...
 ```
 
-The `00_` dialplan filename prefix is intentional. It combines with the
-prepended include in `/usr/local/freeswitch/conf/dialplan/default.xml` so the
-local demo bridge loads before the stock `Local_Extension` rules in the default
-context, keeping `1001` and `1002` on the live Sofia contact bridge instead of
-falling back to `bridge(user/...)`.
+The script uses `reloadxml` only for dialplan changes. It does not restart the
+Sofia profile, because a restart clears browser registrations.
 
 The script provisions `1001`, `1002`, `2001`, and `2002` by default so it can
 cover both the documented demo pair and the current Angular demo seed data.
 Override that list with `FREESWITCH_DEMO_USERS` if you need a narrower set.
 
-The script reloads XML and restarts the internal SIP profile after copying the
-demo files, then verifies that `1001` and `1002` resolve with the correct
-lookup syntax:
+The script reloads XML after copying the demo files, then verifies that
+`1001` and `1002` resolve with the correct lookup syntax:
 
 ```bash
 docker compose exec -T freeswitch fs_cli -x "user_exists id 1001 <domain>"

@@ -240,10 +240,14 @@ Current boundary:
   the local FreeSWITCH provisioning scaffolding rather than SaaS-backed SIP
   credential storage.
 - the local demo bridge resolves the live Sofia contact for the destination
-  extension before bridging, and the provisioned dialplan copy uses a `00_`
-  filename prefix so it loads before the stock `Local_Extension` rules. That
-  keeps WebSocket registrations on their generated `fs_path` and prevents the
-  default `bridge(user/...)` path from winning first in the default context.
+  extension before bridging, and the provisioning script now rewrites the
+  runtime `public.xml` and `default.xml` dialplans with a single inline local
+  demo extension block before the stock `public_extensions` and
+  `Local_Extension` rules. That keeps WebSocket registrations on their
+  generated `fs_path`, prevents the default `bridge(user/...)` path from
+  winning first in either the public or default context, and gives the live
+  logs a clear `INFO local-demo bridge <caller> -> <destination>` marker when
+  the route matches.
 
 ## FreeSWITCH Docker Profile
 
