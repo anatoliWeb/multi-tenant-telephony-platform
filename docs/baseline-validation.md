@@ -454,3 +454,18 @@ Verified:
 - tenant context payloads return tenant feature permissions for authorized users and limited subsets for restricted roles;
 - Angular sidebar translations now resolve `layout.nav.chat` instead of rendering the raw key;
 - Vue administration navigation remains unchanged because tenant telephony navigation belongs to Angular.
+
+## Stage 15 Addendum
+
+Stage 15 closed out the Angular softphone foundation for the local demo with the
+following verification state:
+
+- frontend test run: `254 passed`, `0 failed`;
+- DTMF SIP INFO fallback is verified in FreeSWITCH logs with `Content-Type:
+  application/dtmf-relay`, `Signal=<digit>`, and `Duration=160`;
+- browser verification remains `PARTIAL` because the final cross-browser /
+  cross-device audio pass still needs broader manual confirmation;
+- remote audio verification remains `PARTIAL` because browser playback still
+  needs an explicit end-to-end hearing check beyond media establishment;
+- transfer is code-level complete with guarded SIP.js REFER support, while live
+  FreeSWITCH REFER verification is still pending.

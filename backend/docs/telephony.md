@@ -285,6 +285,32 @@ Current boundary:
   logs a clear `INFO local-demo bridge <caller> -> <destination>` marker when
   the route matches.
 
+### Stage 15 Angular Softphone Closeout
+
+Stage 15 completed the Angular call-control slice for the local demo.
+
+Verified feature coverage:
+
+- SIP registration for demo extensions `1001` and `1002`;
+- incoming and outgoing call setup;
+- accept, decline, and hang up;
+- mute and unmute;
+- hold and resume as a local/demo placeholder;
+- DTMF keypad with SIP INFO fallback when WebRTC DTMF is unavailable;
+- pre-call microphone device selection;
+- reconnect retry/backoff handling;
+- floating minimized mode that preserves the call state;
+- guarded transfer UI with SIP.js REFER support for active established calls.
+
+Known local-demo limitations:
+
+- Chrome and Edge are the primary supported browsers for local testing;
+- Opera remains a known compatibility limitation;
+- two-browser audio may be suppressed or altered by browser echo cancellation;
+- live REFER behavior in FreeSWITCH still needs manual end-to-end verification;
+- hold and resume remain a browser-side placeholder until PBX hold signaling is wired;
+- active-call microphone switching is intentionally disabled for safety.
+
 ## FreeSWITCH Docker Profile
 
 Stage 14 adds an optional local-only FreeSWITCH Docker profile named `freeswitch`.
