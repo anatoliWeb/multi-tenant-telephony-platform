@@ -14,6 +14,8 @@ export type SipCallState =
 
 export type SipRegistrationState = 'disconnected' | 'connecting' | 'registered' | 'failed';
 
+export type SipTransportState = 'disconnected' | 'connecting' | 'registered' | 'reconnecting' | 'failed' | 'unregistering';
+
 export type MicrophonePermissionState = 'unknown' | 'checking' | 'granted' | 'denied' | 'prompt' | 'unsupported';
 
 export interface SipMediaDiagnostics {

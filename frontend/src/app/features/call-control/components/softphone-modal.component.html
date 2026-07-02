@@ -41,6 +41,10 @@
             <strong>{{ (registrationState$ | async) || 'disconnected' }}</strong>
           </div>
           <div>
+            <span>{{ 'callControl.fields.transportState' | t }}</span>
+            <strong>{{ (transportState$ | async) || 'disconnected' }}</strong>
+          </div>
+          <div>
             <span>{{ 'callControl.fields.callState' | t }}</span>
             <strong>{{ (callState$ | async) || 'idle' }}</strong>
           </div>
@@ -104,6 +108,16 @@
               Local self-audio may be suppressed by echo cancellation, so headphones are recommended.
             </p>
           </ng-template>
+        </section>
+
+        <section class="softphone__browser-warning" *ngIf="(transportState$ | async) === 'reconnecting' || (transportState$ | async) === 'failed'">
+          <h5>SIP connection</h5>
+          <p *ngIf="(transportState$ | async) === 'reconnecting'">
+            SIP transport was disconnected and the softphone is retrying registration automatically.
+          </p>
+          <p *ngIf="(transportState$ | async) === 'failed'">
+            SIP reconnect reached the retry limit. Click Register to retry manually.
+          </p>
         </section>
 
         <section class="softphone__device-panel">
@@ -197,7 +211,7 @@
             (click)="register()"
             *ngIf="canRegister()"
           >
-            {{ 'callControl.actions.register' | t }}
+            {{ ((transportState$ | async) === 'failed' ? 'callControl.actions.retryRegister' : 'callControl.actions.register') | t }}
           </button>
           <button
             type="button"

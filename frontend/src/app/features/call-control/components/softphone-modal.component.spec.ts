@@ -45,6 +45,7 @@ describe('SoftphoneModalComponent', () => {
   let hasLocalAudioTrackValue = false;
   let locallyHeldValue = false;
   let selectedAudioInputDeviceIdValue: string | null = null;
+  let transportStateValue: 'disconnected' | 'connecting' | 'registered' | 'reconnecting' | 'failed' | 'unregistering' = 'disconnected';
 
   const sipClientMock = {
     profile$: new BehaviorSubject<any>({
@@ -76,6 +77,7 @@ describe('SoftphoneModalComponent', () => {
     }),
     callState$: new BehaviorSubject('ready'),
     registrationState$: new BehaviorSubject('disconnected'),
+    transportState$: new BehaviorSubject('disconnected'),
     microphonePermission$: new BehaviorSubject('unknown'),
     muted$: new BehaviorSubject(false),
     incomingCall$: new BehaviorSubject(false),
@@ -111,6 +113,9 @@ describe('SoftphoneModalComponent', () => {
           && profile.credentials_available
           && profile.password
           && sipClientMock.registrationState$.value !== 'connecting'
+          && transportStateValue !== 'connecting'
+          && transportStateValue !== 'reconnecting'
+          && transportStateValue !== 'unregistering'
           && sipClientMock.registrationState$.value !== 'registered',
       );
     }),
@@ -119,6 +124,7 @@ describe('SoftphoneModalComponent', () => {
       return Boolean(
         profile?.capabilities?.outbound_call
           && sipClientMock.registrationState$.value === 'registered'
+          && transportStateValue === 'registered'
           && destinationValue.trim()
           && !['dialing', 'ringing', 'active'].includes(sipClientMock.callState$.value as string),
       );
@@ -141,6 +147,7 @@ describe('SoftphoneModalComponent', () => {
     register: vi.fn().mockResolvedValue(undefined),
     checkMicrophonePermission: vi.fn().mockResolvedValue(undefined),
     refreshAudioInputDevices: vi.fn().mockResolvedValue(undefined),
+    transportState: 'disconnected',
     call: vi.fn().mockResolvedValue(undefined),
     hangup: vi.fn().mockResolvedValue(undefined),
     answerIncomingCall: vi.fn().mockResolvedValue(undefined),
@@ -179,11 +186,14 @@ describe('SoftphoneModalComponent', () => {
     hasLocalAudioTrackValue = false;
     locallyHeldValue = false;
     selectedAudioInputDeviceIdValue = null;
+    transportStateValue = 'disconnected';
     sipClientMock.browserDiagnostics$.next(defaultBrowserDiagnostics);
     sipClientMock.error$.next(null);
     sipClientMock.audioInputDevicesError$.next(null);
     sipClientMock.audioInputDevicesLoading$.next(false);
     sipClientMock.selectedAudioInputDeviceId$.next(null);
+    sipClientMock.transportState$.next('disconnected');
+    sipClientMock.transportState = 'disconnected';
     await TestBed.configureTestingModule({
       imports: [SoftphoneModalComponent],
       providers: [
@@ -319,6 +329,9 @@ describe('SoftphoneModalComponent', () => {
 
   it('shows register and call actions only when state allows them', async () => {
     sipClientMock.registrationState$.next('registered');
+    sipClientMock.transportState$.next('registered');
+    sipClientMock.transportState = 'registered';
+    transportStateValue = 'registered';
     sipClientMock.profile$.next({
       ...sipClientMock.profile$.value,
       registration_enabled: true,
@@ -333,6 +346,37 @@ describe('SoftphoneModalComponent', () => {
     expect(component.canRegister()).toBe(false);
     expect(component.canPlaceCall()).toBe(true);
     expect(actionLabels()).toContain('Call');
+  });
+
+  it('shows reconnecting status and disables register/call actions while transport retries', async () => {
+    sipClientMock.registrationState$.next('registered');
+    sipClientMock.transportState$.next('reconnecting');
+    sipClientMock.transportState = 'reconnecting';
+    transportStateValue = 'reconnecting';
+
+    component.open = true;
+    await component.prepareProfile();
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('SIP transport was disconnected and the softphone is retrying registration automatically.');
+    expect(component.canRegister()).toBe(false);
+    expect(component.canPlaceCall()).toBe(false);
+    expect(actionLabels()).not.toContain('Register');
+    expect(actionLabels()).not.toContain('Call');
+  });
+
+  it('shows the retry register label after reconnect failure', async () => {
+    sipClientMock.registrationState$.next('failed');
+    sipClientMock.transportState$.next('failed');
+    sipClientMock.transportState = 'failed';
+    transportStateValue = 'failed';
+
+    component.open = true;
+    await component.prepareProfile();
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('SIP reconnect reached the retry limit. Click Register to retry manually.');
+    expect(actionLabels()).toContain('Retry register');
   });
 
   it('shows hangup and mute controls only during an active call', async () => {

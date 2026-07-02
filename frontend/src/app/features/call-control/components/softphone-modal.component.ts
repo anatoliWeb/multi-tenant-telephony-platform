@@ -36,6 +36,7 @@ export class SoftphoneModalComponent implements OnChanges, OnDestroy {
   readonly profile$;
   readonly callState$;
   readonly registrationState$;
+  readonly transportState$;
   readonly microphonePermission$;
   readonly audioInputDevices$;
   readonly selectedAudioInputDeviceId$;
@@ -55,6 +56,7 @@ export class SoftphoneModalComponent implements OnChanges, OnDestroy {
     this.profile$ = this.sipClient.profile$;
     this.callState$ = this.sipClient.callState$;
     this.registrationState$ = this.sipClient.registrationState$;
+    this.transportState$ = this.sipClient.transportState$;
     this.microphonePermission$ = this.sipClient.microphonePermission$;
     this.audioInputDevices$ = this.sipClient.audioInputDevices$;
     this.selectedAudioInputDeviceId$ = this.sipClient.selectedAudioInputDeviceId$;
@@ -74,6 +76,10 @@ export class SoftphoneModalComponent implements OnChanges, OnDestroy {
 
   canRegister(): boolean {
     return this.sipClient.canRegister();
+  }
+
+  canReconnect(): boolean {
+    return this.sipClient.transportState === 'failed' || this.sipClient.transportState === 'disconnected';
   }
 
   canPlaceCall(): boolean {

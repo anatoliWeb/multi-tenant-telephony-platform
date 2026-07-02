@@ -9,6 +9,7 @@ import {
   SessionState,
   UserAgent,
   UserAgentDelegate,
+  TransportState,
   Web,
 } from 'sip.js';
 import { CallControlApiService } from './call-control-api.service';
@@ -20,6 +21,7 @@ import type {
   SipCallState,
   SipProfile,
   SipRegistrationState,
+  SipTransportState,
 } from '../models/call-control.model';
 
 type SipSessionDescriptionHandler = {
@@ -46,6 +48,7 @@ export class SipClientService {
   private readonly profileSubject = new BehaviorSubject<SipProfile | null>(null);
   private readonly callStateSubject = new BehaviorSubject<SipCallState>('idle');
   private readonly registrationStateSubject = new BehaviorSubject<SipRegistrationState>('disconnected');
+  private readonly transportStateSubject = new BehaviorSubject<SipTransportState>('disconnected');
   private readonly microphonePermissionSubject = new BehaviorSubject<MicrophonePermissionState>('unknown');
   private readonly mutedSubject = new BehaviorSubject<boolean>(false);
   private readonly incomingCallSubject = new BehaviorSubject<boolean>(false);
@@ -83,6 +86,12 @@ export class SipClientService {
   private remoteMediaStream: MediaStream | null = null;
   private mediaStatsIntervalId: ReturnType<typeof setInterval> | null = null;
   private mediaStatsPollingInFlight = false;
+  private reconnectTimerId: ReturnType<typeof setTimeout> | null = null;
+  private reconnectAttemptCount = 0;
+  private reconnectInFlight = false;
+  private reconnectSuppressed = false;
+  private readonly reconnectBaseDelayMs = 1000;
+  private readonly reconnectMaxAttempts = 3;
   private authorizationPassword: string | null = null;
   private readonly iceGatheringTimeoutMs = 5000;
   private readonly registrationFailureMessage =
@@ -91,6 +100,7 @@ export class SipClientService {
   readonly profile$ = this.profileSubject.asObservable();
   readonly callState$ = this.callStateSubject.asObservable();
   readonly registrationState$ = this.registrationStateSubject.asObservable();
+  readonly transportState$ = this.transportStateSubject.asObservable();
   readonly microphonePermission$ = this.microphonePermissionSubject.asObservable();
   readonly muted$ = this.mutedSubject.asObservable();
   readonly incomingCall$ = this.incomingCallSubject.asObservable();
@@ -115,6 +125,10 @@ export class SipClientService {
 
   get registrationState(): SipRegistrationState {
     return this.registrationStateSubject.value;
+  }
+
+  get transportState(): SipTransportState {
+    return this.transportStateSubject.value;
   }
 
   get microphonePermission(): MicrophonePermissionState {
@@ -165,6 +179,9 @@ export class SipClientService {
         && profile.credentials_available
         && this.authorizationPassword
         && this.registrationStateSubject.value !== 'connecting'
+        && this.transportStateSubject.value !== 'connecting'
+        && this.transportStateSubject.value !== 'reconnecting'
+        && this.transportStateSubject.value !== 'unregistering'
         && this.registrationStateSubject.value !== 'registered',
     );
   }
@@ -176,6 +193,7 @@ export class SipClientService {
     return Boolean(
       profile?.capabilities?.outbound_call
         && this.registrationStateSubject.value === 'registered'
+        && this.transportStateSubject.value === 'registered'
         && destination
         && !this.isCallInProgress(),
     );
@@ -225,10 +243,11 @@ export class SipClientService {
    * and must disappear cleanly on tenant change or logout.
    */
   async loadProfile(extensionId: number): Promise<void> {
-    this.destroyTransport();
+    this.destroyTransport({ suppressReconnect: true });
     this.errorSubject.next(null);
     this.callStateSubject.next('checking_permissions');
     this.registrationStateSubject.next('disconnected');
+    this.transportStateSubject.next('disconnected');
     this.microphonePermissionSubject.next('unknown');
     this.mutedSubject.next(false);
     this.localHoldSubject.next(false);
@@ -256,6 +275,7 @@ export class SipClientService {
         ? profile.password ?? null
         : null;
       this.profileSubject.next(this.sanitizeProfile(profile));
+      this.reconnectSuppressed = false;
       this.callStateSubject.next('ready');
       void this.refreshAudioInputDevices();
     } catch (error) {
@@ -385,7 +405,10 @@ export class SipClientService {
       return;
     }
 
+    this.clearReconnectLoop();
+    this.reconnectSuppressed = false;
     this.registrationStateSubject.next('connecting');
+    this.transportStateSubject.next('connecting');
     this.callStateSubject.next('registering');
     this.errorSubject.next(null);
 
@@ -395,20 +418,25 @@ export class SipClientService {
         requestDelegate: {
           onReject: () => {
             this.registrationStateSubject.next('failed');
+            this.transportStateSubject.next('failed');
             this.callStateSubject.next('registration_failed');
             this.errorSubject.next(this.registrationFailureMessage);
             this.clearCredentials();
+            this.clearReconnectLoop();
           },
         },
       });
       this.registrationStateSubject.next('registered');
+      this.transportStateSubject.next('registered');
       this.callStateSubject.next('registered');
+      this.clearReconnectLoop();
     } catch (error) {
+      this.destroyTransport({ suppressReconnect: true });
       this.registrationStateSubject.next('failed');
+      this.transportStateSubject.next('failed');
       this.callStateSubject.next('registration_failed');
       this.errorSubject.next(this.toErrorMessage(error, this.registrationFailureMessage));
       this.clearCredentials();
-      this.destroyTransport();
     }
   }
 
@@ -422,7 +450,7 @@ export class SipClientService {
       return;
     }
 
-    if (this.registrationStateSubject.value !== 'registered') {
+    if (this.registrationStateSubject.value !== 'registered' || this.transportStateSubject.value !== 'registered') {
       this.callStateSubject.next('failed');
       this.errorSubject.next('Register before placing a call.');
       return;
@@ -787,11 +815,12 @@ export class SipClientService {
    * cached user-agent state do not leak across tenant boundaries.
    */
   resetForTenantChange(): void {
-    this.destroyTransport();
+    this.destroyTransport({ suppressReconnect: true });
     this.clearCredentials();
     this.profileSubject.next(null);
     this.callStateSubject.next('idle');
     this.registrationStateSubject.next('disconnected');
+    this.transportStateSubject.next('disconnected');
     this.microphonePermissionSubject.next('unknown');
     this.mutedSubject.next(false);
     this.destinationSubject.next('');
@@ -841,6 +870,7 @@ export class SipClientService {
     // disconnect can tear both down together without leaking stale state.
     this.registerer = new Registerer(this.userAgent);
     this.registerer.stateChange.addListener((state) => this.handleRegistererStateChange(state));
+    this.attachTransportListeners(this.userAgent);
     await this.userAgent.start();
   }
 
@@ -912,31 +942,201 @@ export class SipClientService {
   private createUserAgentDelegate(): UserAgentDelegate {
     return {
       onInvite: (invitation) => this.handleIncomingInvitation(invitation),
-      onDisconnect: (error) => {
-        if (!error) {
-          return;
+      onConnect: () => {
+        console.debug('[SIP/WebRTC] SIP transport connected');
+        if (this.transportStateSubject.value === 'connecting' || this.transportStateSubject.value === 'reconnecting') {
+          this.transportStateSubject.next('connecting');
         }
-
-        // A browser transport error usually means local WSS/TLS is not trusted
-        // yet, not that the SIP credentials themselves are wrong.
-        this.registrationStateSubject.next('failed');
-        this.callStateSubject.next('failed');
-        this.errorSubject.next(this.toErrorMessage(error, this.registrationFailureMessage, this.profileSubject.value));
       },
+      onDisconnect: (error) => this.handleTransportDisconnect(error),
     };
   }
 
   private handleRegistererStateChange(state: RegistererState): void {
     if (state === RegistererState.Registered) {
       this.registrationStateSubject.next('registered');
+      if (this.transportStateSubject.value !== 'reconnecting') {
+        this.transportStateSubject.next('registered');
+      }
       return;
     }
 
     if (state === RegistererState.Unregistered || state === RegistererState.Terminated) {
-      if (this.registrationStateSubject.value !== 'failed') {
+      if (this.registrationStateSubject.value !== 'failed' && this.transportStateSubject.value !== 'reconnecting') {
         this.registrationStateSubject.next('disconnected');
       }
     }
+  }
+
+  private attachTransportListeners(userAgent: UserAgent): void {
+    const transport = userAgent.transport as UserAgent['transport'] & {
+      stateChange?: { addListener: (listener: (state: TransportState) => void) => void };
+    };
+
+    transport.stateChange?.addListener((state) => {
+      console.debug('[SIP/WebRTC] SIP transport state change', {
+        transportState: state,
+        reconnectState: this.transportStateSubject.value,
+      });
+
+      if (state === TransportState.Connecting) {
+        if (this.transportStateSubject.value !== 'reconnecting') {
+          this.transportStateSubject.next('connecting');
+        }
+        return;
+      }
+
+      if (state === TransportState.Connected) {
+        if (this.transportStateSubject.value === 'connecting') {
+          this.transportStateSubject.next('registered');
+        }
+        return;
+      }
+
+      if (state === TransportState.Disconnected) {
+        this.handleTransportDisconnect();
+      }
+    });
+  }
+
+  private handleTransportDisconnect(error?: Error): void {
+    const profile = this.profileSubject.value;
+    const hasCredentials = Boolean(profile?.registration_enabled && profile.credentials_available && this.authorizationPassword);
+    const isManualShutdown = this.reconnectSuppressed || !profile || !hasCredentials;
+    const disconnectMessage = error
+      ? this.toErrorMessage(error, 'SIP transport disconnected.', profile)
+      : 'SIP transport disconnected.';
+
+    console.warn('[SIP/WebRTC] SIP transport disconnected', {
+      hasError: Boolean(error),
+      disconnectMessage,
+      reconnectSuppressed: this.reconnectSuppressed,
+      registrationState: this.registrationStateSubject.value,
+      transportState: this.transportStateSubject.value,
+      callState: this.callStateSubject.value,
+      hasCredentials,
+    });
+
+    this.stopMediaStatsDiagnostics();
+    this.destroySession();
+
+    if (isManualShutdown) {
+      this.clearReconnectLoop();
+      this.transportStateSubject.next('disconnected');
+      this.registrationStateSubject.next('disconnected');
+      this.errorSubject.next(null);
+      return;
+    }
+
+    this.registrationStateSubject.next('disconnected');
+    this.transportStateSubject.next('reconnecting');
+    this.callStateSubject.next('registration_failed');
+    this.errorSubject.next('SIP transport disconnected. Reconnecting...');
+    this.scheduleReconnectAttempt();
+  }
+
+  private scheduleReconnectAttempt(): void {
+    if (this.reconnectInFlight || this.reconnectTimerId !== null) {
+      return;
+    }
+
+    const attemptNumber = this.reconnectAttemptCount + 1;
+    if (attemptNumber > this.reconnectMaxAttempts) {
+      this.failReconnectLoop('SIP transport reconnect failed after retry limit.');
+      return;
+    }
+
+    const delayMs = Math.min(this.reconnectBaseDelayMs * (2 ** Math.max(0, attemptNumber - 1)), 4000);
+    console.debug('[SIP/WebRTC] scheduling SIP reconnect attempt', {
+      attemptNumber,
+      delayMs,
+      transportState: this.transportStateSubject.value,
+    });
+
+    this.reconnectTimerId = window.setTimeout(() => {
+      this.reconnectTimerId = null;
+      void this.attemptReconnect();
+    }, delayMs);
+  }
+
+  private async attemptReconnect(): Promise<void> {
+    if (this.reconnectInFlight || this.reconnectSuppressed) {
+      return;
+    }
+
+    const profile = this.profileSubject.value;
+    if (!profile || !profile.registration_enabled || !profile.credentials_available || !this.authorizationPassword) {
+      this.failReconnectLoop('SIP reconnect skipped because credentials are unavailable.');
+      return;
+    }
+
+    this.reconnectInFlight = true;
+    this.reconnectAttemptCount += 1;
+    console.debug('[SIP/WebRTC] attempting SIP reconnect', {
+      attemptNumber: this.reconnectAttemptCount,
+      transportState: this.transportStateSubject.value,
+      registrationState: this.registrationStateSubject.value,
+    });
+
+    try {
+      if (!this.userAgent || !this.registerer) {
+        await this.ensureTransport(profile);
+      } else if (!this.userAgent.isConnected()) {
+        await this.userAgent.reconnect();
+      }
+
+      await this.registerer?.register();
+      const completedAttempt = this.reconnectAttemptCount;
+      this.registrationStateSubject.next('registered');
+      this.transportStateSubject.next('registered');
+      this.callStateSubject.next('registered');
+      this.errorSubject.next(null);
+      this.reconnectAttemptCount = 0;
+      this.clearReconnectLoop();
+      console.debug('[SIP/WebRTC] SIP reconnect succeeded', {
+        attemptNumber: completedAttempt,
+      });
+    } catch (error) {
+      console.warn('[SIP/WebRTC] SIP reconnect attempt failed', {
+        attemptNumber: this.reconnectAttemptCount,
+        error: this.toErrorMessage(error, 'SIP reconnect attempt failed.', profile),
+      });
+
+      if (this.reconnectAttemptCount >= this.reconnectMaxAttempts) {
+        this.failReconnectLoop('SIP transport reconnect failed after retry limit.');
+        return;
+      }
+
+      this.transportStateSubject.next('reconnecting');
+      this.registrationStateSubject.next('disconnected');
+      this.scheduleReconnectAttempt();
+    } finally {
+      this.reconnectInFlight = false;
+    }
+  }
+
+  private clearReconnectLoop(): void {
+    if (this.reconnectTimerId !== null) {
+      clearTimeout(this.reconnectTimerId);
+      this.reconnectTimerId = null;
+    }
+
+    this.reconnectAttemptCount = 0;
+    this.reconnectInFlight = false;
+  }
+
+  private failReconnectLoop(message: string): void {
+    this.clearReconnectLoop();
+    this.transportStateSubject.next('failed');
+    this.registrationStateSubject.next('failed');
+    this.callStateSubject.next('registration_failed');
+    this.errorSubject.next(message);
+    console.warn('[SIP/WebRTC] SIP reconnect failed', {
+      message,
+      transportState: this.transportStateSubject.value,
+      registrationState: this.registrationStateSubject.value,
+      callState: this.callStateSubject.value,
+    });
   }
 
   private handleIncomingInvitation(invitation: Invitation): void {
@@ -1181,16 +1381,23 @@ export class SipClientService {
     }
   }
 
-  private destroyTransport(): void {
+  private destroyTransport(options: { suppressReconnect?: boolean } = {}): void {
+    if (options.suppressReconnect) {
+      this.reconnectSuppressed = true;
+    }
+
+    this.clearReconnectLoop();
     this.destroySession();
 
     if (this.registerer) {
-      void this.registerer.dispose().catch(() => undefined);
+      const disposePromise = this.registerer.dispose?.();
+      void disposePromise?.catch(() => undefined);
       this.registerer = null;
     }
 
     if (this.userAgent) {
-      void this.userAgent.stop().catch(() => undefined);
+      const stopPromise = this.userAgent.stop?.();
+      void stopPromise?.catch(() => undefined);
       this.userAgent = null;
     }
 
@@ -1199,6 +1406,7 @@ export class SipClientService {
       this.prepareRemoteAudioElement(this.remoteAudioElement);
     }
 
+    this.transportStateSubject.next('disconnected');
     this.resetMediaDiagnostics();
   }
 

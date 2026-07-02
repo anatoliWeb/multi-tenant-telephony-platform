@@ -250,6 +250,11 @@ Current boundary:
 - live microphone switching during an active call is not supported yet, so
   device changes should be made before registration or before starting the
   call;
+- SIP transport reconnect uses bounded browser-side retries with backoff after
+  unexpected disconnects, shows reconnecting / failed transport state in the
+  Angular softphone, and allows a manual Register retry after the retry limit;
+- reconnect does not preserve an active call unless the browser and PBX stack
+  explicitly support recovering the dialog after transport loss;
 - hold / resume in the Angular softphone is currently a local demo placeholder
   that only updates browser-side state until PBX hold signaling is wired;
 - DTMF in the Angular softphone is guarded to the local demo keypad digits

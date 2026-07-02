@@ -207,6 +207,7 @@ describe('SipClientService', () => {
     await service.loadProfile(42);
 
     (service as any).registrationStateSubject.next('registered');
+    (service as any).transportStateSubject.next('registered');
     (service as any).userAgent = {};
 
     await service.call('2001');
@@ -401,6 +402,204 @@ describe('SipClientService', () => {
 
     expect(service.callState).toBe('ended');
     expect(service.locallyHeld).toBe(false);
+  });
+
+  it('retries registration after a transport disconnect and restores the registered state', async () => {
+    vi.useFakeTimers();
+    try {
+      callControlApiMock.getSipProfile.mockReturnValue(of({
+        success: true,
+        message: 'ok',
+        data: {
+          ...baseProfile,
+          credentials_available: true,
+          registration_enabled: true,
+          local_demo_mode: true,
+          password: 'change_me_local_demo_only',
+          registration: {
+            enabled: true,
+            state: 'available',
+            reason: 'Local demo SIP credentials are enabled for this development environment.',
+          },
+        },
+      }));
+
+      await service.loadProfile(42);
+      (service as any).registrationStateSubject.next('registered');
+      (service as any).transportStateSubject.next('registered');
+
+      const reconnect = vi.fn().mockResolvedValue(undefined);
+      const register = vi.fn().mockResolvedValue(undefined);
+      (service as any).userAgent = {
+        reconnect,
+        isConnected: vi.fn().mockReturnValue(false),
+      };
+      (service as any).registerer = {
+        register,
+      };
+
+      (service as any).handleTransportDisconnect(new Error('WebSocket closed wss://localhost:7443 code: 1006'));
+
+      expect(service.transportState).toBe('reconnecting');
+      expect(service.registrationState).toBe('disconnected');
+
+      await vi.advanceTimersByTimeAsync(1000);
+
+      expect(reconnect).toHaveBeenCalled();
+      expect(register).toHaveBeenCalled();
+      expect(service.transportState).toBe('registered');
+      expect(service.registrationState).toBe('registered');
+      expect((service as any).errorSubject.value).toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('moves to failed after retry limit and allows a manual registration retry', async () => {
+    vi.useFakeTimers();
+    try {
+      callControlApiMock.getSipProfile.mockReturnValue(of({
+        success: true,
+        message: 'ok',
+        data: {
+          ...baseProfile,
+          credentials_available: true,
+          registration_enabled: true,
+          local_demo_mode: true,
+          password: 'change_me_local_demo_only',
+          registration: {
+            enabled: true,
+            state: 'available',
+            reason: 'Local demo SIP credentials are enabled for this development environment.',
+          },
+        },
+      }));
+
+      await service.loadProfile(42);
+      (service as any).registrationStateSubject.next('registered');
+      (service as any).transportStateSubject.next('registered');
+
+      const reconnect = vi.fn().mockRejectedValue(new Error('WebSocket closed'));
+      const register = vi.fn().mockResolvedValue(undefined);
+      (service as any).userAgent = {
+        reconnect,
+        isConnected: vi.fn().mockReturnValue(false),
+      };
+      (service as any).registerer = {
+        register,
+      };
+      (service as any).reconnectMaxAttempts = 1;
+
+      (service as any).handleTransportDisconnect(new Error('WebSocket closed wss://localhost:7443 code: 1006'));
+      await vi.advanceTimersByTimeAsync(5000);
+
+      expect(service.transportState).toBe('failed');
+      expect(service.registrationState).toBe('failed');
+      expect(service.canRegister()).toBe(true);
+
+      reconnect.mockResolvedValue(undefined);
+      register.mockResolvedValue(undefined);
+      await service.register();
+
+      expect(register).toHaveBeenCalled();
+      expect(service.transportState).toBe('registered');
+      expect(service.registrationState).toBe('registered');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('does not reconnect after tenant cleanup clears the SIP transport', async () => {
+    vi.useFakeTimers();
+    try {
+      callControlApiMock.getSipProfile.mockReturnValue(of({
+        success: true,
+        message: 'ok',
+        data: {
+          ...baseProfile,
+          credentials_available: true,
+          registration_enabled: true,
+          local_demo_mode: true,
+          password: 'change_me_local_demo_only',
+          registration: {
+            enabled: true,
+            state: 'available',
+            reason: 'Local demo SIP credentials are enabled for this development environment.',
+          },
+        },
+      }));
+
+      await service.loadProfile(42);
+      (service as any).registrationStateSubject.next('registered');
+      (service as any).transportStateSubject.next('registered');
+
+      const reconnect = vi.fn().mockResolvedValue(undefined);
+      const register = vi.fn().mockResolvedValue(undefined);
+      (service as any).userAgent = {
+        reconnect,
+        isConnected: vi.fn().mockReturnValue(false),
+      };
+      (service as any).registerer = {
+        register,
+      };
+
+      (service as any).handleTransportDisconnect(new Error('WebSocket closed wss://localhost:7443 code: 1006'));
+      service.resetForTenantChange();
+      await vi.advanceTimersByTimeAsync(5000);
+
+      expect(reconnect).not.toHaveBeenCalled();
+      expect(register).not.toHaveBeenCalled();
+      expect(service.transportState).toBe('disconnected');
+      expect(service.registrationState).toBe('disconnected');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('does not retry transport recovery when credentials are missing', async () => {
+    vi.useFakeTimers();
+    try {
+      callControlApiMock.getSipProfile.mockReturnValue(of({
+        success: true,
+        message: 'ok',
+        data: {
+          ...baseProfile,
+          credentials_available: false,
+          registration_enabled: false,
+          local_demo_mode: false,
+          registration: {
+            enabled: false,
+            state: 'disabled',
+            reason: 'SIP credentials are not enabled for this environment.',
+          },
+        },
+      }));
+
+      await service.loadProfile(42);
+      (service as any).transportStateSubject.next('registered');
+      (service as any).registrationStateSubject.next('registered');
+      (service as any).authorizationPassword = null;
+
+      const reconnect = vi.fn().mockResolvedValue(undefined);
+      const register = vi.fn().mockResolvedValue(undefined);
+      (service as any).userAgent = {
+        reconnect,
+        isConnected: vi.fn().mockReturnValue(false),
+      };
+      (service as any).registerer = {
+        register,
+      };
+
+      (service as any).handleTransportDisconnect(new Error('WebSocket closed wss://localhost:7443 code: 1006'));
+      await vi.advanceTimersByTimeAsync(5000);
+
+      expect(reconnect).not.toHaveBeenCalled();
+      expect(register).not.toHaveBeenCalled();
+      expect(service.transportState).toBe('disconnected');
+      expect(service.registrationState).toBe('disconnected');
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('uses insertDTMF when the sender supports DTMF insertion', async () => {
