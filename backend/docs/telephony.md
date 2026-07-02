@@ -258,6 +258,12 @@ Current boundary:
 - the Angular softphone can be minimized into a floating bubble without ending
   the call; the minimized bubble preserves mute, hold, reconnect, and call
   state until the user restores or closes it;
+- transfer in the Angular softphone is code-level implemented with guarded
+  SIP.js REFER support for active established calls; targets may be entered as
+  either an extension number or a SIP URI, are normalized in-browser, and do
+  not expose credentials in logs;
+- live FreeSWITCH REFER behavior still needs manual verification in the local
+  demo stack before transfer can be treated as fully exercised end-to-end;
 - hold / resume in the Angular softphone is currently a local demo placeholder
   that only updates browser-side state until PBX hold signaling is wired;
 - DTMF in the Angular softphone is guarded to the local demo keypad digits

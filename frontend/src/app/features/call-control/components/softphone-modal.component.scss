@@ -53,6 +53,20 @@
   gap: 16px;
 }
 
+.softphone__transfer {
+  display: grid;
+  gap: 10px;
+  margin-top: 8px;
+  padding: 14px;
+  border-radius: 16px;
+  border: 1px solid rgba(51, 65, 85, 0.65);
+  background: rgba(15, 23, 42, 0.6);
+}
+
+.softphone__actions--compact {
+  margin-top: 0;
+}
+
 .softphone__minimized-shell {
   position: fixed;
   right: 24px;

@@ -270,6 +270,42 @@
           </button>
         </div>
 
+        <section class="softphone__transfer" *ngIf="canTransfer()">
+          <h5>{{ 'callControl.section.transfer' | t }}</h5>
+          <p class="softphone__hint">{{ 'callControl.hints.transferFormat' | t }}</p>
+
+          <label>
+            <span>{{ 'callControl.fields.transferTarget' | t }}</span>
+            <input
+              type="text"
+              [value]="transferTarget"
+              (input)="onTransferTargetChange($any($event.target).value)"
+              [placeholder]="'callControl.fields.transferTargetPlaceholder' | t"
+              [disabled]="(transferInProgress$ | async) === true"
+            />
+          </label>
+
+          <div class="softphone__actions softphone__actions--compact">
+            <button
+              type="button"
+              (click)="transfer()"
+              [disabled]="!canSubmitTransfer()"
+            >
+              {{ 'callControl.actions.transfer' | t }}
+            </button>
+          </div>
+
+          <p class="softphone__hint" *ngIf="transferInProgress$ | async">
+            {{ 'callControl.hints.transferInProgress' | t }}
+          </p>
+          <p class="softphone__hint" *ngIf="transferMessage$ | async as transferMessage">
+            {{ transferMessage }}
+          </p>
+          <p class="softphone__error" *ngIf="transferError$ | async as transferError">
+            {{ transferError }}
+          </p>
+        </section>
+
         <p class="softphone__hint" *ngIf="canHold() || canResume()">
           {{ 'callControl.hints.holdPlaceholder' | t }}
         </p>

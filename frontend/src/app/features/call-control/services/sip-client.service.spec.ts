@@ -697,6 +697,224 @@ describe('SipClientService', () => {
     warnSpy.mockRestore();
   });
 
+  it('sends a guarded REFER when the active session supports transfer', async () => {
+    const onAccept = vi.fn();
+    const onNotify = vi.fn();
+    const refer = vi.fn().mockImplementation(async (_target, options) => {
+      options?.requestDelegate?.onAccept?.({ statusCode: 202, reasonPhrase: 'Accepted' });
+      options?.onNotify?.({ request: { body: 'SIP/2.0 200 OK' } });
+      onAccept();
+      onNotify();
+      return {};
+    });
+    callControlApiMock.getSipProfile.mockReturnValue(of({
+      success: true,
+      message: 'ok',
+      data: {
+        ...baseProfile,
+        credentials_available: true,
+        registration_enabled: true,
+        local_demo_mode: true,
+        password: 'change_me_local_demo_only',
+        registration: {
+          enabled: true,
+          state: 'available',
+          reason: 'Local demo SIP credentials are enabled for this development environment.',
+        },
+      },
+    }));
+
+    await service.loadProfile(42);
+    (service as any).activeSession = {
+      state: 'Established',
+      refer,
+      sessionDescriptionHandler: {
+        peerConnection: {
+          getSenders: () => [],
+          getReceivers: () => [],
+        },
+      },
+    };
+    (service as any).callStateSubject.next('active');
+    service.setTransferTarget('1002');
+
+    await service.transfer();
+
+    expect(refer).toHaveBeenCalled();
+    expect(onAccept).toHaveBeenCalled();
+    expect(onNotify).toHaveBeenCalled();
+    expect((refer.mock.calls[0][0] as { toString: () => string }).toString()).toBe('sip:1002@localhost');
+    expect(service.transferSuccess).toBe(true);
+    expect(service.transferInProgress).toBe(false);
+    expect(service.transferMessage).toContain('Transfer completed');
+    expect(service.transferError).toBeNull();
+  });
+
+  it('shows a transfer fallback message when REFER is unavailable', async () => {
+    callControlApiMock.getSipProfile.mockReturnValue(of({
+      success: true,
+      message: 'ok',
+      data: {
+        ...baseProfile,
+        credentials_available: true,
+        registration_enabled: true,
+        local_demo_mode: true,
+        password: 'change_me_local_demo_only',
+        registration: {
+          enabled: true,
+          state: 'available',
+          reason: 'Local demo SIP credentials are enabled for this development environment.',
+        },
+      },
+    }));
+
+    await service.loadProfile(42);
+    (service as any).activeSession = {
+      state: 'Established',
+      sessionDescriptionHandler: {
+        peerConnection: {
+          getSenders: () => [],
+          getReceivers: () => [],
+        },
+      },
+    };
+    (service as any).callStateSubject.next('active');
+
+    await service.transfer('1002');
+
+    expect(service.transferError).toBe('Transfer is not supported by this session/browser yet.');
+    expect(service.transferInProgress).toBe(false);
+  });
+
+  it('rejects invalid transfer targets without crashing', async () => {
+    callControlApiMock.getSipProfile.mockReturnValue(of({
+      success: true,
+      message: 'ok',
+      data: {
+        ...baseProfile,
+        credentials_available: true,
+        registration_enabled: true,
+        local_demo_mode: true,
+        password: 'change_me_local_demo_only',
+        registration: {
+          enabled: true,
+          state: 'available',
+          reason: 'Local demo SIP credentials are enabled for this development environment.',
+        },
+      },
+    }));
+
+    await service.loadProfile(42);
+    (service as any).activeSession = {
+      state: 'Established',
+      refer: vi.fn(),
+      sessionDescriptionHandler: {
+        peerConnection: {
+          getSenders: () => [],
+          getReceivers: () => [],
+        },
+      },
+    };
+    (service as any).callStateSubject.next('active');
+
+    await service.transfer('foo/bar');
+
+    expect(service.transferError).toBe('Transfer target is not a valid SIP URI or extension.');
+  });
+
+  it('does not send a duplicate transfer while transferInProgress is already true', async () => {
+    const refer = vi.fn();
+    callControlApiMock.getSipProfile.mockReturnValue(of({
+      success: true,
+      message: 'ok',
+      data: {
+        ...baseProfile,
+        credentials_available: true,
+        registration_enabled: true,
+        local_demo_mode: true,
+        password: 'change_me_local_demo_only',
+        registration: {
+          enabled: true,
+          state: 'available',
+          reason: 'Local demo SIP credentials are enabled for this development environment.',
+        },
+      },
+    }));
+
+    await service.loadProfile(42);
+    (service as any).activeSession = {
+      state: 'Established',
+      refer,
+      sessionDescriptionHandler: {
+        peerConnection: {
+          getSenders: () => [],
+          getReceivers: () => [],
+        },
+      },
+    };
+    (service as any).callStateSubject.next('active');
+    (service as any).transferInProgressSubject.next(true);
+
+    await service.transfer('1002');
+
+    expect(refer).not.toHaveBeenCalled();
+  });
+
+  it('keeps transfer logs free of SIP credential values', async () => {
+    const debugSpy = vi.spyOn(console, 'debug').mockImplementation(() => undefined);
+    callControlApiMock.getSipProfile.mockReturnValue(of({
+      success: true,
+      message: 'ok',
+      data: {
+        ...baseProfile,
+        credentials_available: true,
+        registration_enabled: true,
+        local_demo_mode: true,
+        password: 'change_me_local_demo_only',
+        registration: {
+          enabled: true,
+          state: 'available',
+          reason: 'Local demo SIP credentials are enabled for this development environment.',
+        },
+      },
+    }));
+
+    await service.loadProfile(42);
+    (service as any).activeSession = {
+      state: 'Established',
+      refer: vi.fn().mockResolvedValue(undefined),
+      sessionDescriptionHandler: {
+        peerConnection: {
+          getSenders: () => [],
+          getReceivers: () => [],
+        },
+      },
+    };
+    (service as any).callStateSubject.next('active');
+
+    await service.transfer('1002');
+
+    const loggedText = debugSpy.mock.calls.map((call) => JSON.stringify(call)).join('\n');
+    expect(loggedText).not.toContain('change_me_local_demo_only');
+    debugSpy.mockRestore();
+  });
+
+  it('resets transfer state when the call ends', async () => {
+    (service as any).transferTargetSubject.next('1002');
+    (service as any).transferInProgressSubject.next(true);
+    (service as any).transferMessageSubject.next('Transfer request sent.');
+    (service as any).transferErrorSubject.next('Transfer failed.');
+    (service as any).transferSuccessSubject.next(true);
+
+    (service as any).destroySession();
+
+    expect(service.transferTarget).toBe('');
+    expect(service.transferInProgress).toBe(false);
+    expect(service.transferMessage).toBeNull();
+    expect(service.transferError).toBeNull();
+    expect(service.transferSuccess).toBe(false);
+  });
+
   it('discovers audio input devices after prompting for microphone permission when labels are hidden', async () => {
     const stop = vi.fn();
     const enumerateDevices = vi.fn()

@@ -53,6 +53,11 @@ describe('SoftphoneModalComponent', () => {
   let hasLocalAudioTrackValue = false;
   let locallyHeldValue = false;
   let selectedAudioInputDeviceIdValue: string | null = null;
+  let transferTargetValue = '';
+  let transferInProgressValue = false;
+  let transferErrorValue: string | null = null;
+  let transferMessageValue: string | null = null;
+  let transferSuccessValue = false;
   let transportStateValue: 'disconnected' | 'connecting' | 'registered' | 'reconnecting' | 'failed' | 'unregistering' = 'disconnected';
 
   const sipClientMock = {
@@ -97,6 +102,11 @@ describe('SoftphoneModalComponent', () => {
     selectedAudioInputDeviceId$: new BehaviorSubject<string | null>(null),
     audioInputDevicesLoading$: new BehaviorSubject(false),
     audioInputDevicesError$: new BehaviorSubject<string | null>(null),
+    transferTarget$: new BehaviorSubject<string>(''),
+    transferInProgress$: new BehaviorSubject(false),
+    transferError$: new BehaviorSubject<string | null>(null),
+    transferMessage$: new BehaviorSubject<string | null>(null),
+    transferSuccess$: new BehaviorSubject(false),
     mediaDiagnostics$: new BehaviorSubject({
       remote_audio_attached: false,
       remote_audio_track_count: 0,
@@ -149,6 +159,7 @@ describe('SoftphoneModalComponent', () => {
     )),
     canSendDtmf: vi.fn(() => sipClientMock.callState$.value === 'active'),
     canChangeAudioInputDevice: vi.fn(() => !['dialing', 'ringing', 'active', 'held'].includes(sipClientMock.callState$.value as string)),
+    canTransfer: vi.fn(() => sipClientMock.callState$.value === 'active' && !transferInProgressValue),
     loadProfile: vi.fn().mockResolvedValue(undefined),
     bindRemoteAudio: vi.fn(),
     resetForTenantChange: vi.fn(),
@@ -170,6 +181,28 @@ describe('SoftphoneModalComponent', () => {
     }),
     toggleMute: vi.fn(),
     sendDtmf: vi.fn().mockResolvedValue(undefined),
+    transfer: vi.fn().mockImplementation(async (value?: string) => {
+      const normalizedTarget = (value ?? transferTargetValue).trim();
+      transferTargetValue = normalizedTarget;
+      sipClientMock.transferTarget$.next(normalizedTarget);
+      transferErrorValue = null;
+      transferMessageValue = null;
+      transferSuccessValue = false;
+      if (!normalizedTarget) {
+        transferErrorValue = 'Transfer target is required.';
+        sipClientMock.transferError$.next(transferErrorValue);
+        return;
+      }
+      if (normalizedTarget === 'unsupported') {
+        transferErrorValue = 'Transfer is not supported by this session/browser yet.';
+        sipClientMock.transferError$.next(transferErrorValue);
+        return;
+      }
+      transferInProgressValue = true;
+      sipClientMock.transferInProgress$.next(true);
+      transferMessageValue = 'Transfer request sent. Waiting for remote SIP progress.';
+      sipClientMock.transferMessage$.next(transferMessageValue);
+    }),
     setSelectedAudioInputDevice: vi.fn((value: string | null) => {
       selectedAudioInputDeviceIdValue = value;
       sipClientMock.selectedAudioInputDeviceId$.next(value);
@@ -177,8 +210,18 @@ describe('SoftphoneModalComponent', () => {
     setDestination: vi.fn((value: string) => {
       destinationValue = value;
     }),
+    setTransferTarget: vi.fn((value: string) => {
+      transferTargetValue = value.trim();
+      sipClientMock.transferTarget$.next(transferTargetValue);
+    }),
     get callState() {
       return sipClientMock.callState$.value;
+    },
+    get transferTarget() {
+      return transferTargetValue;
+    },
+    get transferInProgress() {
+      return transferInProgressValue;
     },
   };
 
@@ -197,10 +240,20 @@ describe('SoftphoneModalComponent', () => {
     hasLocalAudioTrackValue = false;
     locallyHeldValue = false;
     selectedAudioInputDeviceIdValue = null;
+    transferTargetValue = '';
+    transferInProgressValue = false;
+    transferErrorValue = null;
+    transferMessageValue = null;
+    transferSuccessValue = false;
     transportStateValue = 'disconnected';
     sipClientMock.browserDiagnostics$.next(defaultBrowserDiagnostics);
     sipClientMock.error$.next(null);
     sipClientMock.audioInputDevicesError$.next(null);
+    sipClientMock.transferTarget$.next('');
+    sipClientMock.transferInProgress$.next(false);
+    sipClientMock.transferError$.next(null);
+    sipClientMock.transferMessage$.next(null);
+    sipClientMock.transferSuccess$.next(false);
     sipClientMock.audioInputDevicesLoading$.next(false);
     sipClientMock.selectedAudioInputDeviceId$.next(null);
     sipClientMock.transportState$.next('disconnected');
@@ -593,6 +646,32 @@ describe('SoftphoneModalComponent', () => {
     expect(keypadLabels).toEqual(['1', '2', '3', '4', '5', '6', '7', '8', '9', '*', '0', '#']);
   });
 
+  it('shows transfer controls only during an active established call', async () => {
+    sipClientMock.registrationState$.next('registered');
+    sipClientMock.callState$.next('active');
+
+    component.open = true;
+    await component.prepareProfile();
+    fixture.detectChanges();
+
+    expect(component.canTransfer()).toBe(true);
+    expect(fixture.nativeElement.textContent).toContain('Transfer target');
+    expect(fixture.nativeElement.textContent).toContain('Enter an extension such as 1002 or a SIP URI such as sip:1002@localhost.');
+  });
+
+  it('hides transfer controls while the call is not active', async () => {
+    sipClientMock.registrationState$.next('registered');
+    sipClientMock.callState$.next('ringing');
+    sipClientMock.incomingCall$.next(true);
+
+    component.open = true;
+    await component.prepareProfile();
+    fixture.detectChanges();
+
+    expect(component.canTransfer()).toBe(false);
+    expect(fixture.nativeElement.textContent).not.toContain('Transfer target');
+  });
+
   it('disables microphone device switching during an active call', async () => {
     sipClientMock.registrationState$.next('registered');
     sipClientMock.callState$.next('active');
@@ -686,6 +765,53 @@ describe('SoftphoneModalComponent', () => {
     expect(sipClientMock.refreshAudioInputDevices).toHaveBeenCalled();
     expect(sipClientMock.setSelectedAudioInputDevice).toHaveBeenCalledWith('usb-mic');
     expect(selectedAudioInputDeviceIdValue).toBe('usb-mic');
+  });
+
+  it('submits a transfer target through the guarded SIP.js transfer path', async () => {
+    const transferSpy = vi.spyOn(sipClientMock, 'transfer').mockResolvedValue(undefined);
+    const setTransferTargetSpy = vi.spyOn(sipClientMock, 'setTransferTarget');
+    sipClientMock.registrationState$.next('registered');
+    sipClientMock.callState$.next('active');
+
+    component.open = true;
+    await component.prepareProfile();
+    fixture.detectChanges();
+
+    const transferSectionInput = fixture.debugElement.query(By.css('.softphone__transfer input'));
+    transferSectionInput.nativeElement.value = '1002';
+    transferSectionInput.nativeElement.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+
+    const transferButton = fixture.debugElement.query(By.css('.softphone__transfer button'));
+    expect(transferButton.nativeElement.disabled).toBe(false);
+    transferButton.nativeElement.click();
+
+    expect(setTransferTargetSpy).toHaveBeenCalledWith('1002');
+    expect(transferSpy).toHaveBeenCalled();
+    transferSpy.mockRestore();
+    setTransferTargetSpy.mockRestore();
+  });
+
+  it('keeps transfer state available after minimizing and restoring', async () => {
+    sipClientMock.registrationState$.next('registered');
+    sipClientMock.callState$.next('active');
+    transferTargetValue = '1002';
+    sipClientMock.transferTarget$.next('1002');
+    transferMessageValue = 'Transfer request sent. Waiting for remote SIP progress.';
+    sipClientMock.transferMessage$.next(transferMessageValue);
+
+    component.open = true;
+    await component.prepareProfile();
+    fixture.detectChanges();
+
+    component.minimize();
+    expect(component.isMinimized).toBe(true);
+    expect(sipClientMock.transferTarget$.value).toBe('1002');
+    expect(sipClientMock.transferMessage$.value).toContain('Transfer request sent');
+
+    component.restore();
+    expect(component.isMinimized).toBe(false);
+    expect(sipClientMock.transferTarget$.value).toBe('1002');
   });
 
   it('shows answer and reject actions when an incoming call is pending', async () => {

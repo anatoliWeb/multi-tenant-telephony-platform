@@ -33,6 +33,23 @@ type SipSessionDescriptionHandler = {
     onicegatheringstatechange?: (event: Event) => void;
   };
   remoteMediaStream?: MediaStream;
+  refer?: (
+    referTo: ReturnType<typeof UserAgent.makeURI> | Session,
+    options?: {
+      onNotify?: (notification: {
+        accept?: () => Promise<void>;
+        request: { body: string };
+      }) => void;
+      requestDelegate?: {
+        onAccept?: (response: { statusCode?: number; reasonPhrase?: string }) => void;
+        onProgress?: (response: { statusCode?: number; reasonPhrase?: string }) => void;
+        onReject?: (response: { statusCode?: number; reasonPhrase?: string }) => void;
+      };
+      requestOptions?: {
+        extraHeaders?: string[];
+      };
+    },
+  ) => Promise<unknown>;
   getDescription?: (
     options?: {
       constraints?: MediaStreamConstraints;
@@ -58,6 +75,11 @@ export class SipClientService {
   private readonly audioInputDevicesLoadingSubject = new BehaviorSubject<boolean>(false);
   private readonly audioInputDevicesErrorSubject = new BehaviorSubject<string | null>(null);
   private readonly destinationSubject = new BehaviorSubject<string>('');
+  private readonly transferTargetSubject = new BehaviorSubject<string>('');
+  private readonly transferInProgressSubject = new BehaviorSubject<boolean>(false);
+  private readonly transferErrorSubject = new BehaviorSubject<string | null>(null);
+  private readonly transferMessageSubject = new BehaviorSubject<string | null>(null);
+  private readonly transferSuccessSubject = new BehaviorSubject<boolean>(false);
   private readonly errorSubject = new BehaviorSubject<string | null>(null);
   private readonly lastMediaErrorSubject = new BehaviorSubject<string | null>(null);
   private readonly mediaDiagnosticsSubject = new BehaviorSubject<SipMediaDiagnostics>({
@@ -109,6 +131,11 @@ export class SipClientService {
   readonly audioInputDevicesLoading$ = this.audioInputDevicesLoadingSubject.asObservable();
   readonly audioInputDevicesError$ = this.audioInputDevicesErrorSubject.asObservable();
   readonly destination$ = this.destinationSubject.asObservable();
+  readonly transferTarget$ = this.transferTargetSubject.asObservable();
+  readonly transferInProgress$ = this.transferInProgressSubject.asObservable();
+  readonly transferError$ = this.transferErrorSubject.asObservable();
+  readonly transferMessage$ = this.transferMessageSubject.asObservable();
+  readonly transferSuccess$ = this.transferSuccessSubject.asObservable();
   readonly error$ = this.errorSubject.asObservable();
   readonly mediaDiagnostics$ = this.mediaDiagnosticsSubject.asObservable();
   readonly browserDiagnostics$ = this.browserDiagnosticsSubject.asObservable();
@@ -161,6 +188,26 @@ export class SipClientService {
 
   get destination(): string {
     return this.destinationSubject.value;
+  }
+
+  get transferTarget(): string {
+    return this.transferTargetSubject.value;
+  }
+
+  get transferInProgress(): boolean {
+    return this.transferInProgressSubject.value;
+  }
+
+  get transferError(): string | null {
+    return this.transferErrorSubject.value;
+  }
+
+  get transferMessage(): string | null {
+    return this.transferMessageSubject.value;
+  }
+
+  get transferSuccess(): boolean {
+    return this.transferSuccessSubject.value;
   }
 
   get mediaDiagnostics(): SipMediaDiagnostics {
@@ -237,6 +284,13 @@ export class SipClientService {
     return !this.isCallInProgress();
   }
 
+  canTransfer(): boolean {
+    return Boolean(
+      this.activeSession
+        && this.callStateSubject.value === 'active'
+    );
+  }
+
   /**
    * SIP credentials stay in memory only. The browser should never persist
    * them in storage or global app state because the softphone is tenant-scoped
@@ -257,6 +311,7 @@ export class SipClientService {
     this.audioInputDevicesErrorSubject.next(null);
     this.incomingCallSubject.next(false);
     this.destinationSubject.next('');
+    this.resetTransferState();
     this.resetMediaDiagnostics();
     void this.refreshBrowserCapabilities();
 
@@ -720,6 +775,139 @@ export class SipClientService {
     });
   }
 
+  async transfer(targetInput?: string): Promise<void> {
+    const profile = this.profileSubject.value;
+    const normalizedTargetInput = (targetInput ?? this.transferTargetSubject.value).trim();
+    this.transferTargetSubject.next(normalizedTargetInput);
+    this.transferErrorSubject.next(null);
+    this.transferMessageSubject.next(null);
+    this.transferSuccessSubject.next(false);
+
+    if (!this.activeSession || this.callStateSubject.value !== 'active') {
+      console.debug('[SIP/WebRTC] transfer skipped because there is no active established call', {
+        callState: this.callStateSubject.value,
+        hasActiveSession: Boolean(this.activeSession),
+      });
+      this.transferErrorSubject.next('Transfer is available only during an active established call.');
+      return;
+    }
+
+    if (this.transferInProgressSubject.value) {
+      console.debug('[SIP/WebRTC] transfer skipped because another transfer is already in progress');
+      return;
+    }
+
+    if (!normalizedTargetInput) {
+      this.transferErrorSubject.next('Transfer target is required.');
+      return;
+    }
+
+    const referTo = this.buildTransferTarget(normalizedTargetInput, profile?.domain ?? '');
+    if (!referTo) {
+      this.transferErrorSubject.next('Transfer target is not a valid SIP URI or extension.');
+      return;
+    }
+
+    if (this.activeSession.state !== SessionState.Established) {
+      this.transferErrorSubject.next('Transfer is available only after the call is established.');
+      return;
+    }
+
+    const session = this.activeSession as Session & SipSessionDescriptionHandler;
+    if (typeof session.refer !== 'function') {
+      this.transferErrorSubject.next('Transfer is not supported by this session/browser yet.');
+      console.warn('[SIP/WebRTC] transfer unsupported because session.refer is unavailable', {
+        target: referTo.toString(),
+      });
+      return;
+    }
+
+    this.transferInProgressSubject.next(true);
+    this.transferMessageSubject.next('Transfer request sent. Waiting for remote SIP progress.');
+    console.debug('[SIP/WebRTC] transfer request started', {
+      target: referTo.toString(),
+      inputMode: normalizedTargetInput.startsWith('sip:') || normalizedTargetInput.includes('@') ? 'uri' : 'extension',
+      callState: this.callStateSubject.value,
+    });
+
+    try {
+      await session.refer(referTo, {
+        requestDelegate: {
+          onAccept: (response) => {
+            const responseMessage = response.message as { statusCode?: number; reasonPhrase?: string } | undefined;
+            console.debug('[SIP/WebRTC] transfer REFER accepted', {
+              statusCode: responseMessage?.statusCode ?? null,
+              reasonPhrase: responseMessage?.reasonPhrase ?? null,
+              target: referTo.toString(),
+            });
+            this.transferMessageSubject.next('Transfer request accepted. Waiting for transfer progress.');
+          },
+          onProgress: (response) => {
+            const responseMessage = response.message as { statusCode?: number; reasonPhrase?: string } | undefined;
+            console.debug('[SIP/WebRTC] transfer REFER progress', {
+              statusCode: responseMessage?.statusCode ?? null,
+              reasonPhrase: responseMessage?.reasonPhrase ?? null,
+              target: referTo.toString(),
+            });
+            this.transferMessageSubject.next('Transfer request is in progress.');
+          },
+          onReject: (response) => {
+            const responseMessage = response.message as { statusCode?: number; reasonPhrase?: string } | undefined;
+            const message = this.formatReferResponseMessage(responseMessage?.statusCode, responseMessage?.reasonPhrase, 'Transfer was rejected.');
+            console.warn('[SIP/WebRTC] transfer REFER rejected', {
+              statusCode: responseMessage?.statusCode ?? null,
+              reasonPhrase: responseMessage?.reasonPhrase ?? null,
+              target: referTo.toString(),
+            });
+            this.transferErrorSubject.next(message);
+            this.transferMessageSubject.next(null);
+            this.transferSuccessSubject.next(false);
+            this.transferInProgressSubject.next(false);
+          },
+        },
+        onNotify: (notification) => {
+          const notifyResult = this.parseReferNotify(notification.request.body ?? '');
+          console.debug('[SIP/WebRTC] transfer NOTIFY received', {
+            target: referTo.toString(),
+            notifyResult,
+          });
+          void notification.accept?.().catch(() => undefined);
+
+          if (notifyResult.isFinal && notifyResult.statusCode !== null) {
+            if (notifyResult.statusCode >= 200 && notifyResult.statusCode < 300) {
+              this.transferSuccessSubject.next(true);
+              this.transferMessageSubject.next(notifyResult.reasonPhrase ? `Transfer completed: ${notifyResult.reasonPhrase}` : 'Transfer completed.');
+              this.transferErrorSubject.next(null);
+            } else {
+              this.transferSuccessSubject.next(false);
+              this.transferErrorSubject.next(this.formatReferResponseMessage(
+                notifyResult.statusCode,
+                notifyResult.reasonPhrase,
+                'Transfer failed.',
+              ));
+              this.transferMessageSubject.next(null);
+            }
+            this.transferInProgressSubject.next(false);
+          }
+        },
+      });
+
+      console.debug('[SIP/WebRTC] transfer REFER request dispatched', {
+        target: referTo.toString(),
+      });
+    } catch (error) {
+      const message = this.toErrorMessage(error, 'Transfer is not supported by this session/browser yet.');
+      this.transferErrorSubject.next(message);
+      this.transferMessageSubject.next(null);
+      this.transferSuccessSubject.next(false);
+      this.transferInProgressSubject.next(false);
+      console.warn('[SIP/WebRTC] transfer request failed', {
+        target: referTo.toString(),
+        error: message,
+      });
+    }
+  }
+
   toggleMute(): void {
     if (!this.activeSession || this.callStateSubject.value !== 'active') {
       console.debug('[SIP/WebRTC] mute toggle skipped', {
@@ -810,6 +998,17 @@ export class SipClientService {
     this.destinationSubject.next(destination);
   }
 
+  setTransferTarget(target: string): void {
+    const normalizedTarget = target.trim();
+    this.transferTargetSubject.next(normalizedTarget);
+
+    if (!normalizedTarget) {
+      this.transferErrorSubject.next(null);
+      this.transferMessageSubject.next(null);
+      this.transferSuccessSubject.next(false);
+    }
+  }
+
   /**
    * Tenant switches must tear down the SIP client so stale audio streams and
    * cached user-agent state do not leak across tenant boundaries.
@@ -824,6 +1023,7 @@ export class SipClientService {
     this.microphonePermissionSubject.next('unknown');
     this.mutedSubject.next(false);
     this.destinationSubject.next('');
+    this.resetTransferState();
     this.incomingCallSubject.next(false);
     this.errorSubject.next(null);
     this.resetMediaDiagnostics();
@@ -1407,6 +1607,7 @@ export class SipClientService {
     }
 
     this.transportStateSubject.next('disconnected');
+    this.resetTransferState();
     this.resetMediaDiagnostics();
   }
 
@@ -1455,6 +1656,7 @@ export class SipClientService {
     this.activeSession = null;
     this.mutedSubject.next(false);
     this.localHoldSubject.next(false);
+    this.resetTransferState();
     this.mediaDiagnosticsSubject.next({
       ...this.mediaDiagnosticsSubject.value,
       remote_audio_attached: false,
@@ -1543,6 +1745,48 @@ export class SipClientService {
 
   private isCallInProgress(): boolean {
     return ['dialing', 'ringing', 'active', 'held'].includes(this.callStateSubject.value);
+  }
+
+  private resetTransferState(): void {
+    this.transferTargetSubject.next('');
+    this.transferInProgressSubject.next(false);
+    this.transferErrorSubject.next(null);
+    this.transferMessageSubject.next(null);
+    this.transferSuccessSubject.next(false);
+  }
+
+  private buildTransferTarget(targetInput: string, domain: string): ReturnType<typeof UserAgent.makeURI> | null {
+    const normalizedInput = targetInput.trim();
+    if (!normalizedInput) {
+      return null;
+    }
+
+    const isTransferUri = normalizedInput.startsWith('sip:');
+    const isExtension = /^\d+$/.test(normalizedInput);
+    const isBareSipUser = /^[^@\s/]+@[^@\s/]+$/.test(normalizedInput);
+
+    if (!isTransferUri && !isExtension && !isBareSipUser) {
+      return null;
+    }
+
+    return UserAgent.makeURI(this.resolveSipTarget(normalizedInput, domain));
+  }
+
+  private parseReferNotify(body: string): { statusCode: number | null; reasonPhrase: string | null; isFinal: boolean } {
+    const statusLine = body.match(/^SIP\/2\.0\s+(\d{3})\s*(.*)$/im);
+    const statusCode = statusLine?.[1] ? Number(statusLine[1]) : null;
+    const reasonPhrase = statusLine?.[2]?.trim() || null;
+
+    return {
+      statusCode,
+      reasonPhrase,
+      isFinal: statusCode !== null && statusCode >= 200,
+    };
+  }
+
+  private formatReferResponseMessage(statusCode?: number | null, reasonPhrase?: string | null, fallback = 'Transfer failed.'): string {
+    const parts = [statusCode, reasonPhrase?.trim()].filter(Boolean);
+    return parts.length > 0 ? `Transfer failed: ${parts.join(' ')}` : fallback;
   }
 
   private hasLocalAudioSenderTrack(): boolean {

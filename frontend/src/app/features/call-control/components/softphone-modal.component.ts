@@ -43,6 +43,11 @@ export class SoftphoneModalComponent implements OnChanges, OnDestroy {
   readonly selectedAudioInputDeviceId$;
   readonly audioInputDevicesLoading$;
   readonly audioInputDevicesError$;
+  readonly transferTarget$;
+  readonly transferInProgress$;
+  readonly transferError$;
+  readonly transferMessage$;
+  readonly transferSuccess$;
   readonly muted$;
   readonly incomingCall$;
   readonly error$;
@@ -63,6 +68,11 @@ export class SoftphoneModalComponent implements OnChanges, OnDestroy {
     this.selectedAudioInputDeviceId$ = this.sipClient.selectedAudioInputDeviceId$;
     this.audioInputDevicesLoading$ = this.sipClient.audioInputDevicesLoading$;
     this.audioInputDevicesError$ = this.sipClient.audioInputDevicesError$;
+    this.transferTarget$ = this.sipClient.transferTarget$;
+    this.transferInProgress$ = this.sipClient.transferInProgress$;
+    this.transferError$ = this.sipClient.transferError$;
+    this.transferMessage$ = this.sipClient.transferMessage$;
+    this.transferSuccess$ = this.sipClient.transferSuccess$;
     this.muted$ = this.sipClient.muted$;
     this.incomingCall$ = this.sipClient.incomingCall$;
     this.error$ = this.sipClient.error$;
@@ -85,6 +95,10 @@ export class SoftphoneModalComponent implements OnChanges, OnDestroy {
 
   get muted(): boolean {
     return this.sipClient.muted;
+  }
+
+  get transferTarget(): string {
+    return this.sipClient.transferTarget;
   }
 
   get canShowMinimizedControls(): boolean {
@@ -142,6 +156,14 @@ export class SoftphoneModalComponent implements OnChanges, OnDestroy {
 
   canSendDtmf(): boolean {
     return this.sipClient.canSendDtmf();
+  }
+
+  canTransfer(): boolean {
+    return this.sipClient.canTransfer();
+  }
+
+  canSubmitTransfer(): boolean {
+    return this.canTransfer() && Boolean(this.transferTarget.trim()) && !this.sipClient.transferInProgress;
   }
 
   canChangeAudioInputDevice(): boolean {
@@ -246,6 +268,10 @@ export class SoftphoneModalComponent implements OnChanges, OnDestroy {
     await this.sipClient.sendDtmf(digit);
   }
 
+  async transfer(): Promise<void> {
+    await this.sipClient.transfer();
+  }
+
   requestClose(): void {
     this.isMinimized = false;
     this.sipClient.resetForTenantChange();
@@ -274,6 +300,10 @@ export class SoftphoneModalComponent implements OnChanges, OnDestroy {
     }
 
     this.sipClient.setSelectedAudioInputDevice(value);
+  }
+
+  async onTransferTargetChange(value: string): Promise<void> {
+    this.sipClient.setTransferTarget(value);
   }
 
   trackExtension(_index: number, extension: { id: number }): number {
