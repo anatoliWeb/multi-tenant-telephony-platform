@@ -48,6 +48,13 @@ export class ChatApiService {
     );
   }
 
+  createCallStartedMessage(conversationId: number, payload: Record<string, unknown> = {}) {
+    return this.apiClient.post<ChatMessage, Record<string, unknown>>(
+      `/v1/chat/conversations/${conversationId}/call-started`,
+      payload,
+    );
+  }
+
   editMessage(messageId: number, payload: { body: string }) {
     return this.apiClient.patch<ChatMessage, { body: string }>(`/v1/chat/messages/${messageId}`, payload);
   }

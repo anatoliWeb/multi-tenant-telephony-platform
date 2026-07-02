@@ -233,6 +233,11 @@ class ChatAccessService
             || in_array($participant->role, ['owner', 'admin', 'support'], true);
     }
 
+    public function canUseCallControl(User $user): bool
+    {
+        return $this->hasPermissionInActiveScope($user, ['call_control.view', 'call_control.call']);
+    }
+
     /**
      * @return array{
      *     can_view_messages: bool,

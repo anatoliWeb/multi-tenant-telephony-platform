@@ -577,6 +577,10 @@ Route::prefix('v1')
                         ->name('conversations.messages.search')
                         ->middleware('permission:chat.view|chat.conversations.view');
 
+                    Route::post('/conversations/{conversation}/call-started', [ChatMessageController::class, 'storeCallStarted'])
+                        ->name('conversations.call-started.store')
+                        ->middleware('permission:chat.view|chat.conversations.view|call_control.view');
+
                     Route::get('/conversations/{conversation}/webhook-deliveries', [ChatConversationController::class, 'webhookDeliveries'])
                         ->name('conversations.webhook-deliveries.index')
                         ->middleware('permission:chat.webhooks.view|chat.webhooks.manage|chat.admin.view_metadata');

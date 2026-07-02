@@ -2,6 +2,7 @@ import { Component, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { PermissionService } from '../../../../rbac/services/permission.service';
 import { ChatApiService } from '../../../../core/services/chat-api.service';
+import { ChatStateService } from '../../services/chat-state.service';
 import { SipClientService } from '../../../call-control/services/sip-client.service';
 import type { ChatAttachment, ChatConversation, ChatConversationCallTarget, ChatMessage, ChatPresenceUser } from '../../models/chat.model';
 
@@ -22,6 +23,7 @@ export class ChatMessageThreadComponent {
 
   constructor(
     private readonly chatApi: ChatApiService,
+    private readonly chatState: ChatStateService,
     private readonly permissionService: PermissionService,
     private readonly sipClient: SipClientService,
   ) {}
@@ -166,7 +168,79 @@ export class ChatMessageThreadComponent {
       return;
     }
 
-    await this.sipClient.startChatCall(destination);
+    const shouldAutoDial = this.sipClient.canPlaceCall();
+    if (this.callStartInFlight) {
+      return;
+    }
+
+    if (!shouldAutoDial) {
+      await this.sipClient.startChatCall(destination);
+      return;
+    }
+
+    this.callStartInFlight = true;
+    try {
+      await this.sipClient.startChatCall(destination);
+      if (this.sipClient.callState === 'failed') {
+        return;
+      }
+
+      const targetExtension = this.callTarget?.extension_number?.trim() || null;
+      const targetDisplayName = this.callTarget?.display_name?.trim() || null;
+      const targetUserId = typeof this.callTarget?.user_id === 'number' ? this.callTarget.user_id : null;
+
+      await this.chatState.recordCallStarted({
+        target_user_id: targetUserId,
+        target_display_name: targetDisplayName,
+        target_extension: targetExtension,
+      });
+    } catch (error) {
+      console.warn('[Chat] unable to persist call-started event', {
+        conversationId: this.conversation?.id ?? null,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    } finally {
+      this.callStartInFlight = false;
+    }
+  }
+
+  private callStartInFlight = false;
+
+  get isCallStartInFlight(): boolean {
+    return this.callStartInFlight;
+  }
+
+  messageDisplayBody(message: ChatMessage): string {
+    if (this.isCallStartedMessage(message)) {
+      const label = this.callStartedLabel(message);
+      return label || 'Audio call started';
+    }
+
+    return message.body || '';
+  }
+
+  isCallStartedMessage(message: ChatMessage): boolean {
+    return (message.type ?? '').toLowerCase() === 'system' && (message.metadata as Record<string, unknown> | null)?.['event'] === 'call_started';
+  }
+
+  callStartedLabel(message: ChatMessage): string {
+    const metadata = (message.metadata as Record<string, unknown> | null) ?? {};
+    const displayName = typeof metadata['target_display_name'] === 'string' ? metadata['target_display_name'].trim() : '';
+    const extension = typeof metadata['target_extension'] === 'string' ? metadata['target_extension'].trim() : '';
+
+    if (displayName && extension) {
+      return `Audio call started with ${displayName} (${extension})`;
+    }
+
+    if (displayName) {
+      return `Audio call started with ${displayName}`;
+    }
+
+    if (extension) {
+      return `Audio call started with ${extension}`;
+    }
+
+    return 'Audio call started';
   }
 
   get visibleTypingUsers(): ChatPresenceUser[] {

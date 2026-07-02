@@ -3,13 +3,15 @@ import { vi } from 'vitest';
 import { ChatMessageThreadComponent } from './chat-message-thread.component';
 import { ChatApiService } from '../../../../core/services/chat-api.service';
 import { PermissionService } from '../../../../rbac/services/permission.service';
+import { ChatStateService } from '../../services/chat-state.service';
 import { SipClientService } from '../../../call-control/services/sip-client.service';
 
 describe('ChatMessageThreadComponent', () => {
   let fixture: ComponentFixture<ChatMessageThreadComponent>;
   let component: ChatMessageThreadComponent;
+  let chatStateMock: { recordCallStarted: ReturnType<typeof vi.fn> };
   let permissionServiceMock: { hasTenantPermission: ReturnType<typeof vi.fn> };
-  let sipClientMock: { startChatCall: ReturnType<typeof vi.fn> };
+  let sipClientMock: { startChatCall: ReturnType<typeof vi.fn>; canPlaceCall: ReturnType<typeof vi.fn>; callState: string };
 
   beforeEach(async () => {
     const chatApiMock = {
@@ -18,14 +20,20 @@ describe('ChatMessageThreadComponent', () => {
     permissionServiceMock = {
       hasTenantPermission: vi.fn(() => true),
     };
+    chatStateMock = {
+      recordCallStarted: vi.fn().mockResolvedValue(null),
+    };
     sipClientMock = {
       startChatCall: vi.fn().mockResolvedValue(undefined),
+      canPlaceCall: vi.fn(() => false),
+      callState: 'registered',
     };
 
     await TestBed.configureTestingModule({
       imports: [ChatMessageThreadComponent],
       providers: [
         { provide: ChatApiService, useValue: chatApiMock },
+        { provide: ChatStateService, useValue: chatStateMock },
         { provide: PermissionService, useValue: permissionServiceMock },
         { provide: SipClientService, useValue: sipClientMock },
       ],
@@ -158,6 +166,144 @@ describe('ChatMessageThreadComponent', () => {
     button.click();
 
     expect(sipClientMock.startChatCall).toHaveBeenCalledWith('sip:1002@localhost');
+  });
+
+  it('persists a call-started event after the shared call flow starts', async () => {
+    sipClientMock.canPlaceCall.mockReturnValue(true);
+    component.conversation = {
+      id: 11,
+      title: 'Room',
+      type: 'direct',
+      call_target: {
+        callable: true,
+        user_id: 22,
+        display_name: 'Tenant A Sales',
+        extension_number: '1002',
+        sip_uri: 'sip:1002@localhost',
+        target: 'sip:1002@localhost',
+      },
+    };
+    fixture.detectChanges();
+
+    await component.startAudioCall();
+
+    expect(sipClientMock.startChatCall).toHaveBeenCalledWith('sip:1002@localhost');
+    expect(chatStateMock.recordCallStarted).toHaveBeenCalledWith({
+      target_user_id: 22,
+      target_display_name: 'Tenant A Sales',
+      target_extension: '1002',
+    });
+  });
+
+  it('does not persist the call-started event when the target is unavailable', async () => {
+    component.conversation = {
+      id: 11,
+      title: 'Room',
+      type: 'direct',
+      call_target: {
+        callable: false,
+        reason: 'No callable target',
+      },
+    };
+    fixture.detectChanges();
+
+    await component.startAudioCall();
+
+    expect(sipClientMock.startChatCall).not.toHaveBeenCalled();
+    expect(chatStateMock.recordCallStarted).not.toHaveBeenCalled();
+  });
+
+  it('does not create duplicate call-started events while the call start is in flight', async () => {
+    sipClientMock.canPlaceCall.mockReturnValue(true);
+    let resolveStart!: () => void;
+    sipClientMock.startChatCall.mockReturnValue(new Promise<void>((resolve) => {
+      resolveStart = resolve;
+    }));
+    component.conversation = {
+      id: 11,
+      title: 'Room',
+      type: 'direct',
+      call_target: {
+        callable: true,
+        display_name: 'Tenant A Sales',
+        extension_number: '1002',
+        sip_uri: 'sip:1002@localhost',
+        target: 'sip:1002@localhost',
+      },
+    };
+    fixture.detectChanges();
+
+    const firstCall = component.startAudioCall();
+    const secondCall = component.startAudioCall();
+    resolveStart();
+    await firstCall;
+    await secondCall;
+
+    expect(sipClientMock.startChatCall).toHaveBeenCalledTimes(1);
+    expect(chatStateMock.recordCallStarted).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps the softphone call flow stable when the event API fails', async () => {
+    sipClientMock.canPlaceCall.mockReturnValue(true);
+    chatStateMock.recordCallStarted.mockRejectedValueOnce(new Error('event write failed'));
+    component.conversation = {
+      id: 11,
+      title: 'Room',
+      type: 'direct',
+      call_target: {
+        callable: true,
+        display_name: 'Tenant A Sales',
+        extension_number: '1002',
+        sip_uri: 'sip:1002@localhost',
+        target: 'sip:1002@localhost',
+      },
+    };
+    fixture.detectChanges();
+
+    await expect(component.startAudioCall()).resolves.toBeUndefined();
+
+    expect(sipClientMock.startChatCall).toHaveBeenCalledWith('sip:1002@localhost');
+    expect(chatStateMock.recordCallStarted).toHaveBeenCalledTimes(1);
+  });
+
+  it('renders a friendly event label for call-started messages', () => {
+    component.conversation = { id: 11, title: 'Room' };
+    const message = {
+      id: 8,
+      conversation_id: 11,
+      type: 'system',
+      body: 'Audio call started',
+      metadata: {
+        event: 'call_started',
+        target_display_name: 'Tenant A Sales',
+        target_extension: '1002',
+      },
+    } as any;
+
+    expect(component.messageDisplayBody(message)).toBe('Audio call started with Tenant A Sales (1002)');
+    expect(component.isCallStartedMessage(message)).toBe(true);
+  });
+
+  it('renders call-started event messages with a friendly label', () => {
+    component.conversation = { id: 11, title: 'Room' };
+    component.messages = [
+      {
+        id: 8,
+        conversation_id: 11,
+        type: 'system',
+        body: 'Audio call started',
+        metadata: {
+          event: 'call_started',
+          target_display_name: 'Tenant A Sales',
+          target_extension: '1002',
+        },
+      } as any,
+    ];
+    fixture.detectChanges();
+
+    const eventNode = fixture.nativeElement.querySelector('[data-testid="call-started-message"]') as HTMLElement;
+    expect(eventNode).not.toBeNull();
+    expect(eventNode.textContent).toContain('Audio call started with Tenant A Sales (1002)');
   });
 
   it('loading state renders safely', () => {

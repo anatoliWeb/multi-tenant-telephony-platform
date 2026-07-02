@@ -30,6 +30,7 @@ describe('ChatStateService', () => {
     uploadAttachment: ReturnType<typeof vi.fn>;
     deleteAttachment: ReturnType<typeof vi.fn>;
     registerDeviceOnce: ReturnType<typeof vi.fn>;
+    createCallStartedMessage: ReturnType<typeof vi.fn>;
   };
   let chatDevice: {
     ensureRegistered: ReturnType<typeof vi.fn>;
@@ -74,6 +75,7 @@ describe('ChatStateService', () => {
       uploadAttachment: vi.fn(),
       deleteAttachment: vi.fn(),
       registerDeviceOnce: vi.fn(),
+      createCallStartedMessage: vi.fn(),
     };
 
     chatDevice = {
@@ -298,6 +300,79 @@ describe('ChatStateService', () => {
 
     expect(chatApi.sendMessage).toHaveBeenCalledWith(7, { body: 'With file', type: 'text' });
     expect(chatApi.uploadAttachment).toHaveBeenCalledWith(501, file);
+  });
+
+  it('recordCallStarted persists and upserts a call-started system message', async () => {
+    chatApi.getConversation.mockReturnValue(of({ success: true, message: 'ok', data: { id: 7, title: 'Room' } }));
+    chatApi.listMessages.mockReturnValue(of({
+      success: true,
+      message: 'ok',
+      data: [
+        { id: 1, conversation_id: 7, body: 'old', type: 'text' },
+        { id: 9, conversation_id: 7, body: 'Audio call started', type: 'system' },
+      ],
+    }));
+    chatApi.listConversationParticipants.mockReturnValue(of({ success: true, message: 'ok', data: [] }));
+    chatApi.createCallStartedMessage.mockReturnValue(of({
+      success: true,
+      message: 'ok',
+      data: {
+        id: 9,
+        conversation_id: 7,
+        sender_type: 'system',
+        type: 'system',
+        body: 'Audio call started',
+        metadata: {
+          event: 'call_started',
+          call_direction: 'outbound',
+          initiator_user_id: 1,
+          target_user_id: 2,
+          target_display_name: 'Tenant A Sales',
+          target_extension: '1002',
+          started_at: '2026-01-01T00:00:00.000Z',
+        },
+      },
+    }));
+
+    await service.openConversation(7);
+    await service.recordCallStarted({
+      target_user_id: 2,
+      target_display_name: 'Tenant A Sales',
+      target_extension: '1002',
+    });
+
+    expect(chatApi.createCallStartedMessage).toHaveBeenCalledWith(7, {
+      call_direction: 'outbound',
+      target_user_id: 2,
+      target_display_name: 'Tenant A Sales',
+      target_extension: '1002',
+    });
+
+    let messages: any[] = [];
+    service.messages$.subscribe((items) => {
+      messages = items;
+    });
+
+    const eventMessage = messages.find((message) => message.id === 9);
+    expect(eventMessage?.type).toBe('system');
+    expect(eventMessage?.metadata?.event).toBe('call_started');
+    expect(eventMessage?.metadata?.target_extension).toBe('1002');
+  });
+
+  it('recordCallStarted keeps the timeline stable when the event API fails', async () => {
+    chatApi.getConversation.mockReturnValue(of({ success: true, message: 'ok', data: { id: 7, title: 'Room' } }));
+    chatApi.listMessages.mockReturnValue(of({ success: true, message: 'ok', data: [] }));
+    chatApi.listConversationParticipants.mockReturnValue(of({ success: true, message: 'ok', data: [] }));
+    chatApi.createCallStartedMessage.mockReturnValue(throwError(() => new Error('call event failed')));
+
+    await service.openConversation(7);
+    await expect(service.recordCallStarted()).resolves.toBeNull();
+
+    let errorMessage: string | null = null;
+    service.error$.subscribe((value) => {
+      errorMessage = value;
+    });
+    expect(errorMessage).toBe('The audio call note could not be saved. The call still started.');
   });
 
   it('filters conversations by search/type/visibility/unread and reset works', async () => {

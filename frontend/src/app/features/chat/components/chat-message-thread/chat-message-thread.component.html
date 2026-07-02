@@ -38,12 +38,17 @@
 <ul class="thread-list" *ngIf="!loading && !error && conversation && canViewMessages && messages.length > 0">
   <li *ngFor="let message of messages" class="thread-item" data-testid="message-item">
     <div class="thread-item__meta">
-      <strong>{{ message.sender_id ? ('User #' + message.sender_id) : 'System' }}</strong>
+      <strong>{{ isCallStartedMessage(message) ? 'System' : (message.sender_id ? ('User #' + message.sender_id) : 'System') }}</strong>
       <small>{{ message.sent_at || message.created_at || '-' }}</small>
     </div>
 
-    <p class="thread-item__body" *ngIf="message.status !== 'deleted'; else deletedPlaceholder">
-      {{ message.body || '' }}
+    <p
+      class="thread-item__body"
+      [class.thread-item__body--event]="isCallStartedMessage(message)"
+      *ngIf="message.status !== 'deleted'; else deletedPlaceholder"
+      [attr.data-testid]="isCallStartedMessage(message) ? 'call-started-message' : null"
+    >
+      {{ messageDisplayBody(message) }}
     </p>
     <ng-template #deletedPlaceholder>
       <p class="thread-item__deleted">Message deleted</p>

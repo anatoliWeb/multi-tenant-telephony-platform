@@ -16,6 +16,7 @@ use App\Services\Chat\ChatMessageService;
 use App\Services\Chat\ExternalChatMessageService;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 class ChatMessageController extends BaseController
 {
@@ -117,6 +118,19 @@ class ChatMessageController extends BaseController
                 'idempotent' => (bool) ($result['idempotent'] ?? false),
             ],
         ], ($result['idempotent'] ?? false) ? 200 : 201);
+    }
+
+    public function storeCallStarted(Request $request, Conversation $conversation): JsonResponse
+    {
+        /** @var User $user */
+        $user = $request->user();
+        $message = $this->messageService->createCallStartedMessage($user, $conversation);
+
+        $payload = (new ChatMessageResource($message))
+            ->withAdminMetadata($this->queryService->applyAdminMetadataGate($user, $conversation))
+            ->resolve();
+
+        return $this->successResponse($payload, 'Call started', 201);
     }
 
     /**

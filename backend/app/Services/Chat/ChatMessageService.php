@@ -20,6 +20,7 @@ class ChatMessageService
 {
     public function __construct(
         protected ChatAccessService $accessService,
+        protected ChatConversationService $conversationService,
         protected ChatAttachmentService $attachmentService,
         protected ChatWebhookDeliveryService $webhookDeliveryService,
         protected ChatModerationService $chatModerationService,
@@ -156,6 +157,72 @@ class ChatMessageService
         }
 
         return $message;
+    }
+
+    /**
+     * Persist a call-started system event in a direct conversation.
+     *
+     * The event is stored as a safe system message with structured metadata so
+     * the chat timeline can render "Audio call started" without exposing SIP
+     * credentials or transport details.
+     */
+    public function createCallStartedMessage(User $actor, Conversation $conversation): Message
+    {
+        if ($conversation->type !== 'direct') {
+            throw ValidationException::withMessages([
+                'conversation' => ['Call started events are only supported for direct chats.'],
+            ]);
+        }
+
+        if ($conversation->status !== 'active') {
+            throw ValidationException::withMessages([
+                'conversation' => ['Call started events are only supported for active direct chats.'],
+            ]);
+        }
+
+        if (! $this->accessService->canViewConversation($actor, $conversation)) {
+            throw new AuthorizationException('You are not allowed to view this conversation.');
+        }
+
+        if (! $this->accessService->canUseCallControl($actor)) {
+            throw new AuthorizationException('You are not allowed to start calls from this conversation.');
+        }
+
+        $callTarget = $this->conversationService->resolveCallTarget($actor, $conversation);
+        if (! ($callTarget['callable'] ?? false)) {
+            throw ValidationException::withMessages([
+                'conversation' => [$callTarget['reason'] ?? 'No callable participant is available for this direct chat.'],
+            ]);
+        }
+
+        $body = 'Audio call started';
+        if (! empty($callTarget['display_name']) || ! empty($callTarget['extension_number'])) {
+            $targetLabel = trim(implode(' ', array_filter([
+                (string) ($callTarget['display_name'] ?? ''),
+                isset($callTarget['extension_number']) ? sprintf('(%s)', $callTarget['extension_number']) : null,
+            ], static fn ($value) => is_string($value) ? trim($value) !== '' : $value !== null)));
+            if ($targetLabel !== '') {
+                $body = sprintf('Audio call started with %s', $targetLabel);
+            }
+        }
+
+        $message = $this->sendMessage($actor, $conversation, [
+            'body' => $body,
+            'type' => 'system',
+        ]);
+
+        $message->metadata = array_filter([
+            'event' => 'call_started',
+            'call_direction' => 'outbound',
+            'initiator_user_id' => $actor->id,
+            'target_user_id' => $callTarget['user_id'] ?? null,
+            'target_display_name' => $callTarget['display_name'] ?? null,
+            'target_extension' => $callTarget['extension_number'] ?? null,
+            'started_at' => now()->toISOString(),
+        ], static fn ($value) => $value !== null);
+        $message->save();
+
+        return $message->fresh();
     }
 
     /**

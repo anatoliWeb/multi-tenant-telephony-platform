@@ -206,6 +206,39 @@ export class ChatStateService {
     }
   }
 
+  async recordCallStarted(payload?: {
+    target_user_id?: number | null;
+    target_display_name?: string | null;
+    target_extension?: string | null;
+  }): Promise<ChatMessage | null> {
+    const active = this.activeConversationSubject.value;
+    if (!active?.id) {
+      return null;
+    }
+    const activeConversationId = active.id;
+
+    this.errorSubject.next(null);
+    try {
+      const response = await firstValueFrom(this.chatApi.createCallStartedMessage(activeConversationId, {
+        call_direction: 'outbound',
+        ...payload,
+      }));
+      const message = response.data ?? null;
+      if (message && this.activeConversationSubject.value?.id === activeConversationId) {
+        this.upsertMessage(message);
+      }
+
+      return message;
+    } catch (error) {
+      console.warn('[Chat] unable to persist call-started event', {
+        conversationId: active.id,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      this.errorSubject.next('The audio call note could not be saved. The call still started.');
+      return null;
+    }
+  }
+
   async sendMessageWithAttachment(body: string, file: File): Promise<void> {
     const active = this.activeConversationSubject.value;
     if (!active?.id) {
@@ -707,6 +740,18 @@ export class ChatStateService {
         ? payload['deleted_at'] as string | null
         : undefined,
     };
+  }
+
+  private upsertMessage(message: ChatMessage): void {
+    const existingIndex = this.messagesSubject.value.findIndex((item) => item.id === message.id);
+    if (existingIndex === -1) {
+      this.messagesSubject.next([...this.messagesSubject.value, message]);
+      return;
+    }
+
+    const next = [...this.messagesSubject.value];
+    next[existingIndex] = { ...next[existingIndex], ...message };
+    this.messagesSubject.next(next);
   }
 
   private sanitizeRealtimeReadDeliveryPatch(payload: Record<string, unknown>): Partial<ChatMessage> {

@@ -325,9 +325,12 @@ Current notes:
   target to the reusable call-control service;
 - if no callable extension is available, the call affordance stays disabled and
   the UI shows a clear availability hint;
+- when the shared call-control flow starts an outbound direct-chat call, the
+  frontend persists a safe `call_started` timeline event in the same
+  conversation so participants can see that the audio call was initiated;
 - group-chat calling remains a later slice and is not part of this first direct
   chat entry point;
-- call-started, missed-call, and completed-call summary events are still open.
+- missed-call and completed-call summary events remain unimplemented for now.
 
 ## FreeSWITCH Docker Profile
 

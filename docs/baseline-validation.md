@@ -475,10 +475,12 @@ following verification state:
 Stage 16 started with a thin direct-chat calling slice that reuses the Stage 15
 Angular call-control layer:
 
-- frontend tests after the chat-to-call wiring: `261 passed`, `0 failed`;
+- frontend tests after the chat-to-call wiring: `269 passed`, `0 failed`;
 - Angular production build passed after the chat header and softphone handoff
   updates;
 - the direct-chat header now resolves a safe callable target and hands it to
   the shared softphone flow;
+- the first persisted direct-chat call event is now saved as a safe
+  `call_started` timeline message and rendered in the chat timeline;
 - manual end-to-end browser verification for the new chat entry point is still
   pending.

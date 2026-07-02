@@ -1074,7 +1074,7 @@ Stage status: `COMPLETE`
 - [x] Resolve the participant extension
 - [x] Open the reusable softphone modal
 - [x] Start the call through `CallControlService`
-- [ ] Add a call-started event message
+- [x] Add a call-started event message
 - [ ] Add a missed-call event message
 - [ ] Add a completed-call summary
 

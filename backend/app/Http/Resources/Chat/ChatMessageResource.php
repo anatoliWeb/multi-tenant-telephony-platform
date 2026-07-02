@@ -38,6 +38,18 @@ class ChatMessageResource extends JsonResource
             'attachments' => ChatAttachmentResource::collection($this->whenLoaded('attachments')),
         ];
 
+        if ($this->type === 'system' && is_array($this->metadata) && data_get($this->metadata, 'event') === 'call_started') {
+            $data['metadata'] = array_filter([
+                'event' => data_get($this->metadata, 'event'),
+                'call_direction' => data_get($this->metadata, 'call_direction'),
+                'initiator_user_id' => data_get($this->metadata, 'initiator_user_id'),
+                'target_user_id' => data_get($this->metadata, 'target_user_id'),
+                'target_display_name' => data_get($this->metadata, 'target_display_name'),
+                'target_extension' => data_get($this->metadata, 'target_extension'),
+                'started_at' => data_get($this->metadata, 'started_at'),
+            ], static fn ($value) => $value !== null);
+        }
+
         if ($this->canViewAdminMetadata) {
             $data['imported_from_conversation_id'] = $this->imported_from_conversation_id;
             $data['imported_from_message_id'] = $this->imported_from_message_id;

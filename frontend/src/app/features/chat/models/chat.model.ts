@@ -96,6 +96,7 @@ export interface ChatMessage {
   created_at?: string | null;
   attachments_count?: number;
   attachments?: ChatAttachment[];
+  metadata?: Record<string, unknown> | null;
 }
 
 export interface ChatDevice {
